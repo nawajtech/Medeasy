@@ -1,0 +1,215 @@
+.sidebar {
+  width: var(--me-sidebar-width);
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 100;
+  background: var(--me-surface);
+  border-right: 1px solid var(--me-border);
+  box-shadow: var(--me-shadow-sm);
+}
+
+.sidebar-inner {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px 20px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  margin-bottom: 28px;
+  text-decoration: none;
+  border-radius: var(--me-radius-md);
+  transition: background var(--me-transition);
+}
+
+.brand:hover {
+  background: var(--me-surface-muted);
+}
+
+.brand-icon {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--me-primary) 0%, #14b8a6 100%);
+  color: #fff;
+  border-radius: var(--me-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 14px var(--me-primary-ring);
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.brand-name {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.brand-tagline {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--me-primary);
+}
+
+.menu {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 4px;
+  margin-right: -4px;
+}
+
+.menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.menu::-webkit-scrollbar-thumb {
+  background: var(--me-border-strong);
+  border-radius: var(--me-radius-full);
+}
+
+.menu-section + .menu-section {
+  margin-top: 24px;
+}
+
+.menu-label {
+  display: block;
+  padding: 0 12px 8px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--me-text-muted);
+}
+
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-list a,
+.menu-list .active {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--me-radius-md);
+  text-decoration: none;
+  color: var(--me-text-secondary);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  transition:
+    background var(--me-transition),
+    color var(--me-transition),
+    box-shadow var(--me-transition);
+}
+
+.menu-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--me-radius-sm);
+  background: transparent;
+  color: inherit;
+  transition:
+    background var(--me-transition),
+    color var(--me-transition);
+}
+
+.menu-list a:hover,
+.menu-list .active:hover {
+  color: var(--me-text);
+  background: var(--me-surface-muted);
+}
+
+.menu-list a:hover .menu-icon,
+.menu-list .active:hover .menu-icon {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
+.menu-list a.active,
+.menu-list .active {
+  color: var(--me-primary);
+  background: var(--me-primary-soft);
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--me-primary);
+}
+
+.menu-list a.active .menu-icon,
+.menu-list .active .menu-icon {
+  background: var(--me-surface);
+  color: var(--me-primary);
+}
+
+.menu-text {
+  line-height: 1.25;
+}
+
+.sidebar-footer {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--me-border);
+}
+
+.sidebar-footer-card {
+  padding: 14px 14px 12px;
+  border-radius: var(--me-radius-md);
+  background: linear-gradient(160deg, var(--me-surface-muted) 0%, #ecfdf5 100%);
+  border: 1px solid var(--me-border);
+}
+
+.sidebar-footer-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  margin-bottom: 4px;
+}
+
+.sidebar-footer-desc {
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: var(--me-text-secondary);
+  margin-bottom: 10px;
+}
+
+.sidebar-version {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--me-primary);
+  background: var(--me-surface);
+  padding: 3px 8px;
+  border-radius: var(--me-radius-full);
+  border: 1px solid var(--me-border);
+}
+
+@media (max-width: 1024px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+}

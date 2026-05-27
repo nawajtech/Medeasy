@@ -1,0 +1,57 @@
+.appointments-page .page-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  margin-bottom: 6px;
+}
+
+.appointments-page .page-card-header p {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+
+.appointments-table-wrap {
+  overflow-x: auto;
+}
+
+.crud-actions--stack {
+  flex-wrap: wrap;
+  max-width: 140px;
+}
+
+.field-hint {
+  font-weight: 400;
+  color: var(--me-text-muted);
+  font-size: 0.75rem;
+}
+
+.readonly-total {
+  background: var(--me-surface-muted);
+  cursor: default;
+}
+
+.form-section-label {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--me-text-secondary);
+  margin: 20px 0 12px;
+}
+
+.billing-summary-box {
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--me-primary-soft);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.billing-summary-due {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--me-border-strong);
+  color: var(--me-text);
+}

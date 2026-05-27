@@ -1,0 +1,33 @@
+:root {
+  --me-primary: #0d9488;
+  --me-primary-hover: #0f766e;
+  --me-primary-soft: rgba(13, 148, 136, 0.1);
+  --me-primary-ring: rgba(13, 148, 136, 0.25);
+
+  --me-surface: #ffffff;
+  --me-surface-elevated: #ffffff;
+  --me-surface-muted: #f8fafc;
+  --me-canvas: #f1f5f9;
+
+  --me-text: #0f172a;
+  --me-text-secondary: #64748b;
+  --me-text-muted: #94a3b8;
+
+  --me-border: #e2e8f0;
+  --me-border-strong: #cbd5e1;
+
+  --me-sidebar-width: 280px;
+  --me-header-height: 72px;
+
+  --me-radius-sm: 8px;
+  --me-radius-md: 12px;
+  --me-radius-lg: 16px;
+  --me-radius-full: 9999px;
+
+  --me-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --me-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
+  --me-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
+
+  --me-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --me-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}

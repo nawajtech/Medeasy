@@ -1,0 +1,50 @@
+@import "./styles/tokens.css";
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  font-family: var(--me-font);
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--me-text);
+  background: var(--me-canvas);
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}
+
+.admin-content h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--me-text);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.admin-content p {
+  color: var(--me-text-secondary);
+  font-size: 0.9375rem;
+}

@@ -1,0 +1,12 @@
+.doctors-page .page-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  margin-bottom: 6px;
+}
+
+.doctors-page .page-card-header p {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+

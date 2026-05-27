@@ -1,0 +1,29 @@
+.admin-wrapper {
+  display: flex;
+  min-height: 100vh;
+  background: var(--me-canvas);
+}
+
+.admin-main {
+  margin-left: var(--me-sidebar-width);
+  width: calc(100% - var(--me-sidebar-width));
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-content {
+  flex: 1;
+  padding: 28px 32px 32px;
+}
+
+@media (max-width: 1024px) {
+  .admin-main {
+    margin-left: 0;
+    width: 100%;
+  }
+
+  .admin-content {
+    padding: 20px 16px 24px;
+  }
+}

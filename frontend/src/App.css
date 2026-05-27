@@ -1,0 +1,12 @@
+.page-card,
+.welcome-card {
+  padding: 28px 32px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-lg);
+  box-shadow: var(--me-shadow-md);
+}
+
+.welcome-card h1 {
+  margin-bottom: 8px;
+}

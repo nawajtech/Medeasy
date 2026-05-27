@@ -1,0 +1,107 @@
+.availability-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.availability-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 26px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-lg);
+}
+
+.availability-header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.availability-header p {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+
+.availability-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.availability-week {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.availability-day-card {
+  display: grid;
+  grid-template-columns: 140px 80px 1fr;
+  gap: 16px;
+  align-items: start;
+  padding: 16px 18px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.availability-day-card.is-active {
+  border-color: var(--me-primary-ring);
+  background: linear-gradient(90deg, var(--me-primary-soft) 0%, var(--me-surface) 40%);
+}
+
+.availability-day-card.is-disabled {
+  opacity: 0.72;
+}
+
+.availability-day-label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.availability-day-label strong {
+  font-size: 1rem;
+  color: var(--me-text);
+}
+
+.availability-day-toggle label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.availability-day-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  grid-column: 2 / -1;
+}
+
+.availability-actions-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .availability-day-card {
+    grid-template-columns: 1fr;
+  }
+
+  .availability-day-fields {
+    grid-column: 1;
+  }
+}
