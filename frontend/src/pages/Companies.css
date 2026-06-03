@@ -1,3 +1,4 @@
+/* ── Table ─────────────────────────────────────────────────── */
 .companies-page .page-card-header h2 {
   font-size: 1.125rem;
   font-weight: 700;
@@ -10,9 +11,116 @@
   color: var(--me-text-secondary);
 }
 
-.companies-page .crud-table td:nth-child(2) {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+/* Logo thumbnail in table */
+.company-logo-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: var(--me-radius-sm);
+  border: 1px solid var(--me-border);
+  background: var(--me-bg-subtle, #f8fafc);
+  display: block;
 }
+
+.company-logo-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--me-radius-sm);
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+  font-weight: 700;
+  font-size: 1rem;
+  border: 1px solid var(--me-primary-ring);
+}
+
+.company-code {
+  color: var(--me-text-muted);
+  font-size: 0.8125rem;
+}
+
+/* ── Logo upload in modal ───────────────────────────────────── */
+.company-logo-upload-area {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: var(--me-bg-subtle, #f8fafc);
+  border: 1px dashed var(--me-border);
+  border-radius: var(--me-radius-lg);
+}
+
+.company-logo-preview {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: var(--me-radius-md);
+  border: 1px solid var(--me-border);
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.company-logo-placeholder-lg {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--me-radius-md);
+  border: 2px dashed var(--me-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--me-text-muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
+}
+
+.company-logo-upload-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.company-logo-file-input {
+  display: none; /* hidden — triggered by the label button */
+}
+
+.company-logo-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
+/* ── Required star ──────────────────────────────────────────── */
+.company-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+/* ── Field error ────────────────────────────────────────────── */
+.company-field-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #dc2626;
+}
+
+.crud-field input.is-error,
+.crud-field select.is-error,
+.crud-field textarea.is-error {
+  border-color: #dc2626;
+  background: #fff5f5;
+}
+
+.crud-field input.is-error:focus,
+.crud-field select.is-error:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+
+/* type badge styles live in crud.css */

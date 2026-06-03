@@ -14,13 +14,25 @@ class User extends Authenticatable
     /** @use HasFactory<UserFactory> */
     use HasApiTokens, HasFactory, Notifiable, SoftDeletes;
 
-    public const ROLE_SUPER_ADMIN = 'super_admin';
+    public const ROLE_SUPER_ADMIN    = 'super_admin';
+    public const ROLE_COMPANY_ADMIN  = 'company_admin';
+    public const ROLE_DOCTOR         = 'doctor';
+    public const ROLE_STAFF          = 'staff';
+    public const ROLE_LAB_TECHNICIAN = 'lab_technician';
+    public const ROLE_RADIOLOGIST    = 'radiologist';
+    public const ROLE_RECEPTIONIST   = 'receptionist';
+    public const ROLE_PHARMACIST     = 'pharmacist';
 
-    public const ROLE_COMPANY_ADMIN = 'company_admin';
-
-    public const ROLE_DOCTOR = 'doctor';
-
-    public const ROLE_STAFF = 'staff';
+    public const ROLES = [
+        self::ROLE_SUPER_ADMIN,
+        self::ROLE_COMPANY_ADMIN,
+        self::ROLE_DOCTOR,
+        self::ROLE_STAFF,
+        self::ROLE_LAB_TECHNICIAN,
+        self::ROLE_RADIOLOGIST,
+        self::ROLE_RECEPTIONIST,
+        self::ROLE_PHARMACIST,
+    ];
 
     protected $fillable = [
         'name',
@@ -76,5 +88,26 @@ class User extends Authenticatable
     public function isStaff(): bool
     {
         return $this->role === self::ROLE_STAFF;
+    }
+
+    public function isLabTechnician(): bool
+    {
+        return $this->role === self::ROLE_LAB_TECHNICIAN;
+    }
+
+    public function isRadiologist(): bool
+    {
+        return $this->role === self::ROLE_RADIOLOGIST;
+    }
+
+    public function isReceptionist(): bool
+    {
+        return $this->role === self::ROLE_RECEPTIONIST;
+    }
+
+    /** True for any non-super-admin tenant role */
+    public function isTenantUser(): bool
+    {
+        return ! $this->isSuperAdmin();
     }
 }

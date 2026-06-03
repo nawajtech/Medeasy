@@ -10,11 +10,15 @@ import Doctors from "./pages/Doctors";
 import DoctorAvailability from "./pages/DoctorAvailability";
 import DoctorScheduleRedirect from "./pages/DoctorScheduleRedirect";
 import Companies from "./pages/Companies";
+import Branches from "./pages/Branches";
 import Departments from "./pages/Departments";
 import Appointments from "./pages/Appointments";
 import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
+import LabTests from "./pages/LabTests";
+import LabOrders from "./pages/LabOrders";
+import DiagnosticOrders from "./pages/DiagnosticOrders";
 import "./App.css";
 
 function App() {
@@ -28,6 +32,7 @@ function App() {
               <Route element={<RoleRoute />}>
                 <Route index element={<Dashboard />} />
                 <Route path="companies" element={<Companies />} />
+                <Route path="branches" element={<Branches />} />
                 <Route path="patients" element={<Patients />} />
                 <Route path="departments" element={<Departments />} />
                 <Route path="doctors" element={<Doctors />} />
@@ -37,6 +42,11 @@ function App() {
                 <Route path="reports" element={<Reports />} />
                 <Route path="users" element={<Users />} />
                 <Route path="settings" element={<Settings />} />
+                {/* Lab module */}
+                <Route path="lab/tests" element={<LabTests />} />
+                <Route path="lab/orders" element={<LabOrders />} />
+                {/* Diagnostics module */}
+                <Route path="diagnostics" element={<DiagnosticOrders />} />
               </Route>
             </Route>
           </Route>

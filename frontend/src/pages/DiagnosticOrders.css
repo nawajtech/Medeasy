@@ -1,0 +1,83 @@
+.dgn-status {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: var(--me-radius-full);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dgn-booked    { background: #f1f5f9; color: #64748b; }
+.dgn-scheduled { background: #e0f2fe; color: #0369a1; }
+.dgn-progress  { background: #ede9fe; color: #6d28d9; }
+.dgn-completed { background: #d1fae5; color: #065f46; }
+.dgn-cancelled { background: #fee2e2; color: #991b1b; }
+
+.dgn-modality {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--me-radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dgn-modality-xray       { background: #e0f2fe; color: #0c4a6e; }
+.dgn-modality-ct         { background: #ede9fe; color: #5b21b6; }
+.dgn-modality-mri        { background: #fce7f3; color: #9d174d; }
+.dgn-modality-ultrasound { background: #d1fae5; color: #065f46; }
+.dgn-modality-ecg        { background: #fee2e2; color: #991b1b; }
+.dgn-modality-echo       { background: #ffedd5; color: #9a3412; }
+.dgn-modality-other      { background: #f1f5f9; color: #475569; }
+
+.dgn-priority {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: var(--me-radius-full);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.dgn-priority-routine   { background: #f1f5f9; color: #64748b; }
+.dgn-priority-urgent    { background: #fef9c3; color: #854d0e; }
+.dgn-priority-emergency { background: #fee2e2; color: #991b1b; }
+
+.dgn-report-block {
+  margin-bottom: 12px;
+}
+
+.dgn-report-block strong {
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--me-text-muted);
+}
+
+.dgn-report-block p {
+  margin: 4px 0 0;
+  color: var(--me-text);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+}
+
+.dgn-approved {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #065f46;
+  background: #d1fae5;
+  padding: 6px 12px;
+  border-radius: var(--me-radius-md);
+  margin-top: 8px;
+}
+
+.lab-detail-notes {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+  padding: 8px 12px;
+  background: var(--me-bg-subtle, #f8fafc);
+  border-radius: var(--me-radius-md);
+  margin-bottom: 8px;
+}

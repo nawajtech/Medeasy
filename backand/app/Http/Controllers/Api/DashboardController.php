@@ -24,6 +24,7 @@ class DashboardController extends Controller
         $user = auth()->user();
         $companyId = $this->resolveDashboardCompanyId($request);
         $doctorId = $this->doctorIdForUser();
+        [$dateFrom, $dateTo] = $this->resolveDateRange($request);
 
         $scopeLabel = $this->scopeLabel($companyId);
         $company = $companyId ? Company::find($companyId) : null;
@@ -35,15 +36,41 @@ class DashboardController extends Controller
                 'name' => $company->name,
                 'code' => $company->code,
             ] : null,
-            'summary' => $this->summary($companyId, $doctorId, $user->isSuperAdmin() && ! $companyId),
-            'appointments_by_status' => $this->appointmentsByStatus($companyId, $doctorId),
-            'appointments_by_month' => $this->appointmentsByMonth($companyId, $doctorId),
-            'billing_by_month' => $doctorId ? [] : $this->billingByMonth($companyId),
-            'companies_overview' => $user->isSuperAdmin() && ! $companyId && ! $doctorId
-                ? $this->companiesOverview()
+            'date_range' => [
+                'from' => $dateFrom->format('Y-m-d'),
+                'to' => $dateTo->format('Y-m-d'),
+            ],
+            'payment_overview' => $doctorId ? null : $this->paymentOverview($companyId, $dateFrom, $dateTo),
+            'companies_payment' => $user->isSuperAdmin() && ! $companyId && ! $doctorId
+                ? $this->companiesPaymentOverview($dateFrom, $dateTo)
                 : [],
-            'recent_appointments' => $this->recentAppointments($companyId, $doctorId),
+            'summary' => $this->summary($companyId, $doctorId, $user->isSuperAdmin() && ! $companyId, $dateFrom, $dateTo),
+            'appointments_by_status' => $this->appointmentsByStatus($companyId, $doctorId, $dateFrom, $dateTo),
+            'appointments_by_month' => $this->appointmentsByMonth($companyId, $doctorId, $dateFrom, $dateTo),
+            'billing_by_month' => $doctorId ? [] : $this->billingByMonth($companyId, $dateFrom, $dateTo),
+            'doctor_performance' => $this->doctorPerformance($companyId, $doctorId, $dateFrom, $dateTo),
+            'companies_overview' => $user->isSuperAdmin() && ! $companyId && ! $doctorId
+                ? $this->companiesOverview($dateFrom, $dateTo)
+                : [],
+            'recent_appointments' => $this->recentAppointments($companyId, $doctorId, $dateFrom, $dateTo),
         ]);
+    }
+
+    private function resolveDateRange(Request $request): array
+    {
+        $to = $request->filled('date_to')
+            ? Carbon::parse($request->date_to)->endOfDay()
+            : Carbon::today()->endOfDay();
+
+        $from = $request->filled('date_from')
+            ? Carbon::parse($request->date_from)->startOfDay()
+            : Carbon::today()->subDays(29)->startOfDay();
+
+        if ($from->gt($to)) {
+            [$from, $to] = [$to->copy()->startOfDay(), $from->copy()->endOfDay()];
+        }
+
+        return [$from, $to];
     }
 
     private function resolveDashboardCompanyId(Request $request): ?int
@@ -72,7 +99,7 @@ class DashboardController extends Controller
         return Company::find($companyId)?->name ?? 'Clinic overview';
     }
 
-    private function appointmentQuery(?int $companyId, ?int $doctorId)
+    private function appointmentQuery(?int $companyId, ?int $doctorId, ?Carbon $from = null, ?Carbon $to = null)
     {
         $query = Appointment::query();
 
@@ -80,6 +107,10 @@ class DashboardController extends Controller
             $query->where('doctor_id', $doctorId);
         } elseif ($companyId) {
             $query->where('company_id', $companyId);
+        }
+
+        if ($from && $to) {
+            $query->whereBetween('appointment_date', [$from, $to]);
         }
 
         return $query;
@@ -116,7 +147,21 @@ class DashboardController extends Controller
         return $query;
     }
 
-    private function billingQuery(?int $companyId)
+    private function billingQuery(?int $companyId, ?Carbon $from = null, ?Carbon $to = null)
+    {
+        $query = Billing::query();
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($from && $to) {
+            $query->whereBetween('billed_at', [$from->toDateString(), $to->toDateString()]);
+        }
+
+        return $query;
+    }
+
+    private function billingQueryAllTime(?int $companyId)
     {
         $query = Billing::query();
         if ($companyId) {
@@ -126,7 +171,58 @@ class DashboardController extends Controller
         return $query;
     }
 
-    private function summary(?int $companyId, ?int $doctorId, bool $allCompanies): array
+    private function paymentOverview(?int $companyId, Carbon $from, Carbon $to): array
+    {
+        $today = Carbon::today();
+
+        $todayRevenue = (float) $this->billingQueryAllTime($companyId)
+            ->whereDate('paid_at', $today)
+            ->sum('paid_amount');
+
+        if ($todayRevenue <= 0) {
+            $todayRevenue = (float) $this->billingQueryAllTime($companyId)
+                ->whereDate('billed_at', $today)
+                ->sum('paid_amount');
+        }
+
+        $periodQuery = $this->billingQuery($companyId, $from, $to);
+        $periodCollected = (float) (clone $periodQuery)->sum('paid_amount');
+        $periodTotal = (float) (clone $periodQuery)->sum('total_amount');
+        $outstandingDue = (float) (clone $periodQuery)->sum('due_amount');
+
+        $collectionRate = $periodTotal > 0
+            ? round(($periodCollected / $periodTotal) * 100, 1)
+            : 0;
+
+        return [
+            'today_revenue' => round($todayRevenue, 2),
+            'period_revenue' => round($periodCollected, 2),
+            'outstanding_due' => round($outstandingDue, 2),
+            'collection_rate' => $collectionRate,
+            'period_total_billed' => round($periodTotal, 2),
+        ];
+    }
+
+    private function companiesPaymentOverview(Carbon $from, Carbon $to): array
+    {
+        return Company::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get()
+            ->map(function (Company $company) use ($from, $to) {
+                $overview = $this->paymentOverview($company->id, $from, $to);
+
+                return [
+                    'id' => $company->id,
+                    'name' => $company->name,
+                    ...$overview,
+                ];
+            })
+            ->values()
+            ->all();
+    }
+
+    private function summary(?int $companyId, ?int $doctorId, bool $allCompanies, Carbon $from, Carbon $to): array
     {
         $today = Carbon::today();
 
@@ -136,7 +232,7 @@ class DashboardController extends Controller
             'departments' => $doctorId ? 0 : ($companyId
                 ? Department::where('company_id', $companyId)->count()
                 : Department::count()),
-            'appointments_total' => $this->appointmentQuery($companyId, $doctorId)->count(),
+            'appointments_total' => $this->appointmentQuery($companyId, $doctorId, $from, $to)->count(),
             'appointments_today' => $this->appointmentQuery($companyId, $doctorId)
                 ->whereDate('appointment_date', $today)
                 ->count(),
@@ -146,17 +242,17 @@ class DashboardController extends Controller
         ];
 
         if (! $doctorId) {
-            $billing = $this->billingQuery($companyId);
-            $summary['billing_collected'] = (float) $billing->clone()->sum('paid_amount');
-            $summary['billing_pending'] = (float) $billing->clone()->sum('due_amount');
+            $billing = $this->billingQuery($companyId, $from, $to);
+            $summary['billing_collected'] = (float) (clone $billing)->sum('paid_amount');
+            $summary['billing_pending'] = (float) (clone $billing)->sum('due_amount');
         }
 
         return $summary;
     }
 
-    private function appointmentsByStatus(?int $companyId, ?int $doctorId): array
+    private function appointmentsByStatus(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
     {
-        $rows = $this->appointmentQuery($companyId, $doctorId)
+        $rows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
             ->select('status', DB::raw('count(*) as count'))
             ->groupBy('status')
             ->orderBy('status')
@@ -168,17 +264,14 @@ class DashboardController extends Controller
         ])->values()->all();
     }
 
-    private function appointmentsByMonth(?int $companyId, ?int $doctorId): array
+    private function appointmentsByMonth(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
     {
-        $start = Carbon::now()->subMonths(5)->startOfMonth();
         $driver = DB::connection()->getDriverName();
-
         $monthExpr = $driver === 'pgsql'
             ? "to_char(appointment_date, 'YYYY-MM')"
             : "DATE_FORMAT(appointment_date, '%Y-%m')";
 
-        $rows = $this->appointmentQuery($companyId, $doctorId)
-            ->where('appointment_date', '>=', $start)
+        $rows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
             ->selectRaw("{$monthExpr} as month, count(*) as count")
             ->groupBy('month')
             ->orderBy('month')
@@ -186,30 +279,30 @@ class DashboardController extends Controller
             ->keyBy('month');
 
         $result = [];
-        for ($i = 0; $i < 6; $i++) {
-            $month = $start->copy()->addMonths($i);
-            $key = $month->format('Y-m');
+        $cursor = $from->copy()->startOfMonth();
+        $end = $to->copy()->startOfMonth();
+
+        while ($cursor->lte($end)) {
+            $key = $cursor->format('Y-m');
             $result[] = [
                 'month' => $key,
-                'label' => $month->format('M Y'),
+                'label' => $cursor->format('M Y'),
                 'count' => (int) ($rows[$key]->count ?? 0),
             ];
+            $cursor->addMonth();
         }
 
         return $result;
     }
 
-    private function billingByMonth(?int $companyId): array
+    private function billingByMonth(?int $companyId, Carbon $from, Carbon $to): array
     {
-        $start = Carbon::now()->subMonths(5)->startOfMonth();
         $driver = DB::connection()->getDriverName();
-
         $monthExpr = $driver === 'pgsql'
             ? "to_char(billed_at, 'YYYY-MM')"
             : "DATE_FORMAT(billed_at, '%Y-%m')";
 
-        $rows = $this->billingQuery($companyId)
-            ->where('billed_at', '>=', $start)
+        $rows = $this->billingQuery($companyId, $from, $to)
             ->selectRaw("{$monthExpr} as month")
             ->selectRaw('sum(paid_amount) as collected')
             ->selectRaw('sum(due_amount) as pending')
@@ -219,43 +312,104 @@ class DashboardController extends Controller
             ->keyBy('month');
 
         $result = [];
-        for ($i = 0; $i < 6; $i++) {
-            $month = $start->copy()->addMonths($i);
-            $key = $month->format('Y-m');
+        $cursor = $from->copy()->startOfMonth();
+        $end = $to->copy()->startOfMonth();
+
+        while ($cursor->lte($end)) {
+            $key = $cursor->format('Y-m');
             $row = $rows[$key] ?? null;
             $result[] = [
                 'month' => $key,
-                'label' => $month->format('M Y'),
+                'label' => $cursor->format('M Y'),
                 'collected' => round((float) ($row->collected ?? 0), 2),
                 'pending' => round((float) ($row->pending ?? 0), 2),
             ];
+            $cursor->addMonth();
         }
 
         return $result;
     }
 
-    private function companiesOverview(): array
+    private function companiesOverview(Carbon $from, Carbon $to): array
     {
         return Company::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
-            ->map(function (Company $company) {
+            ->map(function (Company $company) use ($from, $to) {
+                $payments = $this->paymentOverview($company->id, $from, $to);
+
                 return [
                     'id' => $company->id,
                     'name' => $company->name,
                     'patients' => Patient::where('company_id', $company->id)->count(),
                     'doctors' => Doctor::where('company_id', $company->id)->count(),
-                    'appointments' => Appointment::where('company_id', $company->id)->count(),
+                    'appointments' => Appointment::where('company_id', $company->id)
+                        ->whereBetween('appointment_date', [$from, $to])
+                        ->count(),
+                    'period_revenue' => $payments['period_revenue'],
+                    'outstanding_due' => $payments['outstanding_due'],
+                    'collection_rate' => $payments['collection_rate'],
                 ];
             })
             ->values()
             ->all();
     }
 
-    private function recentAppointments(?int $companyId, ?int $doctorId): array
+    private function doctorPerformance(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
     {
-        return $this->appointmentQuery($companyId, $doctorId)
+        $showCompany = auth()->user()->isSuperAdmin() && ! $companyId && ! $doctorId;
+
+        $appointmentScope = Appointment::query()
+            ->whereBetween('appointment_date', [$from, $to])
+            ->where('status', '!=', 'cancelled');
+
+        if ($doctorId) {
+            $appointmentScope->where('doctor_id', $doctorId);
+        } elseif ($companyId) {
+            $appointmentScope->where('company_id', $companyId);
+        }
+
+        $patientCounts = (clone $appointmentScope)
+            ->select('doctor_id')
+            ->selectRaw('COUNT(DISTINCT patient_id) as patients')
+            ->groupBy('doctor_id')
+            ->pluck('patients', 'doctor_id');
+
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+
+        $revenueByDoctor = Billing::query()
+            ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
+            ->whereBetween('billings.billed_at', [$fromDate, $toDate])
+            ->whereBetween('appointments.appointment_date', [$from, $to])
+            ->where('appointments.status', '!=', 'cancelled')
+            ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
+            ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId))
+            ->groupBy('appointments.doctor_id')
+            ->selectRaw('appointments.doctor_id, COALESCE(SUM(billings.paid_amount), 0) as revenue')
+            ->pluck('revenue', 'doctor_id');
+
+        return $this->doctorQuery($companyId, $doctorId)
+            ->with(['user', 'company'])
+            ->get()
+            ->map(function (Doctor $doctor) use ($patientCounts, $revenueByDoctor, $showCompany) {
+                return [
+                    'doctor_id' => $doctor->id,
+                    'doctor_name' => $doctor->user?->name ?? 'Doctor #'.$doctor->id,
+                    'company_name' => $showCompany ? $doctor->company?->name : null,
+                    'patients' => (int) ($patientCounts[$doctor->id] ?? 0),
+                    'revenue' => round((float) ($revenueByDoctor[$doctor->id] ?? 0), 2),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values()
+            ->all();
+    }
+
+    private function recentAppointments(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
+    {
+        return $this->appointmentQuery($companyId, $doctorId, $from, $to)
             ->with(['patient', 'doctor.user', 'company'])
             ->orderByDesc('appointment_date')
             ->limit(8)
