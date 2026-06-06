@@ -14,6 +14,7 @@ import { checkDoctorAvailability } from "../api/doctorAvailabilities";
 import { getDoctors } from "../api/doctors";
 import { getPatients } from "../api/patients";
 import { useAuth } from "../auth/AuthContext";
+import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -34,6 +35,7 @@ const emptyVitalsForm = {
 const emptyForm = {
   patient_id: "",
   doctor_id: "",
+  branch_id: "",
   appointment_date: "",
   duration_minutes: "30",
   status: "scheduled",
@@ -69,6 +71,7 @@ function Appointments() {
   const [patients, setPatients] = useState([]);
   const [doctors, setDoctors] = useState([]);
   const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [filterBranchId, setFilterBranchId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -141,6 +144,7 @@ function Appointments() {
     setForm({
       patient_id: String(row.patient_id),
       doctor_id: String(row.doctor_id),
+      branch_id: String(row.branch_id || ""),
       appointment_date: toLocalDatetime(row.appointment_date),
       duration_minutes: String(row.duration_minutes ?? 30),
       status: row.status || "scheduled",
@@ -401,6 +405,14 @@ function Appointments() {
               required={false}
             />
           )}
+          <BranchSelect
+            value={filterBranchId}
+            onChange={(e) => setFilterBranchId(e.target.value)}
+            companyId={filterCompanyId}
+            allLabel="All branches"
+            id="appt_branch_filter"
+            name="appt_branch_filter"
+          />
         </div>
         {!isDoctor && (
           <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
@@ -436,7 +448,9 @@ function Appointments() {
                 </td>
               </tr>
             )}
-            {items.map((row) => {
+            {items
+              .filter((r) => !filterBranchId || String(r.branch_id) === filterBranchId)
+              .map((row) => {
               const b = row.billing;
               return (
                 <tr key={row.id}>
@@ -445,6 +459,11 @@ function Appointments() {
                     <span className="tenant-company-badge">
                       {row.company?.name || row.patient?.company?.name || "—"}
                     </span>
+                    {row.branch && (
+                      <span className="branch-pill" style={{ marginLeft: 4 }}>
+                        {row.branch.name}
+                      </span>
+                    )}
                   </td>
                   <td>{row.patient?.name || "—"}</td>
                   <td>{row.doctor?.user?.name || "—"}</td>
@@ -652,6 +671,16 @@ function Appointments() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="crud-field">
+              <label htmlFor="appt_branch_id">Branch</label>
+              <BranchSelect
+                value={form.branch_id}
+                onChange={handleChange}
+                allLabel="No specific branch"
+                id="appt_branch_id"
+                name="branch_id"
+              />
             </div>
             <div className="crud-field">
               <label htmlFor="appointment_date">Date & time</label>

@@ -19,8 +19,9 @@ class LabOrderController extends Controller
     {
         $companyId = $this->optionalCompanyId($request);
 
-        $orders = LabOrder::with(['patient', 'doctor.user', 'items.test', 'items.package', 'samples'])
+        $orders = LabOrder::with(['patient', 'doctor.user', 'items.test', 'items.package', 'samples', 'branch'])
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', (int) $request->branch_id))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('patient_id'), fn ($q) => $q->where('patient_id', $request->patient_id))
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('ordered_at', '>=', $request->date_from))
@@ -35,6 +36,7 @@ class LabOrderController extends Controller
     {
         $data = $request->validate([
             'company_id'                => ['sometimes', 'exists:companies,id'],
+            'branch_id'                 => ['nullable', 'exists:branches,id'],
             'patient_id'                => ['required', 'exists:patients,id'],
             'doctor_id'                 => ['nullable', 'exists:doctors,id'],
             'collection_type'           => ['in:walk_in,home'],

@@ -4,9 +4,11 @@ import {
   collectLabSample, enterLabResults,
   verifyLabOrder, approveLabOrder, cancelLabOrder,
 } from "../api/lab";
-import { getLabCategories, getLabTests, getLabPackages } from "../api/lab";
+import { getLabTests, getLabPackages } from "../api/lab";
 import { getPatients } from "../api/patients";
 import Modal from "../components/crud/Modal";
+import BranchSelect from "../components/BranchSelect";
+import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -37,7 +39,7 @@ function StatusBadge({ status }) {
 }
 
 function LabOrders() {
-  const { isDoctor } = useAuth();
+  const { isDoctor, isSuperAdmin } = useAuth();
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -45,6 +47,7 @@ function LabOrders() {
   const [statusFilter, setStatusFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   // For new order modal
   const [createOpen, setCreateOpen] = useState(false);
@@ -52,7 +55,7 @@ function LabOrders() {
   const [tests, setTests] = useState([]);
   const [packages, setPackages] = useState([]);
   const [orderForm, setOrderForm] = useState({
-    patient_id: "", collection_type: "walk_in", discount: "", notes: "", items: [],
+    company_id: "", patient_id: "", branch_id: "", collection_type: "walk_in", discount: "", notes: "", items: [],
   });
   const [saving, setSaving] = useState(false);
 
@@ -60,6 +63,10 @@ function LabOrders() {
   const [detailOrder, setDetailOrder] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
+
+  // Bill modal shown after order creation
+  const [billOrder, setBillOrder] = useState(null);
+  const [billOpen, setBillOpen] = useState(false);
 
   // Collect sample form
   const [collectForm, setCollectForm] = useState({ sample_type: "blood", notes: "" });
@@ -77,6 +84,7 @@ function LabOrders() {
         status: statusFilter || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
+        branch_id: branchFilter || undefined,
       });
       setOrders(data.data);
       setPagination(data);
@@ -85,29 +93,34 @@ function LabOrders() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, dateFrom, dateTo]);
+  }, [statusFilter, dateFrom, dateTo, branchFilter]);
 
   useEffect(() => { load(); }, [load]);
 
-  const loadCreateData = async () => {
-    try {
-      const [pRes, tRes, pkgRes] = await Promise.all([
-        getPatients({ per_page: 500 }),
-        getLabTests({ active_only: 1 }),
-        getLabPackages({ active_only: 1 }),
-      ]);
-      setPatients(pRes.data.data || pRes.data);
-      setTests(tRes.data);
-      setPackages(pkgRes.data);
-    } catch {
-      // ignore
-    }
+  const loadCreateData = async (companyId = "") => {
+    const params = companyId ? { company_id: companyId } : {};
+    const [pRes, tRes, pkgRes] = await Promise.allSettled([
+      getPatients({ per_page: 500, ...params }),
+      getLabTests({ active_only: 1, ...params }),
+      getLabPackages({ active_only: 1, ...params }),
+    ]);
+    if (pRes.status === "fulfilled") setPatients(pRes.value.data.data || pRes.value.data);
+    if (tRes.status === "fulfilled") setTests(tRes.value.data);
+    if (pkgRes.status === "fulfilled") setPackages(pkgRes.value.data);
   };
 
   const openCreate = async () => {
-    setOrderForm({ patient_id: "", collection_type: "walk_in", discount: "", notes: "", items: [] });
-    await loadCreateData();
+    setPatients([]); setTests([]); setPackages([]);
+    setOrderForm({ company_id: "", patient_id: "", branch_id: "", collection_type: "walk_in", discount: "", notes: "", items: [] });
     setCreateOpen(true);
+    await loadCreateData("");
+  };
+
+  const handleOrderCompanyChange = async (e) => {
+    const cid = e.target.value;
+    setOrderForm((p) => ({ ...p, company_id: cid, patient_id: "", branch_id: "", items: [] }));
+    setPatients([]); setTests([]); setPackages([]);
+    await loadCreateData(cid);
   };
 
   const toggleItem = (type, item) => {
@@ -134,9 +147,25 @@ function LabOrders() {
     setSaving(true);
     setError("");
     try {
-      await createLabOrder(orderForm);
+      const { data: newOrder } = await createLabOrder(orderForm);
       setCreateOpen(false);
       await load();
+      // Show bill immediately after creation
+      setBillOrder({
+        ...newOrder,
+        _items: orderForm.items.map((item) => {
+          if (item.test_id) {
+            const t = tests.find((x) => x.id === item.test_id);
+            return { label: t?.name || "Test", price: Number(t?.price || 0), type: "test" };
+          }
+          const p = packages.find((x) => x.id === item.package_id);
+          return { label: p?.name || "Package", price: Number(p?.price || 0), type: "package" };
+        }),
+        _gross: selectedTotal,
+        _discount: Number(orderForm.discount) || 0,
+        _net: Math.max(0, selectedTotal - (Number(orderForm.discount) || 0)),
+      });
+      setBillOpen(true);
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to create order."));
     } finally {
@@ -309,6 +338,13 @@ function LabOrders() {
           <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" />
           <span>–</span>
           <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" />
+          <BranchSelect
+            value={branchFilter}
+            onChange={(e) => setBranchFilter(e.target.value)}
+            allLabel="All branches"
+            id="lab_branch_filter"
+            name="lab_branch_filter"
+          />
         </div>
         {!isDoctor && (
           <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
@@ -323,6 +359,7 @@ function LabOrders() {
             <tr>
               <th>Order #</th>
               <th>Patient</th>
+              <th>Branch</th>
               <th>Tests</th>
               <th>Amount</th>
               <th>Status</th>
@@ -338,6 +375,11 @@ function LabOrders() {
               <tr key={order.id}>
                 <td><strong className="lab-order-num">{order.order_number}</strong></td>
                 <td>{order.patient?.name || "—"}</td>
+                <td>
+                  {order.branch
+                    ? <span className="branch-pill">{order.branch.name}</span>
+                    : <span style={{ color: "var(--me-text-muted)" }}>—</span>}
+                </td>
                 <td className="lab-order-tests">
                   {order.items?.slice(0, 2).map((item) => (
                     <span key={item.id} className="lab-item-chip">
@@ -379,13 +421,31 @@ function LabOrders() {
       <Modal title="New lab order" open={createOpen} onClose={() => setCreateOpen(false)}>
         <form onSubmit={handleCreateSubmit}>
           <div className="crud-form-grid">
+            {/* Company (super admin only — must pick company first to load its patients & tests) */}
+            {isSuperAdmin && (
+              <CompanySelect
+                id="lo_company"
+                label="Company *"
+                value={orderForm.company_id}
+                onChange={handleOrderCompanyChange}
+                required
+              />
+            )}
+            {/* Row 1: Patient */}
             <div className="crud-field crud-field--full">
-              <label htmlFor="lo_patient">Patient *</label>
-              <select id="lo_patient" name="patient_id" value={orderForm.patient_id}
+              <label htmlFor="lo_patient">Patient <span className="req">*</span></label>
+              <select id="lo_patient" value={orderForm.patient_id}
                 onChange={(e) => setOrderForm((p) => ({ ...p, patient_id: e.target.value }))} required>
                 <option value="">Select patient</option>
-                {patients.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.phone || p.email || ""}</option>)}
+                {patients.map((p) => <option key={p.id} value={p.id}>{p.name}{p.phone ? ` — ${p.phone}` : ""}</option>)}
               </select>
+            </div>
+            {/* Row 2: Branch + Collection */}
+            <div className="crud-field">
+              <label>Branch</label>
+              <BranchSelect id="lo_branch" name="branch_id" value={orderForm.branch_id}
+                onChange={(e) => setOrderForm((p) => ({ ...p, branch_id: e.target.value }))}
+                allLabel="Any branch" />
             </div>
             <div className="crud-field">
               <label htmlFor="lo_collection">Collection type</label>
@@ -395,55 +455,165 @@ function LabOrders() {
                 <option value="home">Home collection</option>
               </select>
             </div>
-            <div className="crud-field">
-              <label htmlFor="lo_discount">Discount (₹)</label>
-              <input id="lo_discount" type="number" min="0" value={orderForm.discount}
-                onChange={(e) => setOrderForm((p) => ({ ...p, discount: e.target.value }))} />
-            </div>
+
+            {/* ── Test selector ── */}
             <div className="crud-field crud-field--full">
-              <label>Select tests</label>
-              <div className="lab-order-selector">
-                <p className="lab-selector-label">Individual tests</p>
-                {tests.map((t) => (
-                  <label key={t.id} className={`lab-selector-item ${isItemSelected("test", t) ? "is-selected" : ""}`}>
-                    <input type="checkbox" checked={isItemSelected("test", t)} onChange={() => toggleItem("test", t)} />
-                    <span>{t.name}</span>
-                    <span className="lab-selector-price">₹{Number(t.price).toLocaleString("en-IN")}</span>
-                  </label>
-                ))}
-                {packages.length > 0 && <>
-                  <p className="lab-selector-label">Packages</p>
-                  {packages.map((pk) => (
-                    <label key={pk.id} className={`lab-selector-item ${isItemSelected("package", pk) ? "is-selected" : ""}`}>
-                      <input type="checkbox" checked={isItemSelected("package", pk)} onChange={() => toggleItem("package", pk)} />
-                      <span>{pk.name}</span>
-                      <span className="lab-selector-price">₹{Number(pk.price).toLocaleString("en-IN")}</span>
-                    </label>
-                  ))}
-                </>}
-              </div>
+              <label>Select tests &amp; packages <span className="req">*</span></label>
+              {tests.length === 0 && packages.length === 0 ? (
+                <div className="lo-empty-tests">
+                  <p>No active tests found.</p>
+                  <p>Go to <strong>Lab Catalog</strong> and add test categories &amp; tests first, then come back to create an order.</p>
+                </div>
+              ) : (
+                <div className="lab-order-selector">
+                  {/* Tests grouped by category */}
+                  {(() => {
+                    const byCategory = {};
+                    tests.forEach((t) => {
+                      const cat = t.category?.name || "Uncategorised";
+                      if (!byCategory[cat]) byCategory[cat] = [];
+                      byCategory[cat].push(t);
+                    });
+                    return Object.entries(byCategory).map(([cat, catTests]) => (
+                      <div key={cat}>
+                        <p className="lab-selector-label">📂 {cat}</p>
+                        {catTests.map((t) => (
+                          <label key={t.id} className={`lab-selector-item ${isItemSelected("test", t) ? "is-selected" : ""}`}>
+                            <input type="checkbox" checked={isItemSelected("test", t)} onChange={() => toggleItem("test", t)} />
+                            <span className="lab-selector-name">{t.name}
+                              {t.code && <span className="lab-selector-code"> ({t.code})</span>}
+                            </span>
+                            <span className="lab-selector-meta">
+                              <span className={`lab-sample-badge lab-sample-${t.sample_type}`}>{t.sample_type}</span>
+                              <span className="lab-selector-price">₹{Number(t.price).toLocaleString("en-IN")}</span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    ));
+                  })()}
+                  {/* Packages */}
+                  {packages.length > 0 && (
+                    <div>
+                      <p className="lab-selector-label">📦 Packages</p>
+                      {packages.map((pk) => (
+                        <label key={pk.id} className={`lab-selector-item ${isItemSelected("package", pk) ? "is-selected" : ""}`}>
+                          <input type="checkbox" checked={isItemSelected("package", pk)} onChange={() => toggleItem("package", pk)} />
+                          <span className="lab-selector-name">{pk.name}
+                            {pk.tests?.length > 0 && <span className="lab-selector-code"> ({pk.tests.length} tests)</span>}
+                          </span>
+                          <span className="lab-selector-meta">
+                            <span className="lab-selector-price">₹{Number(pk.price).toLocaleString("en-IN")}</span>
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
+            {/* ── Bill summary ── */}
             {orderForm.items.length > 0 && (
               <div className="crud-field crud-field--full">
-                <div className="lab-order-total">
-                  Gross: ₹{selectedTotal.toLocaleString("en-IN")} —
-                  Net: ₹{Math.max(0, selectedTotal - (Number(orderForm.discount) || 0)).toLocaleString("en-IN")}
+                <div className="lo-bill-panel">
+                  <div className="lo-bill-title">Bill Summary</div>
+                  <div className="lo-bill-items">
+                    {orderForm.items.map((item, i) => {
+                      const isTest = !!item.test_id;
+                      const rec = isTest
+                        ? tests.find((x) => x.id === item.test_id)
+                        : packages.find((x) => x.id === item.package_id);
+                      return (
+                        <div key={i} className="lo-bill-row">
+                          <span>{rec?.name || (isTest ? "Test" : "Package")}</span>
+                          <span>₹{Number(rec?.price || 0).toLocaleString("en-IN")}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="lo-bill-divider" />
+                  <div className="lo-bill-row lo-bill-subtotal">
+                    <span>Gross total</span>
+                    <span>₹{selectedTotal.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="lo-bill-row lo-bill-discount-row">
+                    <label htmlFor="lo_discount">Discount (₹)</label>
+                    <input id="lo_discount" type="number" min="0" max={selectedTotal}
+                      value={orderForm.discount}
+                      onChange={(e) => setOrderForm((p) => ({ ...p, discount: e.target.value }))}
+                      className="lo-discount-input" placeholder="0" />
+                  </div>
+                  <div className="lo-bill-divider" />
+                  <div className="lo-bill-row lo-bill-net">
+                    <span>Net payable</span>
+                    <span>₹{Math.max(0, selectedTotal - (Number(orderForm.discount) || 0)).toLocaleString("en-IN")}</span>
+                  </div>
                 </div>
               </div>
             )}
+
             <div className="crud-field crud-field--full">
               <label htmlFor="lo_notes">Notes</label>
-              <textarea id="lo_notes" value={orderForm.notes}
-                onChange={(e) => setOrderForm((p) => ({ ...p, notes: e.target.value }))} />
+              <textarea id="lo_notes" rows={2} value={orderForm.notes}
+                onChange={(e) => setOrderForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Any special instructions…" />
             </div>
           </div>
           <div className="crud-modal-actions">
             <button type="button" className="crud-btn crud-btn--ghost" onClick={() => setCreateOpen(false)}>Cancel</button>
-            <button type="submit" className="crud-btn crud-btn--primary" disabled={saving}>
-              {saving ? "Creating…" : "Create order"}
+            <button type="submit" className="crud-btn crud-btn--primary" disabled={saving || (!orderForm.items.length)}>
+              {saving ? "Creating…" : `Create order${orderForm.items.length ? ` & bill` : ""}`}
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* ── BILL MODAL (shown right after order creation) ── */}
+      <Modal title="Order Created — Bill" open={billOpen} onClose={() => setBillOpen(false)}>
+        {billOrder && (
+          <div className="lo-bill-receipt">
+            <div className="lo-receipt-header">
+              <span className="lo-receipt-icon">🧾</span>
+              <div>
+                <div className="lo-receipt-order">{billOrder.order_number}</div>
+                <div className="lo-receipt-status">Order placed — <strong>Pending sample collection</strong></div>
+              </div>
+            </div>
+            <div className="lo-bill-items" style={{ marginTop: 16 }}>
+              {billOrder._items?.map((item, i) => (
+                <div key={i} className="lo-bill-row">
+                  <span>
+                    <span className={`lo-item-type-dot lo-dot-${item.type}`} />
+                    {item.label}
+                  </span>
+                  <span>₹{item.price.toLocaleString("en-IN")}</span>
+                </div>
+              ))}
+            </div>
+            <div className="lo-bill-divider" />
+            <div className="lo-bill-row lo-bill-subtotal">
+              <span>Gross total</span>
+              <span>₹{billOrder._gross?.toLocaleString("en-IN")}</span>
+            </div>
+            {billOrder._discount > 0 && (
+              <div className="lo-bill-row" style={{ color: "var(--me-success)" }}>
+                <span>Discount</span>
+                <span>−₹{billOrder._discount.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+            <div className="lo-bill-divider" />
+            <div className="lo-bill-row lo-bill-net">
+              <span>Net payable</span>
+              <span>₹{billOrder._net?.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="lo-receipt-note">
+              Next step: collect the patient&apos;s sample to proceed.
+            </div>
+            <div className="crud-modal-actions">
+              <button type="button" className="crud-btn crud-btn--primary" onClick={() => setBillOpen(false)}>Done</button>
+            </div>
+          </div>
+        )}
       </Modal>
 
       {/* ── COLLECT SAMPLE MODAL ── */}

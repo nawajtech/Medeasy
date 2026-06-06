@@ -16,6 +16,7 @@ class LabOrderService
     {
         $order = LabOrder::create([
             'company_id'   => $data['company_id'],
+            'branch_id'    => $data['branch_id'] ?? null,
             'patient_id'   => $data['patient_id'],
             'doctor_id'    => $data['doctor_id'] ?? null,
             'order_number' => $this->generateOrderNumber($data['company_id']),

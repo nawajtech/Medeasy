@@ -12,6 +12,7 @@ class Doctor extends Model
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'user_id',
         'department_id',
         'doctor_code',
@@ -44,6 +45,11 @@ class Doctor extends Model
     public function appointments()
     {
         return $this->hasMany(Appointment::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function availabilities()

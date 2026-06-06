@@ -14,6 +14,7 @@ class DiagnosticOrder extends Model
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'patient_id',
         'doctor_id',
         'test_type_id',
@@ -33,6 +34,11 @@ class DiagnosticOrder extends Model
             'amount' => 'decimal:2',
             'scheduled_at' => 'datetime',
         ];
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function patient()

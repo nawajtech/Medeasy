@@ -41,6 +41,7 @@ class User extends Authenticatable
         'password',
         'role',
         'company_id',
+        'branch_id',
         'status',
         'last_login_at',
     ];
@@ -63,6 +64,11 @@ class User extends Authenticatable
     public function company()
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function doctor()

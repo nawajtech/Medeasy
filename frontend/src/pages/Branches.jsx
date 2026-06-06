@@ -123,7 +123,8 @@ function Branches() {
             <tr>
               <th>Branch name</th>
               <th>City</th>
-              <th>Phone</th>
+              <th>Doctors</th>
+              <th>Appointments</th>
               <th>Main branch</th>
               <th>Status</th>
               <th>Actions</th>
@@ -131,13 +132,22 @@ function Branches() {
           </thead>
           <tbody>
             {!loading && items.length === 0 && (
-              <tr><td colSpan={6} className="crud-empty">No branches yet.</td></tr>
+              <tr><td colSpan={8} className="crud-empty">No branches yet.</td></tr>
             )}
             {items.map((row) => (
               <tr key={row.id}>
-                <td><strong>{row.name}</strong>{row.code ? ` (${row.code})` : ""}</td>
+                <td>
+                  <strong>{row.name}</strong>
+                  {row.code ? <span style={{ marginLeft: 6, color: "var(--me-text-muted)", fontSize: "0.8rem" }}>({row.code})</span> : ""}
+                  {row.address && <div style={{ fontSize: "0.8rem", color: "var(--me-text-muted)", marginTop: 2 }}>{row.address}{row.city ? `, ${row.city}` : ""}</div>}
+                </td>
                 <td>{row.city || "—"}</td>
-                <td>{row.phone || "—"}</td>
+                <td>
+                  <span className="branch-count-badge">{row.doctors_count ?? 0}</span>
+                </td>
+                <td>
+                  <span className="branch-count-badge">{row.appointments_count ?? 0}</span>
+                </td>
                 <td>{row.is_main ? <span className="crud-badge crud-badge--active">Main</span> : "—"}</td>
                 <td>
                   <span className={`crud-badge ${row.is_active ? "crud-badge--active" : "crud-badge--inactive"}`}>

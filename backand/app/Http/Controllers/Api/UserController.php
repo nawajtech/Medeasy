@@ -16,11 +16,15 @@ class UserController extends Controller
     private const STAFF_ROLES = [
         User::ROLE_COMPANY_ADMIN,
         User::ROLE_STAFF,
+        User::ROLE_LAB_TECHNICIAN,
+        User::ROLE_RADIOLOGIST,
+        User::ROLE_RECEPTIONIST,
+        User::ROLE_PHARMACIST,
     ];
 
     public function index(Request $request): JsonResponse
     {
-        $query = User::with(['doctor', 'company'])
+        $query = User::with(['doctor', 'company', 'branch'])
             ->whereIn('role', self::STAFF_ROLES)
             ->orderByDesc('created_at');
 
@@ -48,7 +52,8 @@ class UserController extends Controller
         $user = User::create([
             ...$validated,
             'company_id' => $companyId,
-            'status' => $request->boolean('status', true),
+            'branch_id'  => $validated['branch_id'] ?? null,
+            'status'     => $request->boolean('status', true),
         ]);
 
         return response()->json($user->load(['company']), 201);
@@ -112,11 +117,12 @@ class UserController extends Controller
             'company_id' => auth()->user()->isSuperAdmin()
                 ? ['required', 'exists:companies,id']
                 : ['prohibited'],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($userId)],
             'password' => [$userId ? 'nullable' : 'required', 'string', 'min:8'],
-            'role' => ['required', Rule::in($allowedRoles)],
+            'role' => ['required', Rule::in(User::ROLES)],
             'status' => ['boolean'],
         ];
     }

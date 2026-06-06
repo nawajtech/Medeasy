@@ -5,6 +5,7 @@ import {
   getLabPackages, createLabPackage, updateLabPackage, deleteLabPackage,
 } from "../api/lab";
 import Modal from "../components/crud/Modal";
+import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -13,16 +14,17 @@ import "./LabTests.css";
 const SAMPLE_TYPES = ["blood", "urine", "stool", "swab", "sputum", "other"];
 const TABS = ["Categories", "Tests", "Packages"];
 
-const emptyCategory = { name: "", description: "", sort_order: 0, is_active: true };
+const emptyCategory = { company_id: "", name: "", description: "", sort_order: 0, is_active: true };
 const emptyTest = {
-  category_id: "", name: "", code: "", sample_type: "blood",
+  company_id: "", category_id: "", name: "", code: "", sample_type: "blood",
   price: "", turnaround_hours: 24, unit: "",
   ref_range_male: "", ref_range_female: "", ref_range_child: "",
   method: "", description: "", is_active: true,
 };
-const emptyPackage = { name: "", code: "", description: "", price: "", turnaround_hours: 24, is_active: true, test_ids: [] };
+const emptyPackage = { company_id: "", name: "", code: "", description: "", price: "", turnaround_hours: 24, is_active: true, test_ids: [] };
 
 function LabTests() {
+  const { isSuperAdmin } = useAuth();
   const [tab, setTab] = useState("Categories");
   const [categories, setCategories] = useState([]);
   const [tests, setTests] = useState([]);
@@ -65,11 +67,12 @@ function LabTests() {
 
   const openEdit = (row) => {
     setEditing(row);
+    const cid = String(row.company_id || "");
     if (tab === "Categories") {
-      setForm({ name: row.name || "", description: row.description || "", sort_order: row.sort_order || 0, is_active: Boolean(row.is_active) });
+      setForm({ company_id: cid, name: row.name || "", description: row.description || "", sort_order: row.sort_order || 0, is_active: Boolean(row.is_active) });
     } else if (tab === "Tests") {
       setForm({
-        category_id: row.category_id || "", name: row.name || "", code: row.code || "",
+        company_id: cid, category_id: row.category_id || "", name: row.name || "", code: row.code || "",
         sample_type: row.sample_type || "blood", price: row.price || "",
         turnaround_hours: row.turnaround_hours || 24, unit: row.unit || "",
         ref_range_male: row.ref_range_male || "", ref_range_female: row.ref_range_female || "",
@@ -78,7 +81,7 @@ function LabTests() {
       });
     } else {
       setForm({
-        name: row.name || "", code: row.code || "", description: row.description || "",
+        company_id: cid, name: row.name || "", code: row.code || "", description: row.description || "",
         price: row.price || "", turnaround_hours: row.turnaround_hours || 24,
         is_active: Boolean(row.is_active),
         test_ids: row.tests?.map((t) => t.id) || [],
@@ -279,6 +282,12 @@ function LabTests() {
             {/* Category form */}
             {tab === "Categories" && (
               <>
+                {isSuperAdmin && (
+                  <div className="crud-field crud-field--full">
+                    <label>Organization *</label>
+                    <CompanySelect name="company_id" value={form.company_id} onChange={handleChange} required />
+                  </div>
+                )}
                 <div className="crud-field crud-field--full">
                   <label htmlFor="cat_name">Category name *</label>
                   <input id="cat_name" name="name" value={form.name} onChange={handleChange} required placeholder="e.g. Haematology" />
@@ -300,6 +309,12 @@ function LabTests() {
             {/* Test form */}
             {tab === "Tests" && (
               <>
+                {isSuperAdmin && (
+                  <div className="crud-field crud-field--full">
+                    <label>Organization *</label>
+                    <CompanySelect name="company_id" value={form.company_id} onChange={handleChange} required />
+                  </div>
+                )}
                 <div className="crud-field">
                   <label htmlFor="test_name">Test name *</label>
                   <input id="test_name" name="name" value={form.name} onChange={handleChange} required placeholder="e.g. Complete Blood Count" />
@@ -362,6 +377,12 @@ function LabTests() {
             {/* Package form */}
             {tab === "Packages" && (
               <>
+                {isSuperAdmin && (
+                  <div className="crud-field crud-field--full">
+                    <label>Organization *</label>
+                    <CompanySelect name="company_id" value={form.company_id} onChange={handleChange} required />
+                  </div>
+                )}
                 <div className="crud-field">
                   <label htmlFor="pkg_name">Package name *</label>
                   <input id="pkg_name" name="name" value={form.name} onChange={handleChange} required placeholder="e.g. Full Body Checkup" />

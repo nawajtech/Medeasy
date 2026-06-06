@@ -7,6 +7,8 @@ import {
 } from "../api/diagnostics";
 import { getPatients } from "../api/patients";
 import Modal from "../components/crud/Modal";
+import BranchSelect from "../components/BranchSelect";
+import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -26,7 +28,7 @@ const STATUS_META = {
 
 const TABS = ["Orders", "Test Types"];
 
-const emptyType = { name: "", code: "", modality: "xray", description: "", preparation_instructions: "", price: "", is_active: true };
+const emptyType = { company_id: "", name: "", code: "", modality: "xray", description: "", preparation_instructions: "", price: "", is_active: true };
 
 function StatusBadge({ status }) {
   const meta = STATUS_META[status] || { label: status, color: "" };
@@ -34,7 +36,7 @@ function StatusBadge({ status }) {
 }
 
 function DiagnosticOrders() {
-  const { isDoctor } = useAuth();
+  const { isDoctor, isSuperAdmin } = useAuth();
   const [tab, setTab] = useState("Orders");
 
   // Orders state
@@ -45,6 +47,7 @@ function DiagnosticOrders() {
   const [modalityFilter, setModalityFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [branchFilter, setBranchFilter] = useState("");
 
   // Types state
   const [types, setTypes] = useState([]);
@@ -56,7 +59,7 @@ function DiagnosticOrders() {
   // Create order
   const [createOpen, setCreateOpen] = useState(false);
   const [patients, setPatients] = useState([]);
-  const [orderForm, setOrderForm] = useState({ patient_id: "", test_type_id: "", priority: "routine", clinical_notes: "", notes: "" });
+  const [orderForm, setOrderForm] = useState({ company_id: "", patient_id: "", branch_id: "", test_type_id: "", priority: "routine", clinical_notes: "", notes: "" });
 
   // Detail
   const [detailOrder, setDetailOrder] = useState(null);
@@ -79,6 +82,7 @@ function DiagnosticOrders() {
         modality: modalityFilter || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
+        branch_id: branchFilter || undefined,
       });
       setOrders(data.data);
     } catch (err) {
@@ -86,7 +90,7 @@ function DiagnosticOrders() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, modalityFilter, dateFrom, dateTo]);
+  }, [statusFilter, modalityFilter, dateFrom, dateTo, branchFilter]);
 
   const loadTypes = useCallback(async () => {
     try {
@@ -100,11 +104,38 @@ function DiagnosticOrders() {
     else loadTypes();
   }, [tab, loadOrders, loadTypes]);
 
+  const loadCreatePatients = async (companyId = "") => {
+    try {
+      const params = { per_page: 500, ...(companyId ? { company_id: companyId } : {}) };
+      const { data } = await getPatients(params);
+      setPatients(data.data || data);
+    } catch {
+      setPatients([]);
+    }
+  };
+
   const openCreate = async () => {
-    const [pRes] = await Promise.all([getPatients({ per_page: 500 }), loadTypes()]);
-    setPatients(pRes.data.data || pRes.data);
-    setOrderForm({ patient_id: "", test_type_id: "", priority: "routine", clinical_notes: "", notes: "" });
+    setPatients([]);
+    setOrderForm({ company_id: "", patient_id: "", branch_id: "", test_type_id: "", priority: "routine", clinical_notes: "", notes: "" });
     setCreateOpen(true);
+    // Load data after opening (non-blocking)
+    await Promise.allSettled([loadCreatePatients(""), loadTypes()]);
+  };
+
+  const handleOrderCompanyChange = async (e) => {
+    const cid = e.target.value;
+    setOrderForm((p) => ({ ...p, company_id: cid, patient_id: "", branch_id: "", test_type_id: "" }));
+    setPatients([]);
+    // Reload both patients and test types for the selected company
+    await Promise.allSettled([
+      loadCreatePatients(cid),
+      (async () => {
+        try {
+          const { data } = await getDiagnosticTypes(cid ? { company_id: cid } : {});
+          setTypes(data);
+        } catch { /* ignore */ }
+      })(),
+    ]);
   };
 
   const handleCreateOrder = async (e) => {
@@ -206,8 +237,9 @@ function DiagnosticOrders() {
   const openTypeCreate = () => { setEditingType(null); setTypeForm(emptyType); setTypeModalOpen(true); };
   const openTypeEdit = (row) => {
     setEditingType(row);
-    setTypeForm({ name: row.name, code: row.code || "", modality: row.modality, description: row.description || "",
-      preparation_instructions: row.preparation_instructions || "", price: row.price, is_active: Boolean(row.is_active) });
+    setTypeForm({ company_id: String(row.company_id || ""), name: row.name, code: row.code || "", modality: row.modality,
+      description: row.description || "", preparation_instructions: row.preparation_instructions || "",
+      price: row.price, is_active: Boolean(row.is_active) });
     setTypeModalOpen(true);
   };
   const handleTypeSave = async (e) => {
@@ -270,6 +302,13 @@ function DiagnosticOrders() {
               <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" />
               <span>–</span>
               <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" />
+              <BranchSelect
+                value={branchFilter}
+                onChange={(e) => setBranchFilter(e.target.value)}
+                allLabel="All branches"
+                id="dgn_branch_filter"
+                name="dgn_branch_filter"
+              />
             </div>
             {!isDoctor && (
               <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>New order</button>
@@ -279,7 +318,7 @@ function DiagnosticOrders() {
           <div className="crud-table-wrap">
             <table className="crud-table">
               <thead>
-                <tr><th>Order #</th><th>Patient</th><th>Test</th><th>Priority</th><th>Status</th><th>Scheduled</th><th>Actions</th></tr>
+                <tr><th>Order #</th><th>Patient</th><th>Branch</th><th>Test</th><th>Priority</th><th>Status</th><th>Scheduled</th><th>Actions</th></tr>
               </thead>
               <tbody>
                 {!loading && orders.length === 0 && (
@@ -289,6 +328,11 @@ function DiagnosticOrders() {
                   <tr key={order.id}>
                     <td><strong className="lab-order-num">{order.order_number}</strong></td>
                     <td>{order.patient?.name || "—"}</td>
+                    <td>
+                      {order.branch
+                        ? <span className="branch-pill">{order.branch.name}</span>
+                        : <span style={{ color: "var(--me-text-muted)" }}>—</span>}
+                    </td>
                     <td>
                       <div>{order.test_type?.name || "—"}</div>
                       <span className={`dgn-modality dgn-modality-${order.test_type?.modality}`}>
@@ -360,23 +404,53 @@ function DiagnosticOrders() {
       <Modal title="New diagnostic order" open={createOpen} onClose={() => setCreateOpen(false)}>
         <form onSubmit={handleCreateOrder}>
           <div className="crud-form-grid">
+            {/* Company — super admin must pick a company first */}
+            {isSuperAdmin && (
+              <CompanySelect
+                id="do_company"
+                label="Company *"
+                value={orderForm.company_id}
+                onChange={handleOrderCompanyChange}
+                required
+              />
+            )}
             <div className="crud-field crud-field--full">
-              <label htmlFor="do_patient">Patient *</label>
+              <label htmlFor="do_patient">Patient <span className="lo-req">*</span></label>
               <select id="do_patient" value={orderForm.patient_id}
                 onChange={(e) => setOrderForm((p) => ({ ...p, patient_id: e.target.value }))} required>
                 <option value="">Select patient</option>
-                {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                {patients.map((p) => <option key={p.id} value={p.id}>{p.name}{p.phone ? ` — ${p.phone}` : ""}</option>)}
               </select>
             </div>
             <div className="crud-field crud-field--full">
-              <label htmlFor="do_type">Test type *</label>
-              <select id="do_type" value={orderForm.test_type_id}
-                onChange={(e) => setOrderForm((p) => ({ ...p, test_type_id: e.target.value }))} required>
-                <option value="">Select test</option>
-                {types.filter((t) => t.is_active).map((t) => (
-                  <option key={t.id} value={t.id}>{MODALITY_LABELS[t.modality]} — {t.name} (₹{Number(t.price).toLocaleString("en-IN")})</option>
-                ))}
-              </select>
+              <label htmlFor="do_type">Test type <span className="lo-req">*</span></label>
+              {types.filter((t) => t.is_active).length === 0 ? (
+                <div className="lo-empty-tests" style={{ textAlign: "left" }}>
+                  No active diagnostic test types found. Go to the <strong>Test Types</strong> tab and add types first.
+                </div>
+              ) : (
+                <select id="do_type" value={orderForm.test_type_id}
+                  onChange={(e) => setOrderForm((p) => ({ ...p, test_type_id: e.target.value }))} required>
+                  <option value="">Select test type</option>
+                  {MODALITIES.map((mod) => {
+                    const group = types.filter((t) => t.is_active && t.modality === mod);
+                    if (!group.length) return null;
+                    return (
+                      <optgroup key={mod} label={MODALITY_LABELS[mod]}>
+                        {group.map((t) => (
+                          <option key={t.id} value={t.id}>{t.name} — ₹{Number(t.price).toLocaleString("en-IN")}</option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              )}
+            </div>
+            <div className="crud-field">
+              <label>Branch</label>
+              <BranchSelect id="do_branch" name="branch_id" value={orderForm.branch_id}
+                onChange={(e) => setOrderForm((p) => ({ ...p, branch_id: e.target.value }))}
+                allLabel="Any branch" />
             </div>
             <div className="crud-field">
               <label htmlFor="do_priority">Priority</label>
@@ -385,14 +459,35 @@ function DiagnosticOrders() {
                 {PRIORITIES.map((p) => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
               </select>
             </div>
+            {/* Auto bill preview when test selected */}
+            {orderForm.test_type_id && (() => {
+              const sel = types.find((t) => t.id === Number(orderForm.test_type_id));
+              if (!sel) return null;
+              return (
+                <div className="crud-field crud-field--full">
+                  <div className="lo-bill-panel">
+                    <div className="lo-bill-title">Bill</div>
+                    <div className="lo-bill-row">
+                      <span>{MODALITY_LABELS[sel.modality]} — {sel.name}</span>
+                      <span>₹{Number(sel.price).toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="lo-bill-divider" />
+                    <div className="lo-bill-row lo-bill-net">
+                      <span>Amount</span>
+                      <span>₹{Number(sel.price).toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
             <div className="crud-field">
               <label htmlFor="do_clinical">Clinical notes</label>
               <input id="do_clinical" value={orderForm.clinical_notes}
-                onChange={(e) => setOrderForm((p) => ({ ...p, clinical_notes: e.target.value }))} />
+                onChange={(e) => setOrderForm((p) => ({ ...p, clinical_notes: e.target.value }))} placeholder="Reason for referral…" />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="do_notes">Notes</label>
-              <textarea id="do_notes" value={orderForm.notes}
+              <textarea id="do_notes" rows={2} value={orderForm.notes}
                 onChange={(e) => setOrderForm((p) => ({ ...p, notes: e.target.value }))} />
             </div>
           </div>
@@ -484,6 +579,13 @@ function DiagnosticOrders() {
       <Modal title={editingType ? "Edit test type" : "Add test type"} open={typeModalOpen} onClose={() => setTypeModalOpen(false)}>
         <form onSubmit={handleTypeSave}>
           <div className="crud-form-grid">
+            {isSuperAdmin && (
+              <div className="crud-field crud-field--full">
+                <label>Organization *</label>
+                <CompanySelect name="company_id" value={typeForm.company_id}
+                  onChange={(e) => setTypeForm((p) => ({ ...p, company_id: e.target.value }))} required />
+              </div>
+            )}
             <div className="crud-field">
               <label htmlFor="tt_name">Name *</label>
               <input id="tt_name" name="name" value={typeForm.name}

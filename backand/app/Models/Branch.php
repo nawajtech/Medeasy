@@ -29,4 +29,29 @@ class Branch extends Model
             'is_active' => 'boolean',
         ];
     }
+
+    public function doctors()
+    {
+        return $this->hasMany(Doctor::class);
+    }
+
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class);
+    }
+
+    public function labOrders()
+    {
+        return $this->hasMany(LabOrder::class);
+    }
+
+    public function diagnosticOrders()
+    {
+        return $this->hasMany(DiagnosticOrder::class);
+    }
+
+    public function staff()
+    {
+        return $this->hasMany(User::class);
+    }
 }

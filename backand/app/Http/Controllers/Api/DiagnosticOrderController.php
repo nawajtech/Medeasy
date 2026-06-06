@@ -19,8 +19,9 @@ class DiagnosticOrderController extends Controller
     {
         $companyId = $this->optionalCompanyId($request);
 
-        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType', 'technician', 'report'])
+        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType', 'technician', 'report', 'branch'])
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', (int) $request->branch_id))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
             ->when($request->filled('modality'), fn ($q) => $q->whereHas('testType', fn ($q2) => $q2->where('modality', $request->modality)))
             ->when($request->filled('patient_id'), fn ($q) => $q->where('patient_id', $request->patient_id))
@@ -36,6 +37,7 @@ class DiagnosticOrderController extends Controller
     {
         $data = $request->validate([
             'company_id'        => ['sometimes', 'exists:companies,id'],
+            'branch_id'         => ['nullable', 'exists:branches,id'],
             'patient_id'        => ['required', 'exists:patients,id'],
             'doctor_id'         => ['nullable', 'exists:doctors,id'],
             'test_type_id'      => ['required', 'exists:diagnostic_test_types,id'],

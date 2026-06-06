@@ -29,7 +29,7 @@ class AppointmentController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Appointment::with(['patient', 'doctor.user', 'doctor.department', 'billing', 'vitals', 'company'])
+        $query = Appointment::with(['patient', 'doctor.user', 'doctor.department', 'billing', 'vitals', 'company', 'branch'])
             ->orderByDesc('appointment_date');
 
         if ($doctorId = $this->doctorIdForUser()) {
@@ -38,6 +38,10 @@ class AppointmentController extends Controller
 
         if (auth()->user()->isSuperAdmin() && $request->filled('company_id')) {
             $query->where('company_id', (int) $request->company_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', (int) $request->branch_id);
         }
 
         return response()->json($query->get());
@@ -218,6 +222,7 @@ class AppointmentController extends Controller
         return [
             'patient_id' => ['required', 'exists:patients,id'],
             'doctor_id' => ['required', 'exists:doctors,id'],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'appointment_date' => ['required', 'date'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],
             'status' => ['required', Rule::in(self::STATUSES)],

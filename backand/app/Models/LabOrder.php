@@ -14,6 +14,7 @@ class LabOrder extends Model
 
     protected $fillable = [
         'company_id',
+        'branch_id',
         'patient_id',
         'doctor_id',
         'order_number',
@@ -37,6 +38,11 @@ class LabOrder extends Model
             'ordered_at' => 'datetime',
             'collection_scheduled_at' => 'datetime',
         ];
+    }
+
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function patient()
