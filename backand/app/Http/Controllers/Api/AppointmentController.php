@@ -10,10 +10,12 @@ use App\Models\Doctor;
 use App\Models\Patient;
 use App\Models\Setting;
 use App\Services\DoctorAvailabilityService;
+use App\Services\NotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -22,7 +24,8 @@ class AppointmentController extends Controller
     use HandlesTenancy;
 
     public function __construct(
-        private DoctorAvailabilityService $availabilityService
+        private DoctorAvailabilityService $availabilityService,
+        private NotificationService $notificationService
     ) {}
 
     private const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled'];
@@ -79,10 +82,11 @@ class AppointmentController extends Controller
             return $appointment;
         });
 
-        return response()->json(
-            $appointment->load(['patient', 'doctor.user', 'doctor.department', 'billing', 'vitals', 'company']),
-            201
-        );
+        $appointment->load(['patient', 'doctor.user', 'doctor.department', 'billing', 'vitals', 'company']);
+
+        $this->notifyDoctorAboutAppointment($appointment);
+
+        return response()->json($appointment, 201);
     }
 
     public function show(string $id): JsonResponse
@@ -237,5 +241,33 @@ class AppointmentController extends Controller
             'billed_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ];
+    }
+
+    private function notifyDoctorAboutAppointment(Appointment $appointment): void
+    {
+        $doctorUser = $appointment->doctor?->user;
+        if (! $doctorUser) {
+            return;
+        }
+
+        try {
+            $patientName = $appointment->patient?->name ?? 'A patient';
+            $date = Carbon::parse($appointment->appointment_date)->format('M j, Y g:i A');
+
+            $this->notificationService->notifyUser(
+                $doctorUser,
+                'New Appointment',
+                "{$patientName} booked an appointment on {$date}.",
+                [
+                    'type' => 'appointment_created',
+                    'appointment_id' => (string) $appointment->id,
+                ]
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send appointment notification', [
+                'appointment_id' => $appointment->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
