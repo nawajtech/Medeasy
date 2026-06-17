@@ -7,6 +7,7 @@ export const createAppointment = (data) => api.post("/appointments", data);
 export const updateAppointment = (id, data) => api.put(`/appointments/${id}`, data);
 export const deleteAppointment = (id) => api.delete(`/appointments/${id}`);
 
+
 export const openPrescription = (id) =>
   openAuthenticatedDocument(`/appointments/${id}/prescription`);
 
