@@ -38,6 +38,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('users', UserController::class);
         Route::apiResource('departments', DepartmentController::class);
         Route::apiResource('reports', ReportController::class);
+        Route::get('settings/form', [SettingController::class, 'form']);
+        Route::post('settings/upload-image', [SettingController::class, 'uploadImage']);
+        Route::put('settings/bulk', [SettingController::class, 'bulkUpdate']);
         Route::apiResource('settings', SettingController::class);
         Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
     });

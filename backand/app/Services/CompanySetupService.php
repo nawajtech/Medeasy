@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Setting;
+use App\Support\SettingDefinitions;
 
 class CompanySetupService
 {
@@ -41,18 +42,30 @@ class CompanySetupService
             );
         }
 
-        $settings = [
-            ['key' => 'clinic_name', 'label' => 'Clinic name', 'value' => $company->name, 'group' => 'general'],
-            ['key' => 'clinic_email', 'label' => 'Clinic email', 'value' => $company->email ?? '', 'group' => 'general'],
-            ['key' => 'clinic_phone', 'label' => 'Clinic phone', 'value' => $company->phone ?? '', 'group' => 'general'],
-            ['key' => 'currency', 'label' => 'Currency', 'value' => 'USD', 'group' => 'billing'],
-            ['key' => 'appointment_slot_minutes', 'label' => 'Default appointment duration (minutes)', 'value' => '30', 'group' => 'appointments'],
+        $this->ensureSettings($company);
+    }
+
+    public function ensureSettings(Company $company): void
+    {
+        $defaults = [
+            'clinic_name' => $company->name,
+            'clinic_email' => $company->email ?? '',
+            'clinic_phone' => $company->phone ?? '',
+            'clinic_address' => $company->address ?? '',
+            'clinic_website' => $company->website ?? '',
+            'company_logo' => $company->logo_url ?? '',
         ];
 
-        foreach ($settings as $row) {
+        foreach (SettingDefinitions::all() as $definition) {
             Setting::firstOrCreate(
-                ['company_id' => $company->id, 'key' => $row['key']],
-                [...$row, 'company_id' => $company->id]
+                ['company_id' => $company->id, 'key' => $definition['key']],
+                [
+                    'company_id' => $company->id,
+                    'key' => $definition['key'],
+                    'label' => $definition['label'],
+                    'group' => $definition['group'],
+                    'value' => $defaults[$definition['key']] ?? ($definition['default'] ?? ''),
+                ]
             );
         }
     }

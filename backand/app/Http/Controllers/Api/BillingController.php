@@ -6,7 +6,7 @@ use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
 use App\Models\Billing;
 use App\Models\Patient;
-use App\Models\Setting;
+use App\Services\ClinicBrandingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -105,17 +105,17 @@ class BillingController extends Controller
 
     public function invoice(string $id): View
     {
-        $billing = Billing::with(['patient', 'appointment.doctor.user', 'company'])->findOrFail($id);
+        $billing = Billing::with(['patient', 'appointment.doctor.user', 'appointment.doctor.department', 'company'])->findOrFail($id);
         $this->assertTenantAccess($billing);
 
-        $clinicName = Setting::where('company_id', $billing->company_id)
-            ->where('key', 'clinic_name')
-            ->value('value') ?? $billing->company?->name ?? 'MedEasy Clinic';
+        $brandingService = app(ClinicBrandingService::class);
+        $branding = $brandingService->forCompany((int) $billing->company_id);
 
         return view('documents.invoice', [
             'billing' => $billing,
             'appointment' => $billing->appointment,
-            'clinicName' => $clinicName,
+            'branding' => $branding,
+            'currencySymbol' => $brandingService->currencySymbol($branding['currency']),
         ]);
     }
 

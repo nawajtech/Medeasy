@@ -8,7 +8,7 @@ use App\Models\Appointment;
 use App\Models\AppointmentVital;
 use App\Models\Doctor;
 use App\Models\Patient;
-use App\Models\Setting;
+use App\Services\ClinicBrandingService;
 use App\Services\DoctorAvailabilityService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -164,13 +164,11 @@ class AppointmentController extends Controller
         $appointment = Appointment::with(['patient', 'doctor.user', 'doctor.department', 'company'])->findOrFail($id);
         $this->assertTenantAccess($appointment);
 
-        $clinicName = Setting::where('company_id', $appointment->company_id)
-            ->where('key', 'clinic_name')
-            ->value('value') ?? $appointment->company?->name ?? 'MedEasy Clinic';
+        $branding = app(ClinicBrandingService::class)->forCompany((int) $appointment->company_id);
 
         return view('documents.prescription', [
             'appointment' => $appointment,
-            'clinicName' => $clinicName,
+            'branding' => $branding,
         ]);
     }
 

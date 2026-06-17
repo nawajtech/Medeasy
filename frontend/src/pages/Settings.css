@@ -1,11 +1,306 @@
-.settings-page .page-card-header h2 {
-  font-size: 1.125rem;
+.settings-page .page-card-header h2,
+.settings-page-header h2 {
+  font-size: 1.0625rem;
   font-weight: 700;
   color: var(--me-text);
-  margin-bottom: 6px;
+  margin-bottom: 2px;
 }
 
-.settings-page .page-card-header p {
-  font-size: 0.875rem;
+.settings-page .page-card-header p,
+.settings-page-header p {
+  font-size: 0.8125rem;
   color: var(--me-text-secondary);
+  margin: 0;
+}
+
+.settings-company-bar {
+  margin-bottom: 0.75rem;
+  max-width: 22rem;
+}
+
+.settings-empty,
+.settings-loading {
+  font-size: 0.8125rem;
+  color: var(--me-text-secondary);
+}
+
+.settings-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+
+.settings-group {
+  border: 1px solid var(--me-border, #e5e7eb);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem 0.625rem;
+  margin: 0;
+  background: #fff;
+}
+
+.settings-group legend {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  padding: 0 0.35rem;
+}
+
+.settings-branding-row {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 0.625rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+
+.settings-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.settings-editor-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-field--full {
+  grid-column: 1 / -1;
+}
+
+.settings-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--me-text);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.settings-key {
+  font-size: 0.625rem;
+  font-weight: 500;
+  color: var(--me-text-secondary);
+  background: var(--me-bg-subtle, #f3f4f6);
+  padding: 0.05rem 0.3rem;
+  border-radius: 3px;
+}
+
+.settings-field input,
+.settings-field textarea {
+  width: 100%;
+  font-size: 0.8125rem;
+  padding: 0.35rem 0.5rem;
+}
+
+.settings-field textarea {
+  min-height: 52px;
+  resize: vertical;
+}
+
+.settings-field-hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--me-text-secondary);
+}
+
+/* ── Image upload cards ─────────────────────────────────────── */
+.settings-upload-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--me-border, #e5e7eb);
+  border-radius: 8px;
+  background: var(--me-bg-subtle, #fafbfc);
+}
+
+.settings-upload-card--favicon .settings-upload-dropzone {
+  min-height: 96px;
+}
+
+.settings-upload-card--favicon .settings-upload-preview__img {
+  width: 48px;
+  height: 48px;
+}
+
+.settings-upload-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.settings-upload-card__title {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--me-text);
+  display: inline;
+  margin-right: 0.35rem;
+}
+
+.settings-upload-card__header .settings-key {
+  display: inline;
+}
+
+.settings-upload-remove {
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.1rem 0.25rem;
+  border-radius: 4px;
+}
+
+.settings-upload-remove:hover {
+  background: #fef2f2;
+}
+
+.settings-upload-dropzone {
+  position: relative;
+  min-height: 108px;
+  border: 1.5px dashed var(--me-border, #d1d5db);
+  border-radius: 6px;
+  background: #fff;
+  overflow: hidden;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  cursor: pointer;
+}
+
+.settings-upload-dropzone.has-image {
+  cursor: default;
+  border-style: solid;
+  min-height: auto;
+}
+
+.settings-upload-dropzone.is-dragging {
+  border-color: var(--me-primary, #2563eb);
+  background: var(--me-primary-soft, #eff6ff);
+}
+
+.settings-upload-dropzone:not(.has-image):hover {
+  border-color: var(--me-primary, #2563eb);
+}
+
+.settings-upload-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0.75rem 0.5rem;
+  min-height: 108px;
+}
+
+.settings-upload-empty__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--me-primary-soft, #eff6ff);
+  color: var(--me-primary, #2563eb);
+  margin-bottom: 0.35rem;
+}
+
+.settings-upload-empty__title {
+  margin: 0 0 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--me-text);
+}
+
+.settings-upload-empty__title span {
+  color: var(--me-primary, #2563eb);
+  text-decoration: underline;
+}
+
+.settings-upload-empty__hint {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: var(--me-text-secondary);
+}
+
+.settings-upload-preview {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.625rem;
+  min-height: 88px;
+  background: repeating-conic-gradient(#f3f4f6 0% 25%, #fff 0% 50%) 50% / 12px 12px;
+}
+
+.settings-upload-preview__img {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid var(--me-border, #e5e7eb);
+}
+
+.settings-upload-preview__overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.45);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.settings-upload-preview:hover .settings-upload-preview__overlay {
+  opacity: 1;
+}
+
+.settings-upload-filename {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--me-text);
+  word-break: break-all;
+}
+
+.settings-upload-error {
+  margin: 0;
+  font-size: 0.6875rem;
+  color: #dc2626;
+}
+
+.settings-file-input {
+  display: none;
+}
+
+.settings-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.15rem;
+}
+
+.crud-alert--success {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+@media (max-width: 768px) {
+  .settings-branding-row {
+    grid-template-columns: 1fr;
+  }
 }

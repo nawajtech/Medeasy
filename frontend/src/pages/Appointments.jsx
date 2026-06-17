@@ -368,6 +368,24 @@ function Appointments() {
     }
   };
 
+  const handleOpenInvoice = async (billingId) => {
+    setError("");
+    try {
+      await openBillingInvoice(billingId);
+    } catch (err) {
+      setError(err.message || "Failed to open invoice.");
+    }
+  };
+
+  const handleOpenPrescription = async (appointmentId) => {
+    setError("");
+    try {
+      await openPrescription(appointmentId);
+    } catch (err) {
+      setError(err.message || "Failed to open prescription.");
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "—";
     return new Date(iso).toLocaleString();
@@ -495,7 +513,7 @@ function Appointments() {
                         <button
                           type="button"
                           className="crud-btn crud-btn--ghost crud-btn--sm"
-                          onClick={() => openBillingInvoice(b.id)}
+                          onClick={() => handleOpenInvoice(b.id)}
                         >
                           Invoice
                         </button>
@@ -503,7 +521,7 @@ function Appointments() {
                       <button
                         type="button"
                         className="crud-btn crud-btn--ghost crud-btn--sm"
-                        onClick={() => openPrescription(row.id)}
+                        onClick={() => handleOpenPrescription(row.id)}
                       >
                         Rx
                       </button>
