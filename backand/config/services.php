@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID', 'medeasy-2ab9a'),
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
 ];

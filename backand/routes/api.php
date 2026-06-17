@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\LabTestController;
 use App\Http\Controllers\Api\LabTestPackageController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -26,6 +27,13 @@ Route::post('auth/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
+
+    Route::post('notifications/token', [NotificationController::class, 'registerToken']);
+    Route::delete('notifications/token', [NotificationController::class, 'removeToken']);
+    Route::get('notifications', [NotificationController::class, 'index']);
+    Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
+    Route::post('notifications/test', [NotificationController::class, 'test']);
 
     Route::middleware('role:super_admin')->group(function () {
         Route::apiResource('companies', CompanyController::class);
