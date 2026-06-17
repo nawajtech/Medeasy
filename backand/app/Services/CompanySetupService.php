@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Setting;
@@ -10,6 +11,22 @@ class CompanySetupService
 {
     public function bootstrap(Company $company): void
     {
+        // Create the default main branch using the company's own details
+        Branch::firstOrCreate(
+            ['company_id' => $company->id, 'is_main' => true],
+            [
+                'company_id' => $company->id,
+                'name'       => $company->name.' — Main Branch',
+                'code'       => 'MAIN',
+                'address'    => $company->address ?? null,
+                'city'       => $company->city ?? null,
+                'phone'      => $company->phone ?? null,
+                'email'      => $company->email ?? null,
+                'is_main'    => true,
+                'is_active'  => true,
+            ]
+        );
+
         $departments = [
             ['name' => 'General Medicine', 'code' => 'GEN'],
             ['name' => 'Cardiology', 'code' => 'CARD'],

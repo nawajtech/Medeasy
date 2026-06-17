@@ -7,6 +7,7 @@ import {
   updateUser,
 } from "../api/users";
 import { useAuth } from "../auth/AuthContext";
+import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -15,6 +16,7 @@ import "./Users.css";
 
 const emptyForm = {
   company_id: "",
+  branch_id: "",
   name: "",
   email: "",
   phone: "",
@@ -23,11 +25,13 @@ const emptyForm = {
   status: true,
 };
 
-const ROLES = ["company_admin", "staff"];
+const ROLES = ["company_admin", "staff", "lab_technician", "radiologist", "receptionist", "pharmacist"];
 
 function Users() {
-  const { isSuperAdmin } = useAuth();
-  const roleOptions = isSuperAdmin ? ROLES : ["staff"];
+  const { isSuperAdmin, isCompanyAdmin } = useAuth();
+  const roleOptions = isSuperAdmin ? ROLES : isCompanyAdmin
+    ? ["staff", "lab_technician", "radiologist", "receptionist", "pharmacist"]
+    : ["staff"];
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -67,6 +71,7 @@ function Users() {
       phone: user.phone || "",
       password: "",
       company_id: String(user.company_id || ""),
+      branch_id: String(user.branch_id || ""),
       role: user.role || "staff",
       status: Boolean(user.status),
     });
@@ -142,8 +147,8 @@ function Users() {
             <tr>
               <th>Name</th>
               <th>Email</th>
-              <th>Phone</th>
               <th>Role</th>
+              <th>Branch</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -158,10 +163,21 @@ function Users() {
             )}
             {items.map((user) => (
               <tr key={user.id}>
-                <td>{user.name}</td>
+                <td>
+                  <div>{user.name}</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--me-text-muted)" }}>{user.phone || ""}</div>
+                </td>
                 <td>{user.email}</td>
-                <td>{user.phone || "—"}</td>
-                <td>{user.role}</td>
+                <td>
+                  <span className="crud-badge" style={{ background: "var(--me-surface-2)", color: "var(--me-text)" }}>
+                    {user.role?.replace(/_/g, " ")}
+                  </span>
+                </td>
+                <td>
+                  {user.branch
+                    ? <span className="branch-pill">{user.branch.name}</span>
+                    : <span style={{ color: "var(--me-text-muted)" }}>—</span>}
+                </td>
                 <td>
                   <span
                     className={`crud-badge ${
@@ -203,6 +219,17 @@ function Users() {
         <form onSubmit={handleSubmit}>
           <div className="crud-form-grid">
             <CompanySelect value={form.company_id} onChange={handleChange} />
+            <div className="crud-field">
+              <label htmlFor="user_branch_id">Branch</label>
+              <BranchSelect
+                id="user_branch_id"
+                name="branch_id"
+                value={form.branch_id}
+                onChange={handleChange}
+                companyId={form.company_id}
+                allLabel="No branch assigned"
+              />
+            </div>
             <div className="crud-field">
               <label htmlFor="name">Name</label>
               <input id="name" name="name" value={form.name} onChange={handleChange} required />

@@ -9,6 +9,7 @@ import {
   updateDoctor,
 } from "../api/doctors";
 import { useAuth } from "../auth/AuthContext";
+import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -17,6 +18,7 @@ import "./Doctors.css";
 
 const emptyForm = {
   company_id: "",
+  branch_id: "",
   name: "",
   email: "",
   phone: "",
@@ -37,6 +39,7 @@ function Doctors() {
   const canManageSchedule = isSuperAdmin || isCompanyAdmin;
   const [items, setItems] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [filterBranchId, setFilterBranchId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,6 +81,7 @@ function Doctors() {
       password: "",
       status: Boolean(u.status),
       company_id: String(doctor.company_id || ""),
+      branch_id: String(doctor.branch_id || ""),
       doctor_code: doctor.doctor_code || "",
       department_id: String(doctor.department_id || doctor.department?.id || ""),
       qualification: doctor.qualification || "",
@@ -155,7 +159,16 @@ function Doctors() {
       </div>
 
       <div className="crud-toolbar">
-        <span>{loading ? "Loading…" : `${items.length} doctor(s)`}</span>
+        <div className="tenant-toolbar-left">
+          <span>{loading ? "Loading…" : `${items.length} doctor(s)`}</span>
+          <BranchSelect
+            value={filterBranchId}
+            onChange={(e) => setFilterBranchId(e.target.value)}
+            allLabel="All branches"
+            id="doctor_branch_filter"
+            name="branch_filter"
+          />
+        </div>
         {!isDoctor && (
           <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
             Add doctor
@@ -172,7 +185,7 @@ function Doctors() {
               <th>Code</th>
               <th>Name</th>
               <th>Department</th>
-              <th>Email</th>
+              <th>Branch</th>
               <th>Fee</th>
               <th>Status</th>
               <th>Actions</th>
@@ -186,15 +199,24 @@ function Doctors() {
                 </td>
               </tr>
             )}
-            {items.map((doctor) => (
+            {items
+              .filter((d) => !filterBranchId || String(d.branch_id) === filterBranchId)
+              .map((doctor) => (
               <tr key={doctor.id}>
                 <td>{doctor.doctor_code}</td>
-                <td>{doctor.user?.name}</td>
+                <td>
+                  <div>{doctor.user?.name}</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--me-text-muted)" }}>{doctor.user?.email}</div>
+                </td>
                 <td>{doctor.department?.name || doctor.specialization || "—"}</td>
-                <td>{doctor.user?.email}</td>
+                <td>
+                  {doctor.branch
+                    ? <span className="branch-pill">{doctor.branch.name}</span>
+                    : <span style={{ color: "var(--me-text-muted)" }}>—</span>}
+                </td>
                 <td>
                   {doctor.consultation_fee != null
-                    ? `$${Number(doctor.consultation_fee).toFixed(2)}`
+                    ? `₹${Number(doctor.consultation_fee).toFixed(0)}`
                     : "—"}
                 </td>
                 <td>
@@ -252,6 +274,16 @@ function Doctors() {
         <form onSubmit={handleSubmit}>
           <div className="crud-form-grid">
             <CompanySelect value={form.company_id} onChange={handleChange} />
+            <div className="crud-field">
+              <label htmlFor="branch_id">Branch</label>
+              <BranchSelect
+                value={form.branch_id}
+                onChange={handleChange}
+                companyId={form.company_id}
+                allLabel="No branch assigned"
+                id="branch_id"
+              />
+            </div>
             <div className="crud-field">
               <label htmlFor="name">Full name</label>
               <input id="name" name="name" value={form.name} onChange={handleChange} required />

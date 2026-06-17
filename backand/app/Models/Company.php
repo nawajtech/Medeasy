@@ -9,9 +9,18 @@ class Company extends Model
 {
     use SoftDeletes;
 
+    public const TYPES = [
+        'clinic'            => 'Clinic',
+        'diagnostic_center' => 'Diagnostic Center',
+        'pathology_lab'     => 'Pathology Lab',
+        'hospital'          => 'Hospital',
+        'pharmacy'          => 'Pharmacy',
+    ];
+
     protected $fillable = [
         'name',
         'code',
+        'type',
         'phone',
         'email',
         'address',
@@ -20,6 +29,10 @@ class Company extends Model
         'country',
         'website',
         'description',
+        'logo_url',
+        'gst_number',
+        'registration_number',
+        'currency',
         'is_active',
     ];
 
@@ -28,6 +41,11 @@ class Company extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        return self::TYPES[$this->type] ?? ucfirst($this->type ?? 'Clinic');
     }
 
     public function users()
@@ -53,5 +71,20 @@ class Company extends Model
     public function departments()
     {
         return $this->hasMany(Department::class);
+    }
+
+    public function branches()
+    {
+        return $this->hasMany(Branch::class);
+    }
+
+    public function subscriptions()
+    {
+        return $this->hasMany(CompanySubscription::class);
+    }
+
+    public function activeSubscription()
+    {
+        return $this->hasOne(CompanySubscription::class)->where('status', 'active')->latest();
     }
 }

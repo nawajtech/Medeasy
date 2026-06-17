@@ -12,17 +12,46 @@ import {
   IconSettings,
   IconHeartPulse,
   IconBuilding,
+  IconFlask,
+  IconRadiology,
+  IconBranch,
+  IconClipboard,
 } from "./icons";
+
+const LAB_LABELS = new Set(["Lab Catalog", "Lab Orders"]);
+const DIAGNOSTICS_LABELS = new Set(["Diagnostics"]);
+const ADMIN_LABELS = new Set(["Companies", "Branches", "Users", "Staff", "Reports", "Settings"]);
+
+function groupMenuItems(items) {
+  const general = [], lab = [], diagnostics = [], admin = [];
+  for (const item of items) {
+    if (LAB_LABELS.has(item.label)) lab.push(item);
+    else if (DIAGNOSTICS_LABELS.has(item.label)) diagnostics.push(item);
+    else if (ADMIN_LABELS.has(item.label)) admin.push(item);
+    else general.push(item);
+  }
+  const groups = [];
+  if (general.length) groups.push({ label: "Menu", items: general });
+  if (lab.length) groups.push({ label: "Laboratory", items: lab });
+  if (diagnostics.length) groups.push({ label: "Diagnostics", items: diagnostics });
+  if (admin.length) groups.push({ label: "Admin", items: admin });
+  return groups;
+}
 
 const iconMap = {
   Overview: IconDashboard,
   Companies: IconBuilding,
+  Branches: IconBranch,
   Patients: IconPatient,
   Departments: IconChart,
   Doctors: IconStethoscope,
   Appointments: IconCalendar,
   "My appointments": IconCalendar,
   "My patients": IconPatient,
+  "My schedule": IconCalendar,
+  "Lab Catalog": IconFlask,
+  "Lab Orders": IconClipboard,
+  Diagnostics: IconRadiology,
   Reports: IconChart,
   Users: IconUsers,
   Staff: IconUsers,
@@ -49,28 +78,28 @@ function Sidebar() {
         </Link>
 
         <nav className="menu">
-          <div className="menu-section">
-            <span className="menu-label">Menu</span>
-            <ul className="menu-list">
-              {items.map((item) => {
-                const Icon = iconMap[item.label] || IconDashboard;
-                return (
-                  <li key={item.to + item.label}>
-                    <NavLink
-                      to={item.to}
-                      end={item.end}
-                      className={({ isActive }) => (isActive ? "active" : undefined)}
-                    >
-                      <span className="menu-icon">
-                        <Icon />
-                      </span>
-                      <span className="menu-text">{item.label}</span>
-                    </NavLink>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+          {groupMenuItems(items).map((group) => (
+            <div className="menu-section" key={group.label}>
+              <span className="menu-label">{group.label}</span>
+              <ul className="menu-list">
+                {group.items.map((item) => {
+                  const Icon = iconMap[item.label] || IconDashboard;
+                  return (
+                    <li key={item.to + item.label}>
+                      <NavLink
+                        to={item.to}
+                        end={item.end}
+                        className={({ isActive }) => (isActive ? "active" : undefined)}
+                      >
+                        <span className="menu-icon"><Icon /></span>
+                        <span className="menu-text">{item.label}</span>
+                      </NavLink>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="sidebar-footer">

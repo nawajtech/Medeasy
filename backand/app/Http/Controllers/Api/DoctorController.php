@@ -19,7 +19,7 @@ class DoctorController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Doctor::with(['user', 'department', 'company'])->orderByDesc('created_at');
+        $query = Doctor::with(['user', 'department', 'company', 'branch'])->orderByDesc('created_at');
 
         if ($doctorId = $this->doctorIdForUser()) {
             $query->where('id', $doctorId);
@@ -27,6 +27,10 @@ class DoctorController extends Controller
 
         if (auth()->user()->isSuperAdmin() && $request->filled('company_id')) {
             $query->where('company_id', (int) $request->company_id);
+        }
+
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', (int) $request->branch_id);
         }
 
         return response()->json($query->get());
@@ -56,6 +60,7 @@ class DoctorController extends Controller
 
             $created = Doctor::create([
                 'company_id' => $companyId,
+                'branch_id' => $validated['branch_id'] ?? null,
                 'user_id' => $user->id,
                 'department_id' => $validated['department_id'],
                 'doctor_code' => $validated['doctor_code'] ?? $this->nextDoctorCode($companyId),
@@ -113,6 +118,7 @@ class DoctorController extends Controller
             $doctor->user->update($userData);
 
             $doctor->update([
+                'branch_id' => $validated['branch_id'] ?? null,
                 'department_id' => $validated['department_id'],
                 'doctor_code' => $validated['doctor_code'],
                 'qualification' => $validated['qualification'] ?? null,
@@ -171,6 +177,7 @@ class DoctorController extends Controller
                 'max:50',
                 Rule::unique('doctors', 'doctor_code')->where('company_id', $companyId)->ignore($doctorId),
             ],
+            'branch_id' => ['nullable', 'exists:branches,id'],
             'qualification' => ['nullable', 'string', 'max:255'],
             'experience_years' => ['nullable', 'integer', 'min:0'],
             'license_number' => [
