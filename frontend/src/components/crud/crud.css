@@ -68,8 +68,8 @@
 .crud-table-wrap {
   margin-top: 16px;
   overflow-x: auto;
-  border: 1px solid var(--me-border);
   border-radius: var(--me-radius-md);
+  box-shadow: var(--me-shadow-xs);
 }
 
 .crud-table {
@@ -138,22 +138,37 @@
 }
 
 .crud-btn {
-  padding: 8px 16px;
-  border-radius: var(--me-radius-sm);
+  padding: 10px 18px;
+  border-radius: var(--me-radius-btn);
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: background var(--me-transition), color var(--me-transition);
+  transition:
+    background var(--me-transition),
+    color var(--me-transition),
+    border-color var(--me-transition),
+    transform var(--me-transition),
+    box-shadow var(--me-transition);
+}
+
+.crud-btn:hover {
+  transform: translateY(-1px);
+}
+
+.crud-btn:active {
+  transform: translateY(0);
 }
 
 .crud-btn--primary {
   background: var(--me-primary);
   color: #fff;
+  box-shadow: var(--me-shadow-xs);
 }
 
 .crud-btn--primary:hover {
   background: var(--me-primary-hover);
+  box-shadow: var(--me-shadow-sm);
 }
 
 .crud-btn--ghost {
@@ -165,6 +180,7 @@
 .crud-btn--ghost:hover {
   background: var(--me-surface-muted);
   color: var(--me-text);
+  border-color: var(--me-border-strong);
 }
 
 .crud-btn--danger {
@@ -231,18 +247,28 @@
 .crud-field select,
 .crud-field textarea {
   width: 100%;
-  padding: 9px 12px;
+  min-height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--me-border);
-  border-radius: var(--me-radius-sm);
+  border-radius: var(--me-radius-input);
   font-size: 0.875rem;
   font-family: inherit;
   background: var(--me-surface);
   color: var(--me-text);
+  transition:
+    border-color var(--me-transition),
+    box-shadow var(--me-transition);
 }
 
 .crud-field textarea {
+  padding: 12px 14px;
   min-height: 80px;
   resize: vertical;
+}
+
+.crud-field input::placeholder,
+.crud-field textarea::placeholder {
+  color: var(--me-placeholder);
 }
 
 .crud-field input:focus,

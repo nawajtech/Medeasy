@@ -17,20 +17,65 @@ import { useAuth } from "../auth/AuthContext";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
+import {
+  IconBuilding,
+  IconCalendar,
+  IconCalendarDays,
+  IconChart,
+  IconDashboard,
+  IconDollar,
+  IconPatient,
+  IconStethoscope,
+  IconTrendUp,
+} from "../components/icons";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./Dashboard.css";
 
 const STATUS_COLORS = {
-  scheduled: "#0d9488",
+  scheduled: "#0f766e",
   confirmed: "#2563eb",
   completed: "#16a34a",
   cancelled: "#dc2626",
 };
 
-const CHART_TEAL = "#0d9488";
+const CHART_TEAL = "#0f766e";
+const CHART_TEAL_LIGHT = "#14b8a6";
 const CHART_BLUE = "#3b82f6";
 const CHART_AMBER = "#f59e0b";
 const DOCTOR_PERFORMANCE_PREVIEW = 5;
+
+const PRESET_DAYS = [7, 30, 90];
+
+function getActivePresetDays(from, to) {
+  const today = formatLocalDate(new Date());
+  if (to !== today) return null;
+  const fromDate = new Date(`${from}T00:00:00`);
+  const toDate = new Date(`${to}T00:00:00`);
+  const diff = Math.round((toDate - fromDate) / (1000 * 60 * 60 * 24)) + 1;
+  return PRESET_DAYS.includes(diff) ? diff : null;
+}
+
+function ChartTooltipContent({ active, payload, label, valueFormatter }) {
+  if (!active || !payload?.length) return null;
+
+  return (
+    <div className="dashboard-chart-tooltip">
+      {label ? <p className="dashboard-chart-tooltip-label">{label}</p> : null}
+      {payload.map((entry) => (
+        <div className="dashboard-chart-tooltip-row" key={entry.name ?? entry.dataKey}>
+          <span
+            className="dashboard-chart-tooltip-dot"
+            style={{ background: entry.color || entry.fill }}
+          />
+          <span>{entry.name}</span>
+          <span className="dashboard-chart-tooltip-value">
+            {valueFormatter ? valueFormatter(entry.value, entry.name) : entry.value}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function formatLocalDate(date) {
   const y = date.getFullYear();
@@ -206,6 +251,65 @@ function Dashboard() {
   const doctorPerformancePreview = doctorPerformance.slice(0, DOCTOR_PERFORMANCE_PREVIEW);
   const hasMoreDoctors = doctorPerformance.length > DOCTOR_PERFORMANCE_PREVIEW;
   const doctorRangeLabel = formatRangeLabel(data.date_range?.from, data.date_range?.to);
+  const activePreset = getActivePresetDays(dateFrom, dateTo);
+
+  const quickStats = [
+    { label: "Patients", value: summary.patients },
+    { label: "Appointments", value: summary.appointments_total },
+    { label: "Today", value: summary.appointments_today },
+    ...(summary.companies != null ? [{ label: "Clinics", value: summary.companies }] : []),
+  ];
+
+  const statCardConfig = [
+    ...(!isDoctor && summary.companies != null
+      ? [{
+          key: "companies",
+          label: "Active clinics",
+          value: summary.companies,
+          hint: "In your network",
+          accent: true,
+          icon: IconBuilding,
+        }]
+      : []),
+    {
+      key: "patients",
+      label: "Patients",
+      value: summary.patients,
+      hint: "Registered patients",
+      icon: IconPatient,
+    },
+    {
+      key: "doctors",
+      label: isDoctor ? "You" : "Doctors",
+      value: summary.doctors,
+      hint: isDoctor ? "Your profile" : "Active doctors",
+      icon: IconStethoscope,
+    },
+    {
+      key: "appointments",
+      label: "Appointments in range",
+      value: summary.appointments_total,
+      hint: doctorRangeLabel || "Selected period",
+      accent: true,
+      icon: IconCalendarDays,
+    },
+    {
+      key: "today",
+      label: "Today's appointments",
+      value: summary.appointments_today,
+      hint: "Scheduled for today",
+      icon: IconCalendar,
+    },
+    ...(!isDoctor
+      ? [{
+          key: "departments",
+          label: "Departments",
+          value: summary.departments,
+          hint: "Clinical departments",
+          icon: IconChart,
+        }]
+      : []),
+  ];
 
   const paymentCards = payment_overview
     ? [
@@ -215,6 +319,7 @@ function Dashboard() {
           value: formatMoney(payment_overview.today_revenue),
           hint: "Payments received today",
           accent: true,
+          hintClass: "is-success",
         },
         {
           key: "period",
@@ -228,21 +333,28 @@ function Dashboard() {
           value: formatMoney(payment_overview.outstanding_due),
           hint: "Due on bills in range",
           warn: payment_overview.outstanding_due > 0,
+          hintClass: payment_overview.outstanding_due > 0 ? "is-warn" : "",
         },
         {
           key: "rate",
           label: "Collection rate",
           value: formatPercent(payment_overview.collection_rate),
           hint: `Of ${formatMoney(payment_overview.period_total_billed)} billed`,
+          hintClass: payment_overview.collection_rate >= 80 ? "is-success" : "",
         },
       ]
     : [];
 
   return (
     <div className="dashboard-page">
-      <header className="dashboard-header">
-        <div className="dashboard-header-main">
-          <h1>Dashboard</h1>
+      <section className="dashboard-hero">
+        <div className="dashboard-hero-main">
+          <div className="dashboard-title-row">
+            <span className="dashboard-title-icon" aria-hidden="true">
+              <IconDashboard size={22} />
+            </span>
+            <h1>Dashboard</h1>
+          </div>
           <p>
             {isDoctor
               ? "Your appointments and assigned patients at a glance."
@@ -251,53 +363,73 @@ function Dashboard() {
           <span className="dashboard-scope-badge">
             Viewing: <strong>{data.scope_label}</strong>
           </span>
-        </div>
-
-        <div className="dashboard-filters">
-          {isSuperAdmin && (
-            <CompanySelect
-              variant="inline"
-              allowAll
-              label="Clinic"
-              id="dashboard_company_id"
-              value={filterCompanyId}
-              onChange={(e) => setFilterCompanyId(e.target.value)}
-              required={false}
-            />
-          )}
-          <div className="dashboard-date-range">
-            {/* <span className="dashboard-date-range-label">Date range</span> */}
-            <div className="dashboard-date-inputs">
-              <input
-                type="date"
-                value={dateFrom}
-                max={dateTo}
-                onChange={(e) => setDateFrom(e.target.value)}
-                aria-label="From date"
-              />
-              <span className="dashboard-date-sep">to</span>
-              <input
-                type="date"
-                value={dateTo}
-                min={dateFrom}
-                onChange={(e) => setDateTo(e.target.value)}
-                aria-label="To date"
-              />
-            </div>
-            <div className="dashboard-date-presets">
-              <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => setPresetDays(7)}>
-                7 days
-              </button>
-              <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => setPresetDays(30)}>
-                30 days
-              </button>
-              <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => setPresetDays(90)}>
-                90 days
-              </button>
-            </div>
+          <div className="dashboard-quick-stats" aria-label="Quick statistics">
+            {quickStats.map((item) => (
+              <div className="dashboard-quick-stat" key={item.label}>
+                <span className="dashboard-quick-stat-value">{item.value}</span>
+                <span className="dashboard-quick-stat-label">{item.label}</span>
+              </div>
+            ))}
           </div>
         </div>
-      </header>
+      </section>
+
+      <div className="dashboard-filter-toolbar" role="toolbar" aria-label="Dashboard filters">
+        {isSuperAdmin && (
+          <>
+            <div className="dashboard-filter-group">
+              <CompanySelect
+                variant="inline"
+                allowAll
+                label="Clinic"
+                id="dashboard_company_id"
+                value={filterCompanyId}
+                onChange={(e) => setFilterCompanyId(e.target.value)}
+                required={false}
+              />
+            </div>
+            <div className="dashboard-filter-divider" aria-hidden="true" />
+          </>
+        )}
+        <div className="dashboard-filter-group">
+          <span className="dashboard-filter-label">Date range</span>
+          <div className="dashboard-date-inputs">
+            <input
+              type="date"
+              value={dateFrom}
+              max={dateTo}
+              onChange={(e) => setDateFrom(e.target.value)}
+              aria-label="From date"
+            />
+            <span className="dashboard-date-sep">to</span>
+            <input
+              type="date"
+              value={dateTo}
+              min={dateFrom}
+              onChange={(e) => setDateTo(e.target.value)}
+              aria-label="To date"
+            />
+          </div>
+        </div>
+        <div className="dashboard-filter-divider" aria-hidden="true" />
+        <div
+          className="dashboard-segmented"
+          role="group"
+          aria-label="Quick date presets"
+        >
+          {PRESET_DAYS.map((days) => (
+            <button
+              key={days}
+              type="button"
+              className={`dashboard-segmented-btn${activePreset === days ? " is-active" : ""}`}
+              onClick={() => setPresetDays(days)}
+              aria-pressed={activePreset === days}
+            >
+              {days} Days
+            </button>
+          ))}
+        </div>
+      </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
 
@@ -313,9 +445,19 @@ function Dashboard() {
                 key={card.key}
                 className={`dashboard-payment-card ${card.accent ? "is-accent" : ""} ${card.warn ? "is-warn" : ""}`}
               >
-                <span className="dashboard-payment-label">{card.label}</span>
+                <div className="dashboard-payment-card-header">
+                  <span className="dashboard-payment-label">{card.label}</span>
+                  <span className="dashboard-payment-icon" aria-hidden="true">
+                    <IconDollar size={18} />
+                  </span>
+                </div>
                 <span className="dashboard-payment-value">{card.value}</span>
-                <span className="dashboard-payment-hint">{card.hint}</span>
+                <span className={`dashboard-payment-hint ${card.hintClass || ""}`}>
+                  {card.hintClass === "is-success" ? (
+                    <IconTrendUp size={12} />
+                  ) : null}
+                  {card.hint}
+                </span>
               </article>
             ))}
           </div>
@@ -420,48 +562,24 @@ function Dashboard() {
       )}
 
       <div className="dashboard-stats">
-        {!isDoctor && summary.companies != null && (
-          <div className="dashboard-stat-card stat-accent">
-            <div className="stat-label">Active clinics</div>
-            <div className="stat-value">{summary.companies}</div>
-          </div>
-        )}
-        <div className="dashboard-stat-card">
-          <div className="stat-label">Patients</div>
-          <div className="stat-value">{summary.patients}</div>
-        </div>
-        <div className="dashboard-stat-card">
-          <div className="stat-label">{isDoctor ? "You" : "Doctors"}</div>
-          <div className="stat-value">{summary.doctors}</div>
-        </div>
-        <div className="dashboard-stat-card stat-accent">
-          <div className="stat-label">Appointments in range</div>
-          <div className="stat-value">{summary.appointments_total}</div>
-        </div>
-        <div className="dashboard-stat-card">
-          <div className="stat-label">Today&apos;s appointments</div>
-          <div className="stat-value">{summary.appointments_today}</div>
-        </div>
-        {!isDoctor && (
-          <>
-            <div className="dashboard-stat-card">
-              <div className="stat-label">Departments</div>
-              <div className="stat-value">{summary.departments}</div>
-            </div>
-            {/* <div className="dashboard-stat-card">
-              <div className="stat-label">Collected (range)</div>
-              <div className="stat-value stat-value--money">
-                {formatMoney(summary.billing_collected)}
+        {statCardConfig.map((card) => {
+          const StatIcon = card.icon;
+          return (
+            <article
+              key={card.key}
+              className={`dashboard-stat-card${card.accent ? " stat-accent" : ""}`}
+            >
+              <div className="dashboard-stat-card-header">
+                <span className="stat-label">{card.label}</span>
+                <span className="dashboard-stat-icon" aria-hidden="true">
+                  <StatIcon size={18} />
+                </span>
               </div>
-            </div>
-            <div className="dashboard-stat-card">
-              <div className="stat-label">Pending (range)</div>
-              <div className="stat-value stat-value--money">
-                {formatMoney(summary.billing_pending)}
-              </div>
-            </div> */}
-          </>
-        )}
+              <div className="stat-value">{card.value}</div>
+              <span className="stat-hint">{card.hint}</span>
+            </article>
+          );
+        })}
       </div>
 
       <div className="dashboard-charts">
@@ -471,14 +589,24 @@ function Dashboard() {
             <p className="chart-subtitle">Activity in selected date range</p>
             <div className="dashboard-chart-body">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={data.companies_overview} margin={{ top: 8, right: 16, left: 0, bottom: 8 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="appointments" name="Appointments" fill={CHART_AMBER} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="period_revenue" name="Revenue" fill={CHART_TEAL} radius={[4, 4, 0, 0]} />
+                <BarChart data={data.companies_overview} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                  <defs>
+                    <linearGradient id="tealBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
+                      <stop offset="100%" stopColor={CHART_TEAL} />
+                    </linearGradient>
+                    <linearGradient id="amberBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="100%" stopColor={CHART_AMBER} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="name" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTooltipContent valueFormatter={(v, name) => (name === "Revenue" ? formatMoney(v) : v)} />} />
+                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
+                  <Bar dataKey="appointments" name="Appointments" fill="url(#amberBarGrad)" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="period_revenue" name="Revenue" fill="url(#tealBarGrad)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -510,8 +638,8 @@ function Dashboard() {
                       <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#94a3b8"} />
                     ))}
                   </Pie>
-                  <Tooltip />
-                  <Legend />
+                  <Tooltip content={<ChartTooltipContent />} />
+                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
                 </PieChart>
               </ResponsiveContainer>
             )}
@@ -523,12 +651,18 @@ function Dashboard() {
           <p className="chart-subtitle">By month in range</p>
           <div className="dashboard-chart-body">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={appointments_by_month}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="count" name="Appointments" fill={CHART_TEAL} radius={[6, 6, 0, 0]} />
+              <BarChart data={appointments_by_month} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                <defs>
+                  <linearGradient id="trendBarGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
+                    <stop offset="100%" stopColor={CHART_TEAL} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                <Tooltip content={<ChartTooltipContent />} />
+                <Bar dataKey="count" name="Appointments" fill="url(#trendBarGrad)" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -540,14 +674,24 @@ function Dashboard() {
             <p className="chart-subtitle">Collected vs outstanding in range</p>
             <div className="dashboard-chart-body">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={billing_by_month}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis dataKey="label" tick={{ fontSize: 11 }} />
-                  <YAxis tick={{ fontSize: 12 }} tickFormatter={(v) => `$${v}`} />
-                  <Tooltip formatter={(v) => formatMoney(v)} />
-                  <Legend />
-                  <Bar dataKey="collected" name="Collected" fill={CHART_TEAL} radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pending" name="Outstanding" fill={CHART_AMBER} radius={[4, 4, 0, 0]} />
+                <BarChart data={billing_by_month} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                  <defs>
+                    <linearGradient id="collectedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
+                      <stop offset="100%" stopColor={CHART_TEAL} />
+                    </linearGradient>
+                    <linearGradient id="pendingGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="100%" stopColor={CHART_AMBER} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={(v) => `$${v}`} axisLine={false} tickLine={false} />
+                  <Tooltip content={<ChartTooltipContent valueFormatter={(v) => formatMoney(v)} />} />
+                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
+                  <Bar dataKey="collected" name="Collected" fill="url(#collectedGrad)" radius={[8, 8, 0, 0]} />
+                  <Bar dataKey="pending" name="Outstanding" fill="url(#pendingGrad)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

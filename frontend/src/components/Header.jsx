@@ -4,7 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useNotifications } from "../notifications/NotificationContext";
 import "./Header.css";
 import "./NotificationToast.css";
-import { IconSearch, IconBell, IconChevronRight } from "./icons";
+import { IconSearch, IconBell, IconChevronRight, IconChevronDown } from "./icons";
 import { getRouteMeta } from "../routeConfig";
 
 function formatTime(iso) {
@@ -181,6 +181,9 @@ function Header() {
           <span className="profile-meta">
             <span className="profile-name">{user?.name}</span>
             <span className="profile-role">{user?.role?.replace("_", " ")}</span>
+          </span>
+          <span className="profile-chevron" aria-hidden="true">
+            <IconChevronDown size={16} />
           </span>
         </button>
       </div>

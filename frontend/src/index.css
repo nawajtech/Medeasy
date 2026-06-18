@@ -12,6 +12,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  scroll-behavior: smooth;
 }
 
 body {
@@ -36,15 +37,46 @@ button {
   font-family: inherit;
 }
 
+:focus-visible {
+  outline: 2px solid var(--me-primary);
+  outline-offset: 2px;
+}
+
+@keyframes me-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes me-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.me-animate-in {
+  animation: me-fade-in 0.35s var(--me-ease-out) both;
+}
+
 .admin-content h1 {
-  font-size: 1.5rem;
+  font-size: var(--me-text-page);
   font-weight: 700;
   color: var(--me-text);
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
+  letter-spacing: -0.03em;
+  margin-bottom: var(--me-space-2);
 }
 
 .admin-content p {
   color: var(--me-text-secondary);
-  font-size: 0.9375rem;
+  font-size: var(--me-text-sm);
 }

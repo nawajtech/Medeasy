@@ -1,33 +1,73 @@
 :root {
-  --me-primary: #0d9488;
-  --me-primary-hover: #0f766e;
-  --me-primary-soft: rgba(13, 148, 136, 0.1);
-  --me-primary-ring: rgba(13, 148, 136, 0.25);
+  /* Brand */
+  --me-primary: #0f766e;
+  --me-primary-hover: #0d635c;
+  --me-primary-soft: rgba(15, 118, 110, 0.08);
+  --me-primary-ring: rgba(15, 118, 110, 0.22);
 
+  --me-success: #16a34a;
+  --me-success-soft: rgba(22, 163, 74, 0.1);
+  --me-warning: #f59e0b;
+  --me-warning-soft: rgba(245, 158, 11, 0.1);
+  --me-danger: #dc2626;
+  --me-danger-soft: rgba(220, 38, 38, 0.08);
+
+  /* Surfaces */
   --me-surface: #ffffff;
   --me-surface-elevated: #ffffff;
   --me-surface-muted: #f8fafc;
-  --me-canvas: #f1f5f9;
+  --me-canvas: #f8fafc;
+  --me-glass: rgba(255, 255, 255, 0.72);
 
+  /* Text */
   --me-text: #0f172a;
-  --me-text-secondary: #64748b;
-  --me-text-muted: #94a3b8;
+  --me-text-secondary: #475569;
+  --me-text-muted: #64748b;
+  --me-placeholder: #94a3b8;
 
-  --me-border: #e2e8f0;
-  --me-border-strong: #cbd5e1;
+  /* Borders */
+  --me-border: #e5e7eb;
+  --me-border-strong: #d1d5db;
 
-  --me-sidebar-width: 280px;
-  --me-header-height: 72px;
+  /* Layout */
+  --me-sidebar-width: 260px;
+  --me-header-height: 80px;
 
+  /* Spacing (8px system) */
+  --me-space-1: 4px;
+  --me-space-2: 8px;
+  --me-space-3: 12px;
+  --me-space-4: 16px;
+  --me-space-5: 20px;
+  --me-space-6: 24px;
+  --me-space-8: 32px;
+  --me-space-10: 40px;
+  --me-space-12: 48px;
+
+  /* Radius */
+  --me-radius-btn: 10px;
+  --me-radius-input: 12px;
   --me-radius-sm: 8px;
   --me-radius-md: 12px;
   --me-radius-lg: 16px;
   --me-radius-full: 9999px;
 
-  --me-shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
-  --me-shadow-md: 0 4px 12px rgba(15, 23, 42, 0.06);
-  --me-shadow-lg: 0 12px 32px rgba(15, 23, 42, 0.08);
+  /* Shadows */
+  --me-shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --me-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --me-shadow-md: 0 4px 16px rgba(15, 23, 42, 0.06), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --me-shadow-lg: 0 12px 40px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04);
+  --me-shadow-hover: 0 8px 24px rgba(15, 23, 42, 0.08), 0 2px 8px rgba(15, 23, 42, 0.04);
 
-  --me-font: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --me-transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  /* Typography */
+  --me-font: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --me-text-xs: 0.8125rem;   /* 13px labels */
+  --me-text-sm: 0.9375rem;   /* 15px descriptions */
+  --me-text-section: 1.375rem; /* 22px section titles */
+  --me-text-page: 2rem;      /* 32px dashboard title */
+  --me-text-stat: 2.25rem;   /* 36px card numbers */
+
+  /* Motion */
+  --me-transition: 200ms ease-out;
+  --me-ease-out: cubic-bezier(0, 0, 0.2, 1);
 }

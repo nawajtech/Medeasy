@@ -91,7 +91,7 @@ function Sidebar() {
                         end={item.end}
                         className={({ isActive }) => (isActive ? "active" : undefined)}
                       >
-                        <span className="menu-icon"><Icon /></span>
+                        <span className="menu-icon"><Icon size={20} /></span>
                         <span className="menu-text">{item.label}</span>
                       </NavLink>
                     </li>
@@ -104,8 +104,13 @@ function Sidebar() {
 
         <div className="sidebar-footer">
           <div className="sidebar-footer-card">
-            <p className="sidebar-footer-title">{user?.name}</p>
-            <p className="sidebar-footer-desc">{user?.role?.replace("_", " ")}</p>
+            <span className="sidebar-profile-avatar" aria-hidden="true">
+              {user?.name?.charAt(0)?.toUpperCase() || "?"}
+            </span>
+            <div className="sidebar-profile-meta">
+              <p className="sidebar-footer-title">{user?.name}</p>
+              <p className="sidebar-footer-desc">{user?.role?.replace("_", " ")}</p>
+            </div>
           </div>
         </div>
       </div>

@@ -14,7 +14,8 @@
 
 .admin-content {
   flex: 1;
-  padding: 28px 32px 32px;
+  padding: var(--me-space-8) var(--me-space-8) var(--me-space-10);
+  max-width: 1440px;
 }
 
 @media (max-width: 1024px) {
@@ -24,6 +25,6 @@
   }
 
   .admin-content {
-    padding: 20px 16px 24px;
+    padding: var(--me-space-6) var(--me-space-4) var(--me-space-8);
   }
 }
