@@ -45,6 +45,25 @@ class NotificationController extends Controller
         return response()->json(['message' => 'All notifications marked as read.']);
     }
 
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        AppNotification::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->delete();
+
+        return response()->json(['message' => 'Notification deleted.']);
+    }
+
+    public function destroyAll(Request $request): JsonResponse
+    {
+        $deleted = AppNotification::where('user_id', $request->user()->id)->delete();
+
+        return response()->json([
+            'message' => 'All notifications cleared.',
+            'deleted' => $deleted,
+        ]);
+    }
+
     public function registerToken(Request $request): JsonResponse
     {
         $validated = $request->validate([

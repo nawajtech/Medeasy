@@ -26,6 +26,8 @@ function Header() {
     unreadCount,
     markAsRead,
     markAllAsRead,
+    removeNotification,
+    clearAll,
     pushStatus,
     pushError,
     enablePushNotifications,
@@ -122,6 +124,15 @@ function Header() {
                       Mark all read
                     </button>
                   ) : null}
+                  {notifications.length > 0 ? (
+                    <button
+                      type="button"
+                      className="notification-action-danger"
+                      onClick={clearAll}
+                    >
+                      Clear all
+                    </button>
+                  ) : null}
                 </div>
               </div>
 
@@ -150,19 +161,34 @@ function Header() {
                   </div>
                 ) : (
                   notifications.map((item) => (
-                    <button
+                    <div
                       key={item.id}
-                      type="button"
                       className={`notification-item${item.read ? "" : " unread"}`}
-                      onClick={() => markAsRead(item.id)}
                     >
-                      <div className="notification-item-top">
-                        {!item.read ? <span className="notification-unread-dot" aria-hidden="true" /> : null}
-                        <p className="notification-item-title">{item.title}</p>
-                      </div>
-                      {item.body ? <p className="notification-item-body">{item.body}</p> : null}
-                      <p className="notification-item-time">{formatTime(item.receivedAt)}</p>
-                    </button>
+                      <button
+                        type="button"
+                        className="notification-item-main"
+                        onClick={() => markAsRead(item.id)}
+                      >
+                        <div className="notification-item-top">
+                          {!item.read ? <span className="notification-unread-dot" aria-hidden="true" /> : null}
+                          <p className="notification-item-title">{item.title}</p>
+                        </div>
+                        {item.body ? <p className="notification-item-body">{item.body}</p> : null}
+                        <p className="notification-item-time">{formatTime(item.receivedAt)}</p>
+                      </button>
+                      <button
+                        type="button"
+                        className="notification-item-delete"
+                        aria-label="Delete notification"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeNotification(item.id);
+                        }}
+                      >
+                        ×
+                      </button>
+                    </div>
                   ))
                 )}
               </div>

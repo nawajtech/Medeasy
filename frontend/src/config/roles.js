@@ -89,6 +89,10 @@ export function canAccessRoute(role, path) {
     return role === ROLES.DOCTOR;
   }
 
+  if (/^\/patients\/\d+$/.test(path)) {
+    return (menuByRole[role] || []).some((item) => item.to === "/patients");
+  }
+
   if (/^\/doctors\/\d+\/availability$/.test(path)) {
     return [ROLES.SUPER_ADMIN, ROLES.COMPANY_ADMIN, ROLES.DOCTOR, ROLES.STAFF, ROLES.RECEPTIONIST].includes(role);
   }

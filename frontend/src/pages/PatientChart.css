@@ -1,0 +1,394 @@
+.patient-chart {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 20px;
+  min-height: calc(100vh - 180px);
+  align-items: start;
+}
+
+.patient-chart-loading,
+.patient-chart-error {
+  padding: 32px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-lg);
+}
+
+.patient-chart-back {
+  display: inline-block;
+  margin-bottom: 16px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--me-primary);
+  text-decoration: none;
+}
+
+.patient-chart-back:hover {
+  color: var(--me-primary-hover);
+}
+
+.patient-chart-sidebar {
+  position: sticky;
+  top: 16px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-lg);
+  padding: 16px;
+  box-shadow: var(--me-shadow-sm);
+}
+
+.patient-chart-patient-card {
+  text-align: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--me-border);
+  margin-bottom: 12px;
+}
+
+.patient-chart-avatar {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 12px;
+  border-radius: var(--me-radius-full);
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.patient-chart-patient-card h2 {
+  margin: 0 0 4px;
+  font-size: 1.125rem;
+}
+
+.patient-chart-code,
+.patient-chart-clinic {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
+.patient-chart-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.patient-chart-quick-stats div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.6875rem;
+  color: var(--me-text-muted);
+}
+
+.patient-chart-quick-stats strong {
+  font-size: 1rem;
+  color: var(--me-text);
+}
+
+.patient-chart-last-visit {
+  margin: 12px 0 0;
+  font-size: 0.75rem;
+  color: var(--me-text-secondary);
+}
+
+.patient-chart-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.patient-chart-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--me-text-secondary);
+  cursor: pointer;
+  transition: background var(--me-transition), color var(--me-transition);
+}
+
+.patient-chart-nav button:hover {
+  background: var(--me-surface-muted);
+  color: var(--me-text);
+}
+
+.patient-chart-nav button.active {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
+.patient-chart-main {
+  min-width: 0;
+}
+
+.patient-chart-section {
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-lg);
+  padding: 24px;
+  box-shadow: var(--me-shadow-sm);
+}
+
+.patient-chart-section-header {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--me-border);
+}
+
+.patient-chart-section-header h1 {
+  margin: 0 0 6px;
+  font-size: 1.25rem;
+}
+
+.patient-chart-section-header p {
+  margin: 0;
+  color: var(--me-text-muted);
+  font-size: 0.875rem;
+}
+
+.patient-chart-empty {
+  color: var(--me-text-muted);
+  font-size: 0.9375rem;
+}
+
+.patient-chart-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.patient-chart-timeline-card,
+.patient-chart-record-card {
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  padding: 16px;
+  background: var(--me-surface-muted);
+}
+
+.patient-chart-timeline-head,
+.patient-chart-record-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.patient-chart-timeline-head time,
+.patient-chart-record-head time {
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
+.patient-chart-timeline-type {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--me-radius-full);
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
+.patient-chart-timeline-type.lab {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.patient-chart-timeline-type.diagnostic {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.patient-chart-timeline-card h3,
+.patient-chart-record-card h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.patient-chart-meta {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
+.patient-chart-badge {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  padding: 3px 8px;
+  border-radius: var(--me-radius-full);
+  background: var(--me-border);
+  color: var(--me-text-secondary);
+}
+
+.patient-chart-badge--completed,
+.patient-chart-badge--approved,
+.patient-chart-badge--verified,
+.patient-chart-badge--resulted {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.patient-chart-badge--scheduled,
+.patient-chart-badge--confirmed,
+.patient-chart-badge--pending {
+  background: #fef9c3;
+  color: #854d0e;
+}
+
+.patient-chart-badge--cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.patient-chart-vitals {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.patient-chart-vital {
+  padding: 8px 10px;
+  border-radius: var(--me-radius-sm);
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  font-size: 0.75rem;
+}
+
+.patient-chart-vital span {
+  display: block;
+  color: var(--me-text-muted);
+  margin-bottom: 2px;
+}
+
+.patient-chart-prescription-snippet pre,
+.patient-chart-prescription-text {
+  margin: 10px 0;
+  padding: 12px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-family: inherit;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.patient-chart-link-btn {
+  border: none;
+  background: transparent;
+  color: var(--me-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.patient-chart-link-btn:hover {
+  color: var(--me-primary-hover);
+  text-decoration: underline;
+}
+
+.patient-chart-test-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.patient-chart-test-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--me-border);
+  font-size: 0.875rem;
+}
+
+.patient-chart-test-list li:last-child {
+  border-bottom: none;
+}
+
+.patient-chart-muted {
+  color: var(--me-text-muted);
+  font-size: 0.8125rem;
+}
+
+.patient-chart-billing {
+  margin-top: 10px;
+  font-size: 0.8125rem;
+  color: var(--me-text-secondary);
+}
+
+.patient-chart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.patient-chart-report p {
+  margin: 8px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.patient-chart-profile-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px 24px;
+  margin: 0;
+}
+
+.patient-chart-profile-grid .full {
+  grid-column: 1 / -1;
+}
+
+.patient-chart-profile-grid dt {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--me-text-muted);
+  margin-bottom: 4px;
+}
+
+.patient-chart-profile-grid dd {
+  margin: 0;
+  font-size: 0.9375rem;
+  color: var(--me-text);
+  line-height: 1.45;
+}
+
+@media (max-width: 960px) {
+  .patient-chart {
+    grid-template-columns: 1fr;
+  }
+
+  .patient-chart-sidebar {
+    position: static;
+  }
+
+  .patient-chart-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .patient-chart-profile-grid {
+    grid-template-columns: 1fr;
+  }
+}

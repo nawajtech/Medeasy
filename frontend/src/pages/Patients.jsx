@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import "../App.css";
 import {
   createPatient,
@@ -246,24 +247,32 @@ function Patients() {
                   </span>
                 </td>
                 <td>
-                  {!isDoctor && (
-                    <div className="crud-actions">
-                      <button
-                        type="button"
-                        className="crud-btn crud-btn--ghost crud-btn--sm"
-                        onClick={() => openEdit(patient)}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="crud-btn crud-btn--danger crud-btn--sm"
-                        onClick={() => handleDelete(patient)}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  <div className="crud-actions">
+                    <Link
+                      to={`/patients/${patient.id}`}
+                      className="crud-btn crud-btn--primary crud-btn--sm"
+                    >
+                      View chart
+                    </Link>
+                    {!isDoctor && (
+                      <>
+                        <button
+                          type="button"
+                          className="crud-btn crud-btn--ghost crud-btn--sm"
+                          onClick={() => openEdit(patient)}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="crud-btn crud-btn--danger crud-btn--sm"
+                          onClick={() => handleDelete(patient)}
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}

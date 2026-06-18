@@ -50,6 +50,16 @@ class Patient extends Model
         return $this->hasMany(Appointment::class);
     }
 
+    public function labOrders()
+    {
+        return $this->hasMany(LabOrder::class);
+    }
+
+    public function diagnosticOrders()
+    {
+        return $this->hasMany(DiagnosticOrder::class);
+    }
+
     public function billings()
     {
         return $this->hasMany(Billing::class);

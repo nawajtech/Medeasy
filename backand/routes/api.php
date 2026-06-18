@@ -33,7 +33,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('notifications/token', [NotificationController::class, 'registerToken']);
     Route::delete('notifications/token', [NotificationController::class, 'removeToken']);
     Route::get('notifications', [NotificationController::class, 'index']);
+    Route::delete('notifications', [NotificationController::class, 'destroyAll']);
     Route::post('notifications/read-all', [NotificationController::class, 'markAllAsRead']);
+    Route::delete('notifications/{id}', [NotificationController::class, 'destroy']);
     Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('notifications/test', [NotificationController::class, 'test']);
 
@@ -59,6 +61,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware("role:{$adminRoles},doctor")->group(function () {
         Route::get('dashboard', [DashboardController::class, 'index']);
 
+        Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
         Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
         Route::get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);

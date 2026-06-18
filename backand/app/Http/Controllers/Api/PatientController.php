@@ -4,7 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
+use App\Models\DiagnosticOrder;
+use App\Models\LabOrder;
 use App\Models\Patient;
+use App\Models\Appointment;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -54,6 +58,129 @@ class PatientController extends Controller
         }
 
         return response()->json($patient);
+    }
+
+    public function history(string $id): JsonResponse
+    {
+        $patient = Patient::with('company')->findOrFail($id);
+        $this->assertTenantAccess($patient);
+
+        if ($doctorId = $this->doctorIdForUser()) {
+            $hasAccess = $patient->appointments()->where('doctor_id', $doctorId)->exists();
+            abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
+        }
+
+        $appointments = Appointment::with(['doctor.user', 'doctor.department', 'billing', 'vitals', 'branch'])
+            ->where('patient_id', $patient->id)
+            ->orderByDesc('appointment_date')
+            ->get();
+
+        $labOrders = LabOrder::with([
+            'doctor.user',
+            'items.test',
+            'items.result',
+            'results.test',
+        ])
+            ->where('patient_id', $patient->id)
+            ->orderByDesc('ordered_at')
+            ->orderByDesc('created_at')
+            ->get();
+
+        $diagnosticOrders = DiagnosticOrder::with([
+            'doctor.user',
+            'testType',
+            'report.reporter',
+        ])
+            ->where('patient_id', $patient->id)
+            ->orderByDesc('created_at')
+            ->get();
+
+        $appointmentPayload = $appointments->map(fn (Appointment $a) => [
+            'id' => $a->id,
+            'type' => 'appointment',
+            'date' => $a->appointment_date?->toIso8601String(),
+            'status' => $a->status,
+            'doctor_name' => $a->doctor?->user?->name,
+            'department' => $a->doctor?->department?->name,
+            'branch' => $a->branch?->name,
+            'reason' => $a->reason,
+            'notes' => $a->notes,
+            'prescription' => $a->prescription,
+            'duration_minutes' => $a->duration_minutes,
+            'vitals' => $a->vitals,
+            'billing' => $a->billing ? [
+                'total_amount' => $a->billing->total_amount,
+                'paid_amount' => $a->billing->paid_amount,
+                'due_amount' => $a->billing->due_amount,
+                'payment_status' => $a->billing->payment_status,
+            ] : null,
+        ]);
+
+        $prescriptions = $appointmentPayload
+            ->filter(fn ($a) => filled($a['prescription']))
+            ->values();
+
+        $labPayload = $labOrders->map(fn (LabOrder $o) => [
+            'id' => $o->id,
+            'type' => 'lab_order',
+            'date' => ($o->ordered_at ?? $o->created_at)?->toIso8601String(),
+            'order_number' => $o->order_number,
+            'status' => $o->status,
+            'doctor_name' => $o->doctor?->user?->name,
+            'net_amount' => $o->net_amount,
+            'tests' => $o->items->map(fn ($item) => [
+                'name' => $item->test?->name,
+                'result' => $item->result ? [
+                    'value' => $item->result->value,
+                    'unit' => $item->result->unit,
+                    'ref_range' => $item->result->ref_range,
+                    'flag' => $item->result->flag,
+                ] : null,
+            ])->values(),
+        ]);
+
+        $diagnosticPayload = $diagnosticOrders->map(fn (DiagnosticOrder $o) => [
+            'id' => $o->id,
+            'type' => 'diagnostic_order',
+            'date' => ($o->scheduled_at ?? $o->created_at)?->toIso8601String(),
+            'order_number' => $o->order_number,
+            'status' => $o->status,
+            'test_name' => $o->testType?->name,
+            'modality' => $o->testType?->modality,
+            'doctor_name' => $o->doctor?->user?->name,
+            'priority' => $o->priority,
+            'clinical_notes' => $o->clinical_notes,
+            'report' => $o->report ? [
+                'findings' => $o->report->findings,
+                'impression' => $o->report->impression,
+                'recommendations' => $o->report->recommendations,
+                'reported_by' => $o->report->reporter?->name,
+                'approved_at' => $o->report->approved_at?->toIso8601String(),
+            ] : null,
+        ]);
+
+        $timeline = collect()
+            ->merge($appointmentPayload)
+            ->merge($labPayload)
+            ->merge($diagnosticPayload)
+            ->sortByDesc(fn ($item) => Carbon::parse($item['date'] ?? now()))
+            ->values();
+
+        return response()->json([
+            'patient' => $patient,
+            'summary' => [
+                'appointments' => $appointments->count(),
+                'prescriptions' => $prescriptions->count(),
+                'lab_orders' => $labOrders->count(),
+                'diagnostic_orders' => $diagnosticOrders->count(),
+                'last_visit' => $appointments->first()?->appointment_date?->toIso8601String(),
+            ],
+            'timeline' => $timeline,
+            'appointments' => $appointmentPayload->values(),
+            'prescriptions' => $prescriptions,
+            'lab_orders' => $labPayload->values(),
+            'diagnostic_orders' => $diagnosticPayload->values(),
+        ]);
     }
 
     public function update(Request $request, string $id): JsonResponse

@@ -21,6 +21,7 @@ import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
 import LabOrders from "./pages/LabOrders";
 import DiagnosticOrders from "./pages/DiagnosticOrders";
+import PatientChart from "./pages/PatientChart";
 import "./App.css";
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
                 <Route path="companies" element={<Companies />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="patients" element={<Patients />} />
+                <Route path="patients/:patientId" element={<PatientChart />} />
                 <Route path="departments" element={<Departments />} />
                 <Route path="doctors" element={<Doctors />} />
                 <Route path="my-schedule" element={<DoctorScheduleRedirect />} />

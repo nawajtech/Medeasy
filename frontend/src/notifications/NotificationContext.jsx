@@ -1,6 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../auth/AuthContext";
 import {
+  clearAllNotifications,
+  deleteNotification,
   fetchNotifications,
   markAllNotificationsRead,
   markNotificationRead,
@@ -129,9 +131,27 @@ export function NotificationProvider({ children }) {
     }
   }, [loadNotifications]);
 
-  const clearAll = useCallback(() => {
+  const removeNotification = useCallback(async (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+
+    try {
+      await deleteNotification(id);
+    } catch (error) {
+      console.error("[Notifications] Failed to delete:", error);
+      await loadNotifications();
+    }
+  }, [loadNotifications]);
+
+  const clearAll = useCallback(async () => {
     setNotifications([]);
-  }, []);
+
+    try {
+      await clearAllNotifications();
+    } catch (error) {
+      console.error("[Notifications] Failed to clear all:", error);
+      await loadNotifications();
+    }
+  }, [loadNotifications]);
 
   const dismissToast = useCallback(() => setToast(null), []);
 
@@ -150,11 +170,12 @@ export function NotificationProvider({ children }) {
       enablePushNotifications,
       markAsRead,
       markAllAsRead,
+      removeNotification,
       clearAll,
       dismissToast,
       refreshNotifications: loadNotifications,
     }),
-    [notifications, unreadCount, toast, pushStatus, pushError, enablePushNotifications, markAsRead, markAllAsRead, clearAll, dismissToast, loadNotifications]
+    [notifications, unreadCount, toast, pushStatus, pushError, enablePushNotifications, markAsRead, markAllAsRead, removeNotification, clearAll, dismissToast, loadNotifications]
   );
 
   return <NotificationContext.Provider value={value}>{children}</NotificationContext.Provider>;

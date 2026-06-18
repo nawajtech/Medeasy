@@ -12,6 +12,14 @@ export function markAllNotificationsRead() {
   return api.post("/notifications/read-all");
 }
 
+export function deleteNotification(id) {
+  return api.delete(`/notifications/${id}`);
+}
+
+export function clearAllNotifications() {
+  return api.delete("/notifications");
+}
+
 export function registerFcmToken(token) {
   return api.post("/notifications/token", {
     token,

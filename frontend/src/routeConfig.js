@@ -50,6 +50,14 @@ export function getRouteMeta(pathname) {
   if (pathname === "/my-schedule") {
     return { title: "My schedule", breadcrumb: "My schedule", description: "Your weekly availability." };
   }
+  const patientMatch = pathname.match(/^\/patients\/(\d+)$/);
+  if (patientMatch) {
+    return {
+      title: "Patient chart",
+      breadcrumb: "Patient chart",
+      description: "Complete visit history, prescriptions, lab and diagnostic reports.",
+    };
+  }
   const match = pathname.match(/^\/doctors\/(\d+)\/availability$/);
   if (match) {
     return {

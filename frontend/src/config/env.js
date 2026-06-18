@@ -24,7 +24,7 @@ function resolveApiBaseUrl() {
     }
   }
 
-  return "http://127.0.0.1:8000/api";
+  return env("VITE_API_BASE_URL", "");
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
