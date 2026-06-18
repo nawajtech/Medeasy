@@ -5,12 +5,22 @@ import { getApiErrorMessage } from "../../utils/apiError";
 import "./Login.css";
 
 function Login() {
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("super@medeasy.com");
   const [password, setPassword] = useState("password");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (authLoading) {
+    return (
+      <div className="login-page">
+        <div className="login-card">
+          <p>Restoring session…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isAuthenticated) {
     return <Navigate to="/" replace />;

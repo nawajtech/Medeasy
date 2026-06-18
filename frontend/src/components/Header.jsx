@@ -4,7 +4,8 @@ import { useAuth } from "../auth/AuthContext";
 import { useNotifications } from "../notifications/NotificationContext";
 import "./Header.css";
 import "./NotificationToast.css";
-import { IconSearch, IconBell, IconChevronRight, IconChevronDown } from "./icons";
+import { IconSearch, IconBell, IconChevronRight } from "./icons";
+import ProfileMenu from "./ProfileMenu";
 import { getRouteMeta } from "../routeConfig";
 
 function formatTime(iso) {
@@ -19,7 +20,7 @@ function formatTime(iso) {
 function Header() {
   const { pathname } = useLocation();
   const meta = getRouteMeta(pathname);
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const {
     notifications,
     unreadCount,
@@ -33,7 +34,6 @@ function Header() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
   const panelRef = useRef(null);
-  const initial = user?.name?.charAt(0)?.toUpperCase() || "?";
 
   useEffect(() => {
     if (!panelOpen) {
@@ -176,16 +176,7 @@ function Header() {
 
         <div className="header-divider" aria-hidden="true" />
 
-        <button type="button" className="profile" onClick={() => logout()} aria-label="Sign out">
-          <span className="profile-avatar">{initial}</span>
-          <span className="profile-meta">
-            <span className="profile-name">{user?.name}</span>
-            <span className="profile-role">{user?.role?.replace("_", " ")}</span>
-          </span>
-          <span className="profile-chevron" aria-hidden="true">
-            <IconChevronDown size={16} />
-          </span>
-        </button>
+        <ProfileMenu />
       </div>
     </header>
   );

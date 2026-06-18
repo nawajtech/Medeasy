@@ -20,7 +20,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 && !error.config?.url?.includes("/auth/login")) {
+    const isAuthRequest =
+      error.config?.url?.includes("/auth/login") ||
+      error.config?.url?.includes("/auth/me");
+
+    if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem("medeasy_token");
       localStorage.removeItem("medeasy_user");
       if (window.location.pathname !== "/login") {
