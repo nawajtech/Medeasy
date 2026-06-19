@@ -66,6 +66,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
         Route::get('dashboard', [DashboardController::class, 'index']);
 
+        
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
         Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
