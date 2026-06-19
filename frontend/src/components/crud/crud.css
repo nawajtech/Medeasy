@@ -220,6 +220,10 @@
   padding: 24px;
 }
 
+.crud-modal--wide {
+  max-width: 920px;
+}
+
 .crud-modal h3 {
   font-size: 1.125rem;
   margin-bottom: 20px;

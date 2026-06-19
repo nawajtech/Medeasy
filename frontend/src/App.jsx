@@ -21,6 +21,7 @@ import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
 import LabOrders from "./pages/LabOrders";
 import DiagnosticOrders from "./pages/DiagnosticOrders";
+import Medicines from "./pages/Medicines";
 import PatientChart from "./pages/PatientChart";
 import "./App.css";
 
@@ -53,6 +54,8 @@ function App() {
                 <Route path="lab/orders" element={<LabOrders />} />
                 {/* Diagnostics module */}
                 <Route path="diagnostics" element={<DiagnosticOrders />} />
+                {/* Pharmacy module */}
+                <Route path="pharmacy/medicines" element={<Medicines />} />
               </Route>
             </Route>
           </Route>

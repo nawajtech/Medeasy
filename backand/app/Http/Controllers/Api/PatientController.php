@@ -106,6 +106,10 @@ class PatientController extends Controller
             'reason' => $a->reason,
             'notes' => $a->notes,
             'prescription' => $a->prescription,
+            'prescription_data' => $a->prescription_data,
+            'prescription_type' => $a->prescription_type ?? 'handwritten',
+            'prescription_file' => $a->prescription_file,
+            'prescription_file_url' => $a->prescription_file_url,
             'duration_minutes' => $a->duration_minutes,
             'vitals' => $a->vitals,
             'billing' => $a->billing ? [
@@ -117,7 +121,7 @@ class PatientController extends Controller
         ]);
 
         $prescriptions = $appointmentPayload
-            ->filter(fn ($a) => filled($a['prescription']))
+            ->filter(fn ($a) => filled($a['prescription']) || filled($a['prescription_file']))
             ->values();
 
         $labPayload = $labOrders->map(fn (LabOrder $o) => [

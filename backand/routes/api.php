@@ -15,6 +15,7 @@ use App\Http\Controllers\Api\LabOrderController;
 use App\Http\Controllers\Api\LabTestCategoryController;
 use App\Http\Controllers\Api\LabTestController;
 use App\Http\Controllers\Api\LabTestPackageController;
+use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
@@ -59,12 +60,17 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Clinical + lab + diagnostics — all non-super-only roles
     Route::middleware("role:{$adminRoles},doctor")->group(function () {
+        Route::get('pharmacy/medicines/export', [MedicineController::class, 'export']);
+        Route::post('pharmacy/medicines/import', [MedicineController::class, 'import']);
+        Route::apiResource('pharmacy/medicines', MedicineController::class)->except(['show']);
+
         Route::get('dashboard', [DashboardController::class, 'index']);
 
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
         Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
         Route::get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
+        Route::post('appointments/{appointment}/prescription/upload', [AppointmentController::class, 'uploadPrescription']);
         Route::get('appointments/{appointment}/vitals', [AppointmentController::class, 'showVitals']);
         Route::put('appointments/{appointment}/vitals', [AppointmentController::class, 'updateVitals']);
 

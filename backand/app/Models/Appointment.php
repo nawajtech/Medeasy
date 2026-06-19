@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Storage;
 
 class Appointment extends Model
 {
@@ -21,13 +22,19 @@ class Appointment extends Model
         'reason',
         'notes',
         'prescription',
+        'prescription_data',
+        'prescription_type',
+        'prescription_file',
     ];
+
+    protected $appends = ['prescription_file_url'];
 
     protected function casts(): array
     {
         return [
             'appointment_date' => 'datetime',
             'duration_minutes' => 'integer',
+            'prescription_data' => 'array',
         ];
     }
 
@@ -54,5 +61,14 @@ class Appointment extends Model
     public function vitals()
     {
         return $this->hasOne(AppointmentVital::class);
+    }
+
+    public function getPrescriptionFileUrlAttribute(): ?string
+    {
+        if (! $this->prescription_file) {
+            return null;
+        }
+
+        return Storage::disk('public')->url($this->prescription_file);
     }
 }

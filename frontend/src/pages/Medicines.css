@@ -1,0 +1,67 @@
+.medicines-page .page-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  margin-bottom: 6px;
+}
+
+.medicines-page .page-card-header p {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+
+.medicines-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.medicines-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.medicines-search {
+  min-width: 220px;
+  padding: 8px 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+}
+
+.medicines-table td:nth-child(3),
+.medicines-table td:nth-child(4) {
+  max-width: 280px;
+  white-space: normal;
+  word-break: break-word;
+}
+
+.medicines-import-input {
+  display: none;
+}
+
+.medicines-import-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--me-radius-md);
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 0.875rem;
+}
+
+.medicines-import-errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #b45309;
+}
+
+.medicines-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 16px;
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}

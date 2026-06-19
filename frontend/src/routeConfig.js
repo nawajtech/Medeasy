@@ -44,6 +44,11 @@ export const routeMeta = {
     breadcrumb: "Settings",
     description: "Manage clinic and account settings.",
   },
+  "/pharmacy/medicines": {
+    title: "Medicine Master",
+    breadcrumb: "Medicine Master",
+    description: "Global medicine list — name, manufacturer, and composition. Shared across all clinics.",
+  },
 };
 
 export function getRouteMeta(pathname) {

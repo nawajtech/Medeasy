@@ -8,6 +8,7 @@ import {
   openPrescription,
   saveAppointmentVitals,
   updateAppointment,
+  uploadPrescription,
 } from "../api/appointments";
 import { getPatientBalance, openBillingInvoice } from "../api/billings";
 import { checkDoctorAvailability } from "../api/doctorAvailabilities";
@@ -17,11 +18,18 @@ import { useAuth } from "../auth/AuthContext";
 import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
+import PrescriptionEntryModal from "../components/prescription/PrescriptionEntryModal";
+import "../components/prescription/PrescriptionEntry.css";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./Appointments.css";
 
-const STATUSES = ["scheduled", "confirmed", "completed", "cancelled"];
+const STATUS_OPTIONS = [
+  { value: "booked", label: "Booked" },
+  { value: "ongoing", label: "Ongoing" },
+  { value: "completed", label: "Completed" },
+  { value: "cancelled", label: "Cancelled" },
+];
 
 const emptyVitalsForm = {
   blood_pressure: "",
@@ -32,15 +40,24 @@ const emptyVitalsForm = {
   blood_sugar: "",
 };
 
+const emptyPayForm = {
+  previous_due: "0",
+  charge_amount: "",
+  paid_amount: "0",
+  payment_method: "",
+  billed_at: "",
+};
+
 const emptyForm = {
   patient_id: "",
   doctor_id: "",
   branch_id: "",
   appointment_date: "",
   duration_minutes: "30",
-  status: "scheduled",
+  status: "booked",
   reason: "",
   notes: "",
+  prescription_type: "handwritten",
   prescription: "",
   previous_due: "0",
   charge_amount: "",
@@ -65,6 +82,68 @@ function calcTotals(previousDue, charge, paid) {
   return { total, balanceDue };
 }
 
+function rowToPayload(row, overrides = {}) {
+  const b = row.billing || {};
+  return {
+    patient_id: row.patient_id,
+    doctor_id: row.doctor_id,
+    branch_id: row.branch_id || null,
+    duration_minutes: row.duration_minutes ?? 30,
+    appointment_date: row.appointment_date,
+    status: row.status,
+    reason: row.reason || null,
+    notes: row.notes || null,
+    prescription_type: row.prescription_type || (row.prescription_file ? "upload" : "handwritten"),
+    prescription: row.prescription || null,
+    previous_due: Number(b.previous_due) || 0,
+    charge_amount: Number(b.charge_amount) || 0,
+    paid_amount: Number(b.paid_amount) || 0,
+    payment_method: b.payment_method || null,
+    billed_at: b.billed_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    ...overrides,
+  };
+}
+
+function prescriptionPreview(row) {
+  if (row.prescription_type === "upload" || row.prescription_file) {
+    return row.prescription_file_url ? "Uploaded file" : "No file yet";
+  }
+  if (row.prescription_type === "structured" && row.prescription_data?.items?.length) {
+    const n = row.prescription_data.items.length;
+    const first = row.prescription_data.items[0]?.name;
+    return n === 1 ? first : `${n} medicines · ${first}…`;
+  }
+  if (row.prescription) {
+    return row.prescription.length > 60 ? `${row.prescription.slice(0, 60)}…` : row.prescription;
+  }
+  return "—";
+}
+
+function visitOverridesFromForm(form) {
+  return {
+    patient_id: Number(form.patient_id),
+    doctor_id: Number(form.doctor_id),
+    branch_id: form.branch_id ? Number(form.branch_id) : null,
+    duration_minutes: Number(form.duration_minutes) || 30,
+    appointment_date: new Date(form.appointment_date).toISOString(),
+    status: form.status,
+    reason: form.reason || null,
+    notes: form.notes || null,
+    prescription_type: form.prescription_type,
+    prescription: form.prescription_type === "handwritten" ? form.prescription || null : null,
+  };
+}
+
+function billingFieldsFromForm(source) {
+  return {
+    previous_due: Number(source.previous_due) || 0,
+    charge_amount: Number(source.charge_amount) || 0,
+    paid_amount: Number(source.paid_amount) || 0,
+    payment_method: source.payment_method || null,
+    billed_at: source.billed_at || new Date().toISOString().slice(0, 10),
+  };
+}
+
 function Appointments() {
   const { isSuperAdmin, isDoctor, user } = useAuth();
   const [items, setItems] = useState([]);
@@ -87,6 +166,18 @@ function Appointments() {
   const [availabilityMsg, setAvailabilityMsg] = useState("");
   const [availabilityOk, setAvailabilityOk] = useState(null);
   const [checkingAvailability, setCheckingAvailability] = useState(false);
+  const [prescriptionFile, setPrescriptionFile] = useState(null);
+  const [existingPrescriptionFileUrl, setExistingPrescriptionFileUrl] = useState("");
+  const [rxOpen, setRxOpen] = useState(false);
+  const [rxAppointment, setRxAppointment] = useState(null);
+  const [rxSaving, setRxSaving] = useState(false);
+  const [rxError, setRxError] = useState("");
+  const [statusSavingId, setStatusSavingId] = useState(null);
+  const [payOpen, setPayOpen] = useState(false);
+  const [payAppointment, setPayAppointment] = useState(null);
+  const [payForm, setPayForm] = useState(emptyPayForm);
+  const [paySaving, setPaySaving] = useState(false);
+  const [payError, setPayError] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,6 +226,8 @@ function Appointments() {
       ...emptyForm,
       billed_at: new Date().toISOString().slice(0, 10),
     });
+    setPrescriptionFile(null);
+    setExistingPrescriptionFileUrl("");
     setModalOpen(true);
   };
 
@@ -147,9 +240,10 @@ function Appointments() {
       branch_id: String(row.branch_id || ""),
       appointment_date: toLocalDatetime(row.appointment_date),
       duration_minutes: String(row.duration_minutes ?? 30),
-      status: row.status || "scheduled",
+      status: row.status || "booked",
       reason: row.reason || "",
       notes: row.notes || "",
+      prescription_type: row.prescription_type || (row.prescription_file ? "upload" : "handwritten"),
       prescription: row.prescription || "",
       previous_due: String(b.previous_due ?? 0),
       charge_amount: b.charge_amount ?? "",
@@ -157,6 +251,8 @@ function Appointments() {
       payment_method: b.payment_method || "",
       billed_at: b.billed_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
     });
+    setPrescriptionFile(null);
+    setExistingPrescriptionFileUrl(row.prescription_file_url || "");
     setModalOpen(true);
     if (row.doctor_id && row.appointment_date) {
       runAvailabilityCheck(
@@ -172,6 +268,8 @@ function Appointments() {
     setModalOpen(false);
     setEditing(null);
     setForm(emptyForm);
+    setPrescriptionFile(null);
+    setExistingPrescriptionFileUrl("");
     setAvailabilityMsg("");
     setAvailabilityOk(null);
   };
@@ -238,19 +336,8 @@ function Appointments() {
   };
 
   const buildPayload = () => ({
-    patient_id: Number(form.patient_id),
-    doctor_id: Number(form.doctor_id),
-    duration_minutes: Number(form.duration_minutes) || 30,
-    appointment_date: new Date(form.appointment_date).toISOString(),
-    status: form.status,
-    reason: form.reason || null,
-    notes: form.notes || null,
-    prescription: form.prescription || null,
-    previous_due: Number(form.previous_due) || 0,
-    charge_amount: Number(form.charge_amount) || 0,
-    paid_amount: Number(form.paid_amount) || 0,
-    payment_method: form.payment_method || null,
-    billed_at: form.billed_at || new Date().toISOString().slice(0, 10),
+    ...visitOverridesFromForm(form),
+    ...billingFieldsFromForm(form),
   });
 
   const handleSubmit = async (e) => {
@@ -262,11 +349,16 @@ function Appointments() {
     setSaving(true);
     setError("");
     try {
-      const payload = buildPayload();
+      let appointmentId;
       if (editing) {
-        await updateAppointment(editing.id, payload);
+        await updateAppointment(editing.id, rowToPayload(editing, visitOverridesFromForm(form)));
+        appointmentId = editing.id;
       } else {
-        await createAppointment(payload);
+        const { data } = await createAppointment(buildPayload());
+        appointmentId = data.id;
+      }
+      if (form.prescription_type === "upload" && prescriptionFile) {
+        await uploadPrescription(appointmentId, prescriptionFile);
       }
       closeModal();
       await load();
@@ -386,17 +478,109 @@ function Appointments() {
     }
   };
 
+  const handleStatusChange = async (row, newStatus) => {
+    if (newStatus === row.status) return;
+    setStatusSavingId(row.id);
+    setError("");
+    try {
+      await updateAppointment(row.id, rowToPayload(row, { status: newStatus }));
+      await load();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to update status."));
+    } finally {
+      setStatusSavingId(null);
+    }
+  };
+
+  const openPaymentModal = (row) => {
+    const b = row.billing || {};
+    setPayAppointment(row);
+    setPayForm({
+      previous_due: String(b.previous_due ?? 0),
+      charge_amount: b.charge_amount ?? "",
+      paid_amount: String(b.paid_amount ?? 0),
+      payment_method: b.payment_method || "",
+      billed_at: b.billed_at?.slice(0, 10) || new Date().toISOString().slice(0, 10),
+    });
+    setPayError("");
+    setPayOpen(true);
+  };
+
+  const closePaymentModal = () => {
+    setPayOpen(false);
+    setPayAppointment(null);
+    setPayForm(emptyPayForm);
+    setPayError("");
+  };
+
+  const handlePayChange = (e) => {
+    const { name, value } = e.target;
+    setPayForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handlePaySubmit = async (e) => {
+    e.preventDefault();
+    if (!payAppointment) return;
+    setPaySaving(true);
+    setPayError("");
+    try {
+      await updateAppointment(payAppointment.id, rowToPayload(payAppointment, billingFieldsFromForm(payForm)));
+      closePaymentModal();
+      await load();
+    } catch (err) {
+      setPayError(getApiErrorMessage(err, "Failed to save payment."));
+    } finally {
+      setPaySaving(false);
+    }
+  };
+
+  const openRxModal = (row) => {
+    setRxAppointment(row);
+    setPrescriptionFile(null);
+    setExistingPrescriptionFileUrl(row.prescription_file_url || "");
+    setRxError("");
+    setRxOpen(true);
+  };
+
+  const closeRxModal = () => {
+    setRxOpen(false);
+    setRxAppointment(null);
+    setPrescriptionFile(null);
+    setExistingPrescriptionFileUrl("");
+    setRxError("");
+  };
+
+  const handleRxSave = async (payload) => {
+    if (!rxAppointment) return;
+    setRxSaving(true);
+    setRxError("");
+    try {
+      await updateAppointment(rxAppointment.id, rowToPayload(rxAppointment, payload));
+      if (payload.prescription_type === "upload" && prescriptionFile) {
+        await uploadPrescription(rxAppointment.id, prescriptionFile);
+      }
+      closeRxModal();
+      await load();
+    } catch (err) {
+      setRxError(getApiErrorMessage(err, "Failed to save prescription."));
+    } finally {
+      setRxSaving(false);
+    }
+  };
+
   const formatDate = (iso) => {
     if (!iso) return "—";
     return new Date(iso).toLocaleString();
   };
 
   const selectedDoctor = doctors.find((d) => String(d.id) === form.doctor_id);
+  const payDoctor = doctors.find((d) => d.id === payAppointment?.doctor_id);
   const { total, balanceDue } = calcTotals(
     form.previous_due,
     form.charge_amount,
     form.paid_amount
   );
+  const payTotals = calcTotals(payForm.previous_due, payForm.charge_amount, payForm.paid_amount);
 
   return (
     <section className="page-card appointments-page">
@@ -449,19 +633,16 @@ function Appointments() {
               <th>Clinic / company</th>
               <th>Patient</th>
               <th>Doctor</th>
-              <th>Prev. due</th>
-              <th>Charge</th>
-              <th>Total</th>
-              <th>Paid</th>
-              <th>Balance due</th>
+              <th>Payment</th>
               <th>Status</th>
+              <th>Prescription</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={11} className="crud-empty">
+                <td colSpan={8} className="crud-empty">
                   No appointments yet.
                 </td>
               </tr>
@@ -485,14 +666,76 @@ function Appointments() {
                   </td>
                   <td>{row.patient?.name || "—"}</td>
                   <td>{row.doctor?.user?.name || "—"}</td>
-                  <td>${Number(b?.previous_due || 0).toFixed(2)}</td>
-                  <td>${Number(b?.charge_amount || 0).toFixed(2)}</td>
-                  <td>${Number(b?.total_amount || 0).toFixed(2)}</td>
-                  <td>${Number(b?.paid_amount || 0).toFixed(2)}</td>
-                  <td>
-                    <strong>${Number(b?.due_amount || 0).toFixed(2)}</strong>
+                  <td className="appt-grid-pay">
+                    <div className="appt-pay-cell">
+                      <strong
+                        className={
+                          Number(b?.due_amount || 0) > 0
+                            ? "appt-pay-due appt-pay-due--pending"
+                            : "appt-pay-due appt-pay-due--clear"
+                        }
+                      >
+                        ${Number(b?.due_amount || 0).toFixed(2)} due
+                      </strong>
+                      <span className="appt-pay-meta">
+                        Paid ${Number(b?.paid_amount || 0).toFixed(2)} / $
+                        {Number(b?.total_amount || 0).toFixed(2)}
+                      </span>
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--ghost crud-btn--sm"
+                        onClick={() => openPaymentModal(row)}
+                      >
+                        Payment
+                      </button>
+                    </div>
                   </td>
-                  <td>{row.status}</td>
+                  <td className="appt-grid-status">
+                    <select
+                      className={`appt-status-select appt-status-select--${row.status}`}
+                      value={row.status}
+                      disabled={statusSavingId === row.id}
+                      onChange={(e) => handleStatusChange(row, e.target.value)}
+                      aria-label={`Status for ${row.patient?.name || "appointment"}`}
+                    >
+                      {STATUS_OPTIONS.map((s) => (
+                        <option key={s.value} value={s.value}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="appt-grid-rx">
+                    <div className="appt-rx-cell">
+                      <span className={`appt-rx-type appt-rx-type--${row.prescription_type || "handwritten"}`}>
+                        {row.prescription_type === "upload" || row.prescription_file
+                          ? "Upload"
+                          : row.prescription_type === "structured"
+                            ? "Structured"
+                            : "Handwritten"}
+                      </span>
+                      <p className="appt-rx-preview" title={row.prescription || ""}>
+                        {prescriptionPreview(row)}
+                      </p>
+                      {row.prescription_file_url && (
+                        <a
+                          href={row.prescription_file_url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="appt-rx-link"
+                        >
+                          View file
+                        </a>
+                      )}
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--ghost crud-btn--sm"
+                        onClick={() => openRxModal(row)}
+                      >
+                        Edit Rx
+                      </button>
+                    </div>
+                  </td>
                   <td>
                     <div className="crud-actions crud-actions--stack">
                       <button
@@ -509,15 +752,6 @@ function Appointments() {
                       >
                         Edit
                       </button>
-                      {b?.id && (
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--ghost crud-btn--sm"
-                          onClick={() => handleOpenInvoice(b.id)}
-                        >
-                          Invoice
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="crud-btn crud-btn--ghost crud-btn--sm"
@@ -646,6 +880,144 @@ function Appointments() {
       </Modal>
 
       <Modal
+        title={
+          payAppointment
+            ? `Payment — ${payAppointment.patient?.name || ""}`
+            : "Payment"
+        }
+        open={payOpen}
+        onClose={closePaymentModal}
+      >
+        <form onSubmit={handlePaySubmit}>
+          {payError && <div className="crud-alert crud-alert--error">{payError}</div>}
+          <div className="billing-summary-box">
+            <p>
+              <strong>Previous due</strong>: ${Number(payForm.previous_due || 0).toFixed(2)}
+            </p>
+            <p>
+              <strong>+ Doctor charge</strong>: ${Number(payForm.charge_amount || 0).toFixed(2)}
+              {payDoctor && (
+                <span className="field-hint">
+                  {" "}
+                  (fee: ${Number(payDoctor.consultation_fee || 0).toFixed(2)})
+                </span>
+              )}
+            </p>
+            <p>
+              <strong>= Total payable</strong>: ${payTotals.total.toFixed(2)}
+            </p>
+            <p className="billing-summary-due">
+              <strong>− Paid now</strong> → <strong>Balance due</strong>: $
+              {payTotals.balanceDue.toFixed(2)}
+            </p>
+          </div>
+          <div className="crud-form-grid">
+            <div className="crud-field">
+              <label htmlFor="pay_previous_due">Previous due</label>
+              <input
+                id="pay_previous_due"
+                name="previous_due"
+                type="number"
+                step="0.01"
+                min="0"
+                value={payForm.previous_due}
+                onChange={handlePayChange}
+              />
+            </div>
+            <div className="crud-field">
+              <label htmlFor="pay_charge_amount">Doctor charge</label>
+              <input
+                id="pay_charge_amount"
+                name="charge_amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={payForm.charge_amount}
+                onChange={handlePayChange}
+                required
+              />
+            </div>
+            <div className="crud-field">
+              <label htmlFor="pay_paid_amount">Paid now</label>
+              <input
+                id="pay_paid_amount"
+                name="paid_amount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={payForm.paid_amount}
+                onChange={handlePayChange}
+                required
+              />
+            </div>
+            <div className="crud-field">
+              <label>Balance due</label>
+              <input
+                type="text"
+                readOnly
+                className="readonly-total"
+                value={`$${payTotals.balanceDue.toFixed(2)}`}
+              />
+            </div>
+            <div className="crud-field">
+              <label htmlFor="pay_payment_method">Payment method</label>
+              <select
+                id="pay_payment_method"
+                name="payment_method"
+                value={payForm.payment_method}
+                onChange={handlePayChange}
+              >
+                <option value="">—</option>
+                <option value="cash">Cash</option>
+                <option value="card">Card</option>
+                <option value="bank_transfer">Bank transfer</option>
+              </select>
+            </div>
+            <div className="crud-field">
+              <label htmlFor="pay_billed_at">Billed date</label>
+              <input
+                id="pay_billed_at"
+                name="billed_at"
+                type="date"
+                value={payForm.billed_at}
+                onChange={handlePayChange}
+              />
+            </div>
+          </div>
+          <div className="crud-modal-actions">
+            {payAppointment?.billing?.id && (
+              <button
+                type="button"
+                className="crud-btn crud-btn--ghost"
+                onClick={() => handleOpenInvoice(payAppointment.billing.id)}
+              >
+                Invoice
+              </button>
+            )}
+            <button type="button" className="crud-btn crud-btn--ghost" onClick={closePaymentModal}>
+              Cancel
+            </button>
+            <button type="submit" className="crud-btn crud-btn--primary" disabled={paySaving}>
+              {paySaving ? "Saving…" : "Save payment"}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      <PrescriptionEntryModal
+        open={rxOpen}
+        onClose={closeRxModal}
+        appointment={rxAppointment}
+        saving={rxSaving}
+        error={rxError}
+        onSave={handleRxSave}
+        onPrint={handleOpenPrescription}
+        prescriptionFile={prescriptionFile}
+        onPrescriptionFileChange={setPrescriptionFile}
+        existingPrescriptionFileUrl={existingPrescriptionFileUrl}
+      />
+
+      <Modal
         title={editing ? "Edit appointment" : "Add appointment"}
         open={modalOpen}
         onClose={closeModal}
@@ -747,9 +1119,9 @@ function Appointments() {
             <div className="crud-field">
               <label htmlFor="status">Status</label>
               <select id="status" name="status" value={form.status} onChange={handleChange}>
-                {STATUSES.map((s) => (
-                  <option key={s} value={s}>
-                    {s}
+                {STATUS_OPTIONS.map((s) => (
+                  <option key={s.value} value={s.value}>
+                    {s.label}
                   </option>
                 ))}
               </select>
@@ -759,115 +1131,168 @@ function Appointments() {
               <input id="reason" name="reason" value={form.reason} onChange={handleChange} />
             </div>
             <div className="crud-field crud-field--full">
-              <label htmlFor="prescription">Prescription</label>
-              <textarea
-                id="prescription"
-                name="prescription"
-                value={form.prescription}
-                onChange={handleChange}
-              />
+              <span className="crud-field-label">Prescription type</span>
+              <div className="prescription-type-options">
+                <label>
+                  <input
+                    type="radio"
+                    name="prescription_type"
+                    value="handwritten"
+                    checked={form.prescription_type === "handwritten"}
+                    onChange={handleChange}
+                  />
+                  Handwritten
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="prescription_type"
+                    value="upload"
+                    checked={form.prescription_type === "upload"}
+                    onChange={handleChange}
+                  />
+                  Upload file
+                </label>
+              </div>
             </div>
+            {form.prescription_type === "handwritten" ? (
+              <div className="crud-field crud-field--full">
+                <label htmlFor="prescription">Handwritten prescription</label>
+                <textarea
+                  id="prescription"
+                  name="prescription"
+                  value={form.prescription}
+                  onChange={handleChange}
+                  placeholder="Enter medicines, dosage, and instructions…"
+                />
+              </div>
+            ) : (
+              <div className="crud-field crud-field--full">
+                <label htmlFor="prescription_file">Upload prescription (image or PDF)</label>
+                <input
+                  id="prescription_file"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={(e) => setPrescriptionFile(e.target.files?.[0] || null)}
+                />
+                {existingPrescriptionFileUrl && !prescriptionFile && (
+                  <p className="field-hint">
+                    Current file:{" "}
+                    <a href={existingPrescriptionFileUrl} target="_blank" rel="noreferrer">
+                      View uploaded prescription
+                    </a>
+                  </p>
+                )}
+              </div>
+            )}
             <div className="crud-field crud-field--full">
               <label htmlFor="notes">Notes</label>
               <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} />
             </div>
           </div>
 
-          <p className="form-section-label">Billing (billings table)</p>
-          <div className="billing-summary-box">
-            <p>
-              <strong>Previous due</strong> (from last visit):{" "}
-              {loadingBalance ? "…" : `$${Number(form.previous_due || 0).toFixed(2)}`}
-            </p>
-            <p>
-              <strong>+ Doctor charge</strong>: ${Number(form.charge_amount || 0).toFixed(2)}
-              {selectedDoctor && (
-                <span className="field-hint"> (fee: ${Number(selectedDoctor.consultation_fee || 0).toFixed(2)})</span>
-              )}
-            </p>
-            <p>
-              <strong>= Total payable</strong>: ${total.toFixed(2)}
-            </p>
-            <p className="billing-summary-due">
-              <strong>− Paid now</strong> → <strong>Balance due</strong>: ${balanceDue.toFixed(2)}
-            </p>
-          </div>
+          {!editing && (
+            <>
+              <p className="form-section-label">Billing (billings table)</p>
+              <div className="billing-summary-box">
+                <p>
+                  <strong>Previous due</strong> (from last visit):{" "}
+                  {loadingBalance ? "…" : `$${Number(form.previous_due || 0).toFixed(2)}`}
+                </p>
+                <p>
+                  <strong>+ Doctor charge</strong>: ${Number(form.charge_amount || 0).toFixed(2)}
+                  {selectedDoctor && (
+                    <span className="field-hint">
+                      {" "}
+                      (fee: ${Number(selectedDoctor.consultation_fee || 0).toFixed(2)})
+                    </span>
+                  )}
+                </p>
+                <p>
+                  <strong>= Total payable</strong>: ${total.toFixed(2)}
+                </p>
+                <p className="billing-summary-due">
+                  <strong>− Paid now</strong> → <strong>Balance due</strong>: ${balanceDue.toFixed(2)}
+                </p>
+              </div>
 
-          <div className="crud-form-grid">
-            <div className="crud-field">
-              <label htmlFor="previous_due">Previous due</label>
-              <input
-                id="previous_due"
-                name="previous_due"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.previous_due}
-                onChange={handleChange}
-                readOnly={!editing}
-                title={editing ? "Adjust if needed" : "Auto from patient balance"}
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="charge_amount">Doctor charge</label>
-              <input
-                id="charge_amount"
-                name="charge_amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.charge_amount}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="paid_amount">Paid now</label>
-              <input
-                id="paid_amount"
-                name="paid_amount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.paid_amount}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="crud-field">
-              <label>Balance due (saved)</label>
-              <input
-                type="text"
-                readOnly
-                className="readonly-total"
-                value={`$${balanceDue.toFixed(2)}`}
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="payment_method">Payment method</label>
-              <select
-                id="payment_method"
-                name="payment_method"
-                value={form.payment_method}
-                onChange={handleChange}
-              >
-                <option value="">—</option>
-                <option value="cash">Cash</option>
-                <option value="card">Card</option>
-                <option value="bank_transfer">Bank transfer</option>
-              </select>
-            </div>
-            <div className="crud-field">
-              <label htmlFor="billed_at">Billed date</label>
-              <input
-                id="billed_at"
-                name="billed_at"
-                type="date"
-                value={form.billed_at}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
+              <div className="crud-form-grid">
+                <div className="crud-field">
+                  <label htmlFor="previous_due">Previous due</label>
+                  <input
+                    id="previous_due"
+                    name="previous_due"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.previous_due}
+                    onChange={handleChange}
+                    readOnly
+                    title="Auto from patient balance"
+                  />
+                </div>
+                <div className="crud-field">
+                  <label htmlFor="charge_amount">Doctor charge</label>
+                  <input
+                    id="charge_amount"
+                    name="charge_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.charge_amount}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="crud-field">
+                  <label htmlFor="paid_amount">Paid now</label>
+                  <input
+                    id="paid_amount"
+                    name="paid_amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={form.paid_amount}
+                    onChange={handleChange}
+                    required
+                  />
+                </div>
+                <div className="crud-field">
+                  <label>Balance due (saved)</label>
+                  <input
+                    type="text"
+                    readOnly
+                    className="readonly-total"
+                    value={`$${balanceDue.toFixed(2)}`}
+                  />
+                </div>
+                <div className="crud-field">
+                  <label htmlFor="payment_method">Payment method</label>
+                  <select
+                    id="payment_method"
+                    name="payment_method"
+                    value={form.payment_method}
+                    onChange={handleChange}
+                  >
+                    <option value="">—</option>
+                    <option value="cash">Cash</option>
+                    <option value="card">Card</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                  </select>
+                </div>
+                <div className="crud-field">
+                  <label htmlFor="billed_at">Billed date</label>
+                  <input
+                    id="billed_at"
+                    name="billed_at"
+                    type="date"
+                    value={form.billed_at}
+                    onChange={handleChange}
+                  />
+                </div>
+              </div>
+            </>
+          )}
 
           <div className="crud-modal-actions">
             <button type="button" className="crud-btn crud-btn--ghost" onClick={closeModal}>

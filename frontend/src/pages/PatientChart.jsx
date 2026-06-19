@@ -76,10 +76,18 @@ function TimelineCard({ item }) {
         <StatusBadge status={item.status} />
         {item.reason ? <p><strong>Reason:</strong> {item.reason}</p> : null}
         {item.notes ? <p><strong>Notes:</strong> {item.notes}</p> : null}
-        {item.prescription ? (
+        {item.prescription || item.prescription_file_url ? (
           <div className="patient-chart-prescription-snippet">
             <strong>Prescription</strong>
-            <pre>{item.prescription}</pre>
+            {item.prescription_type === "upload" && item.prescription_file_url ? (
+              <p>
+                <a href={item.prescription_file_url} target="_blank" rel="noreferrer">
+                  View uploaded prescription
+                </a>
+              </p>
+            ) : (
+              <pre>{item.prescription}</pre>
+            )}
             <button type="button" className="patient-chart-link-btn" onClick={() => openPrescription(item.id)}>
               Open prescription PDF
             </button>
@@ -293,7 +301,15 @@ function PatientChart() {
                       <time>{formatDate(item.date)}</time>
                       <span className="patient-chart-meta">{item.doctor_name}</span>
                     </div>
-                    <pre className="patient-chart-prescription-text">{item.prescription}</pre>
+                    {item.prescription_type === "upload" && item.prescription_file_url ? (
+                      <p>
+                        <a href={item.prescription_file_url} target="_blank" rel="noreferrer">
+                          View uploaded prescription
+                        </a>
+                      </p>
+                    ) : item.prescription ? (
+                      <pre className="patient-chart-prescription-text">{item.prescription}</pre>
+                    ) : null}
                     <button type="button" className="patient-chart-link-btn" onClick={() => openPrescription(item.id)}>
                       Download / print prescription
                     </button>

@@ -16,6 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -28,7 +29,9 @@ class AppointmentController extends Controller
         private NotificationService $notificationService
     ) {}
 
-    private const STATUSES = ['scheduled', 'confirmed', 'completed', 'cancelled'];
+    private const STATUSES = ['booked', 'ongoing', 'completed', 'cancelled'];
+
+    private const PRESCRIPTION_TYPES = ['handwritten', 'upload', 'structured'];
 
     public function index(Request $request): JsonResponse
     {
@@ -74,7 +77,9 @@ class AppointmentController extends Controller
         );
 
         $appointment = DB::transaction(function () use ($appointmentData, $billingData) {
-            $appointment = Appointment::create($appointmentData);
+            $appointment = new Appointment;
+            $this->applyPrescriptionTypeChanges($appointment, $appointmentData);
+            $appointment->fill($appointmentData)->save();
 
             BillingController::syncForAppointment(
                 $appointment->id,
@@ -132,6 +137,7 @@ class AppointmentController extends Controller
         );
 
         DB::transaction(function () use ($appointment, $appointmentData, $billingData) {
+            $this->applyPrescriptionTypeChanges($appointment, $appointmentData);
             $appointment->update($appointmentData);
 
             BillingController::syncForAppointment(
@@ -207,6 +213,52 @@ class AppointmentController extends Controller
         return response()->json($vitals);
     }
 
+    public function uploadPrescription(Request $request, string $id): JsonResponse
+    {
+        $appointment = Appointment::findOrFail($id);
+        $this->assertTenantAccess($appointment);
+
+        if ($doctorId = $this->doctorIdForUser()) {
+            abort_unless((int) $appointment->doctor_id === $doctorId, 403);
+        }
+
+        $validated = $request->validate([
+            'file' => ['required', 'file', 'mimes:jpg,jpeg,png,webp,pdf', 'max:10240'],
+        ]);
+
+        if ($appointment->prescription_file) {
+            Storage::disk('public')->delete($appointment->prescription_file);
+        }
+
+        $path = $validated['file']->store('prescriptions/'.$appointment->company_id, 'public');
+
+        $appointment->update([
+            'prescription_type' => 'upload',
+            'prescription_file' => $path,
+            'prescription' => null,
+            'prescription_data' => null,
+        ]);
+
+        return response()->json($appointment->fresh(['patient', 'doctor.user', 'doctor.department', 'billing', 'vitals', 'company']));
+    }
+
+    private function applyPrescriptionTypeChanges(Appointment $appointment, array &$appointmentData): void
+    {
+        $type = $appointmentData['prescription_type'] ?? $appointment->prescription_type ?? 'handwritten';
+
+        if ($type === 'handwritten' || $type === 'structured') {
+            $appointmentData['prescription_file'] = null;
+            if ($appointment->prescription_file) {
+                Storage::disk('public')->delete($appointment->prescription_file);
+            }
+        }
+
+        if ($type === 'upload') {
+            $appointmentData['prescription'] = null;
+            $appointmentData['prescription_data'] = null;
+        }
+    }
+
     private function vitalsRules(): array
     {
         return [
@@ -230,7 +282,14 @@ class AppointmentController extends Controller
             'status' => ['required', Rule::in(self::STATUSES)],
             'reason' => ['nullable', 'string', 'max:255'],
             'notes' => ['nullable', 'string'],
+            'prescription_type' => ['nullable', Rule::in(self::PRESCRIPTION_TYPES)],
             'prescription' => ['nullable', 'string'],
+            'prescription_data' => ['nullable', 'array'],
+            'prescription_data.items' => ['nullable', 'array'],
+            'prescription_data.care_suggestions' => ['nullable', 'array'],
+            'prescription_data.advice' => ['nullable', 'string'],
+            'prescription_data.follow_up_days' => ['nullable', 'integer', 'min:0'],
+            'prescription_data.follow_up_date' => ['nullable', 'date'],
         ];
     }
 

@@ -46,36 +46,60 @@
   min-width: 160px;
 }
 
-.patient-company-badge {
-  display: inline-block;
-  padding: 4px 10px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--me-primary);
-  background: var(--me-primary-soft);
-  border-radius: var(--me-radius-full);
-  max-width: 160px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .patients-table {
-  min-width: 1200px;
+  font-size: 0.8125rem;
 }
 
+.patients-table th,
 .patients-table td {
-  white-space: nowrap;
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.patients-table__contact {
+  white-space: normal !important;
   max-width: 200px;
+  line-height: 1.4;
+}
+
+.patients-table__contact .patients-table__name {
+  font-weight: 600;
+}
+
+.patients-table__gender {
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.patients-table__hw {
+  white-space: normal !important;
+  line-height: 1.4;
+}
+
+.patients-table__name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+
+.patients-table td:nth-child(n) {
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.patients-table td:nth-child(2) {
-  max-width: 160px;
+.patients-table__emergency {
+  max-width: 160px !important;
 }
 
-.patients-table td:nth-child(4),
-.patients-table td:nth-child(11) {
-  max-width: 180px;
+.patients-table th:last-child,
+.patients-table td:last-child {
+  max-width: none;
+  white-space: nowrap;
+}
+
+.patients-actions {
+  flex-wrap: nowrap;
+  gap: 6px;
 }

@@ -25,6 +25,10 @@ const diagnosticsMenu = [
   { to: "/diagnostics", label: "Diagnostics" },
 ];
 
+const pharmacyMenu = [
+  { to: "/pharmacy/medicines", label: "Medicine Master" },
+];
+
 export const menuByRole = {
   [ROLES.SUPER_ADMIN]: [
     { to: "/", label: "Overview", end: true },
@@ -33,6 +37,7 @@ export const menuByRole = {
     ...clinicMenu,
     ...labMenu,
     ...diagnosticsMenu,
+    ...pharmacyMenu,
     { to: "/reports", label: "Reports" },
     { to: "/users", label: "Users" },
     { to: "/settings", label: "Settings" },
@@ -43,6 +48,7 @@ export const menuByRole = {
     ...clinicMenu,
     ...labMenu,
     ...diagnosticsMenu,
+    ...pharmacyMenu,
     { to: "/reports", label: "Reports" },
     { to: "/users", label: "Staff" },
     { to: "/settings", label: "Settings" },
@@ -52,6 +58,7 @@ export const menuByRole = {
     ...clinicMenu,
     ...labMenu,
     ...diagnosticsMenu,
+    ...pharmacyMenu,
   ],
   [ROLES.LAB_TECHNICIAN]: [
     { to: "/", label: "Overview", end: true },
@@ -67,6 +74,7 @@ export const menuByRole = {
     { to: "/", label: "Overview", end: true },
     { to: "/patients", label: "Patients" },
     { to: "/appointments", label: "Appointments" },
+    ...pharmacyMenu,
     ...labMenu,
     ...diagnosticsMenu,
   ],
@@ -74,6 +82,7 @@ export const menuByRole = {
     { to: "/", label: "Overview", end: true },
     { to: "/appointments", label: "My appointments" },
     { to: "/patients", label: "My patients" },
+    ...pharmacyMenu,
     { to: "/lab/orders", label: "Lab Orders" },
     { to: "/diagnostics", label: "Diagnostics" },
     { to: "/my-schedule", label: "My schedule" },
@@ -81,6 +90,7 @@ export const menuByRole = {
   [ROLES.PHARMACIST]: [
     { to: "/", label: "Overview", end: true },
     { to: "/patients", label: "Patients" },
+    ...pharmacyMenu,
   ],
 };
 

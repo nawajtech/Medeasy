@@ -32,10 +32,12 @@ import { getApiErrorMessage } from "../utils/apiError";
 import "./Dashboard.css";
 
 const STATUS_COLORS = {
-  scheduled: "#0f766e",
-  confirmed: "#2563eb",
+  booked: "#0f766e",
+  ongoing: "#2563eb",
   completed: "#16a34a",
   cancelled: "#dc2626",
+  scheduled: "#0f766e",
+  confirmed: "#2563eb",
 };
 
 const CHART_TEAL = "#0f766e";

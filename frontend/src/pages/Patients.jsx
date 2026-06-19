@@ -34,6 +34,19 @@ const emptyForm = {
   medical_history: "",
 };
 
+function calcAge(dateOfBirth) {
+  if (!dateOfBirth) return "—";
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return "—";
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? `${age} yrs` : "—";
+}
+
 function Patients() {
   const { isDoctor, isSuperAdmin, user } = useAuth();
   const [items, setItems] = useState([]);
@@ -194,15 +207,11 @@ function Patients() {
           <thead>
             <tr>
               <th>Code</th>
-              <th>Clinic / company</th>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Phone</th>
-              <th>Gender</th>
-              <th>DOB</th>
+              {isSuperAdmin && <th>Clinic</th>}
+              <th>Patient</th>
+              <th>Age</th>
               <th>Blood</th>
-              <th>Height</th>
-              <th>Weight</th>
+              <th>H / W</th>
               <th>Emergency</th>
               <th>Status</th>
               <th>Actions</th>
@@ -211,7 +220,7 @@ function Patients() {
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={13} className="crud-empty">
+                <td colSpan={isSuperAdmin ? 9 : 8} className="crud-empty">
                   No patients yet. Click &quot;Add patient&quot; to create one.
                 </td>
               </tr>
@@ -219,20 +228,30 @@ function Patients() {
             {items.map((patient) => (
               <tr key={patient.id}>
                 <td>{patient.patient_code}</td>
-                <td>
-                  <span className="tenant-company-badge" title={patient.company?.code || ""}>
-                    {patient.company?.name || "—"}
-                  </span>
+                {isSuperAdmin && (
+                  <td>
+                    <span className="tenant-company-badge" title={patient.company?.code || ""}>
+                      {patient.company?.name || "—"}
+                    </span>
+                  </td>
+                )}
+                <td className="patients-table__contact">
+                  <div className="patients-table__name">
+                    {patient.name}
+                    {patient.gender ? (
+                      <span className="patients-table__gender"> ({patient.gender})</span>
+                    ) : null}
+                  </div>
+                  <div>{patient.email}</div>
+                  <div>{patient.phone || "—"}</div>
                 </td>
-                <td>{patient.name}</td>
-                <td>{patient.email}</td>
-                <td>{patient.phone || "—"}</td>
-                <td>{patient.gender || "—"}</td>
-                <td>{patient.date_of_birth?.slice(0, 10) || "—"}</td>
+                <td>{calcAge(patient.date_of_birth)}</td>
                 <td>{patient.blood_group || "—"}</td>
-                <td>{patient.height != null ? `${patient.height} cm` : "—"}</td>
-                <td>{patient.weight != null ? `${patient.weight} kg` : "—"}</td>
-                <td>
+                <td className="patients-table__hw">
+                  <div>{patient.height != null ? `${patient.height} cm` : "—"}</div>
+                  <div>{patient.weight != null ? `${patient.weight} kg` : "—"}</div>
+                </td>
+                <td className="patients-table__emergency">
                   {patient.emergency_contact_name
                     ? `${patient.emergency_contact_name}${patient.emergency_contact_phone ? ` (${patient.emergency_contact_phone})` : ""}`
                     : "—"}
@@ -247,12 +266,12 @@ function Patients() {
                   </span>
                 </td>
                 <td>
-                  <div className="crud-actions">
+                  <div className="crud-actions patients-actions">
                     <Link
                       to={`/patients/${patient.id}`}
                       className="crud-btn crud-btn--primary crud-btn--sm"
                     >
-                      View chart
+                      Chart
                     </Link>
                     {!isDoctor && (
                       <>
