@@ -248,3 +248,12 @@ export function IconHeartPulse({ size = 22 }) {
     </svg>
   );
 }
+
+export function IconPill({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="8" width="18" height="8" rx="4" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M12 8v8" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}

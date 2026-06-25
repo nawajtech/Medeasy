@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\UserRoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -34,6 +35,7 @@ class AuthController extends Controller
         }
 
         $user->update(['last_login_at' => now()]);
+        $user->loadMissing('roles');
         $token = $user->createToken('medeasy-api')->plainTextToken;
 
         return response()->json([
@@ -104,6 +106,8 @@ class AuthController extends Controller
             'email' => $user->email,
             'phone' => $user->phone,
             'role' => $user->role,
+            'roles' => $user->getRoleNames(),
+            'permissions' => $user->permissionNames(),
             'status' => $user->status,
             'company_id' => $user->company_id,
             'company' => $user->company,

@@ -28,8 +28,10 @@ class BranchController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->prepareCompanyScope($request);
+
         $data = $request->validate([
-            'company_id' => ['sometimes', 'exists:companies,id'],
+            'company_id' => $this->companyIdRules(),
             'name'       => ['required', 'string', 'max:120'],
             'code'       => ['nullable', 'string', 'max:20'],
             'address'    => ['nullable', 'string'],

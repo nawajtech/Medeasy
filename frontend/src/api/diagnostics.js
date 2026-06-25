@@ -1,6 +1,12 @@
 import api from "./axios";
 
-// ── Test types ─────────────────────────────────────
+// ── Categories ─────────────────────────────────────
+export const getDiagnosticCategories = (params) => api.get("/diagnostics/categories", { params });
+export const createDiagnosticCategory = (data) => api.post("/diagnostics/categories", data);
+export const updateDiagnosticCategory = (id, data) => api.put(`/diagnostics/categories/${id}`, data);
+export const deleteDiagnosticCategory = (id) => api.delete(`/diagnostics/categories/${id}`);
+
+// ── Tests (types) ──────────────────────────────────
 export const getDiagnosticTypes = (params) => api.get("/diagnostics/types", { params });
 export const createDiagnosticType = (data) => api.post("/diagnostics/types", data);
 export const updateDiagnosticType = (id, data) => api.put(`/diagnostics/types/${id}`, data);

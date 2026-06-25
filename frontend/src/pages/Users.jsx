@@ -3,11 +3,13 @@ import "../App.css";
 import {
   createUser,
   deleteUser,
+  getUserAssignableRoles,
   getUsers,
   updateUser,
 } from "../api/users";
 import { useAuth } from "../auth/AuthContext";
 import BranchSelect from "../components/BranchSelect";
+import Can from "../components/Can";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -25,13 +27,11 @@ const emptyForm = {
   status: true,
 };
 
-const ROLES = ["company_admin", "staff", "lab_technician", "radiologist", "receptionist", "pharmacist"];
+const ROLES = ["company_admin", "staff", "nurse", "lab_technician", "radiologist", "receptionist", "pharmacist", "accountant"];
 
 function Users() {
-  const { isSuperAdmin, isCompanyAdmin } = useAuth();
-  const roleOptions = isSuperAdmin ? ROLES : isCompanyAdmin
-    ? ["staff", "lab_technician", "radiologist", "receptionist", "pharmacist"]
-    : ["staff"];
+  const { isSuperAdmin } = useAuth();
+  const [roleOptions, setRoleOptions] = useState(ROLES);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,14 +53,43 @@ function Users() {
     }
   }, []);
 
+  const loadRoleOptions = useCallback(async (companyId) => {
+    try {
+      const { data } = await getUserAssignableRoles(companyId || undefined);
+      const names = data.map((r) => r.name);
+      if (names.length) {
+        setRoleOptions(names);
+        setForm((prev) => ({
+          ...prev,
+          role: names.includes(prev.role) ? prev.role : names[0],
+        }));
+      }
+    } catch {
+      /* keep current options */
+    }
+  }, []);
+
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (isSuperAdmin) {
+      if (form.company_id) {
+        loadRoleOptions(form.company_id);
+      }
+      return;
+    }
+    loadRoleOptions();
+  }, [isSuperAdmin, form.company_id, loadRoleOptions]);
 
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
     setModalOpen(true);
+    if (!isSuperAdmin) {
+      loadRoleOptions();
+    }
   };
 
   const openEdit = (user) => {
@@ -76,6 +105,7 @@ function Users() {
       status: Boolean(user.status),
     });
     setModalOpen(true);
+    loadRoleOptions(user.company_id || undefined);
   };
 
   const closeModal = () => {
@@ -86,10 +116,16 @@ function Users() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setForm((prev) => ({
-      ...prev,
-      [name]: type === "checkbox" ? checked : value,
-    }));
+    setForm((prev) => {
+      const next = {
+        ...prev,
+        [name]: type === "checkbox" ? checked : value,
+      };
+      if (name === "company_id" && isSuperAdmin) {
+        next.role = "";
+      }
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -134,9 +170,11 @@ function Users() {
 
       <div className="crud-toolbar">
         <span>{loading ? "Loading…" : `${items.length} user(s)`}</span>
-        <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
-          Add user
-        </button>
+        <Can permission="users.create">
+          <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
+            Add user
+          </button>
+        </Can>
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
@@ -189,20 +227,24 @@ function Users() {
                 </td>
                 <td>
                   <div className="crud-actions">
-                    <button
-                      type="button"
-                      className="crud-btn crud-btn--ghost crud-btn--sm"
-                      onClick={() => openEdit(user)}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="crud-btn crud-btn--danger crud-btn--sm"
-                      onClick={() => handleDelete(user)}
-                    >
-                      Delete
-                    </button>
+                    <Can permission="users.edit">
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--ghost crud-btn--sm"
+                        onClick={() => openEdit(user)}
+                      >
+                        Edit
+                      </button>
+                    </Can>
+                    <Can permission="users.delete">
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--danger crud-btn--sm"
+                        onClick={() => handleDelete(user)}
+                      >
+                        Delete
+                      </button>
+                    </Can>
                   </div>
                 </td>
               </tr>
@@ -251,12 +293,16 @@ function Users() {
             </div>
             <div className="crud-field">
               <label htmlFor="role">Role</label>
-              <select id="role" name="role" value={form.role} onChange={handleChange} required>
-                {roleOptions.map((r) => (
-                  <option key={r} value={r}>
-                    {r}
-                  </option>
-                ))}
+              <select id="role" name="role" value={form.role} onChange={handleChange} required disabled={isSuperAdmin && !form.company_id}>
+                {roleOptions.length === 0 ? (
+                  <option value="">{isSuperAdmin && !form.company_id ? "Select company first" : "No roles available"}</option>
+                ) : (
+                  roleOptions.map((r) => (
+                    <option key={r} value={r}>
+                      {r.replace(/_/g, " ")}
+                    </option>
+                  ))
+                )}
               </select>
             </div>
             <div className="crud-field">

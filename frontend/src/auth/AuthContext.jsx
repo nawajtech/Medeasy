@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { getMe, login as apiLogin, logout as apiLogout } from "../api/auth";
+import { hasPermission } from "../config/permissions";
 import { ROLES } from "../config/roles";
 
 const AuthContext = createContext(null);
@@ -96,6 +97,11 @@ export function AuthProvider({ children }) {
     [persist, token]
   );
 
+  const can = useCallback(
+    (permission) => hasPermission(user?.permissions, permission),
+    [user?.permissions]
+  );
+
   const value = useMemo(
     () => ({
       user,
@@ -105,6 +111,7 @@ export function AuthProvider({ children }) {
       logout,
       refreshMe,
       updateUser,
+      can,
       isAuthenticated: Boolean(token && user),
       isSuperAdmin:    user?.role === ROLES.SUPER_ADMIN,
       isCompanyAdmin:  user?.role === ROLES.COMPANY_ADMIN,
@@ -115,7 +122,7 @@ export function AuthProvider({ children }) {
       isReceptionist:  user?.role === ROLES.RECEPTIONIST,
       companyId: user?.company_id ?? null,
     }),
-    [user, token, loading, refreshMe, updateUser]
+    [user, token, loading, refreshMe, updateUser, can]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

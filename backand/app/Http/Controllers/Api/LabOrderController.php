@@ -34,8 +34,10 @@ class LabOrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->prepareCompanyScope($request);
+
         $data = $request->validate([
-            'company_id'                => ['sometimes', 'exists:companies,id'],
+            'company_id'                => $this->companyIdRules(),
             'branch_id'                 => ['nullable', 'exists:branches,id'],
             'patient_id'                => ['required', 'exists:patients,id'],
             'doctor_id'                 => ['nullable', 'exists:doctors,id'],

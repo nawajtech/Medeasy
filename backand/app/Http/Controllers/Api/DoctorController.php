@@ -8,6 +8,7 @@ use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\User;
 use App\Services\DoctorAvailabilityService;
+use App\Services\UserRoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -57,6 +58,8 @@ class DoctorController extends Controller
                 'company_id' => $companyId,
                 'status' => $request->boolean('status', true),
             ]);
+
+            app(UserRoleService::class)->assignRole($user, User::ROLE_DOCTOR);
 
             $created = Doctor::create([
                 'company_id' => $companyId,

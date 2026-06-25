@@ -7,6 +7,8 @@ use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\User;
 use App\Services\CompanySetupService;
+use App\Services\TenantRoleProvisioningService;
+use App\Services\UserRoleService;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -15,8 +17,10 @@ class SaasSeeder extends Seeder
     public function run(): void
     {
         $setup = app(CompanySetupService::class);
+        $userRoles = app(UserRoleService::class);
+        $tenantRoles = app(TenantRoleProvisioningService::class);
 
-        User::updateOrCreate(
+        $superAdmin = User::updateOrCreate(
             ['email' => 'super@medeasy.com'],
             [
                 'name' => 'Super Admin',
@@ -26,6 +30,7 @@ class SaasSeeder extends Seeder
                 'status' => true,
             ]
         );
+        $userRoles->assignRole($superAdmin, User::ROLE_SUPER_ADMIN);
 
         $companies = [
             [
@@ -54,6 +59,7 @@ class SaasSeeder extends Seeder
                     'code' => $row['code'],
                     'email' => $row['admin_email'],
                     'phone' => '+92 300 0000000',
+                    'modules' => ['clinic', 'pharmacy', 'laboratory', 'diagnostics'],
                     'is_active' => true,
                 ]);
             } else {
@@ -66,8 +72,9 @@ class SaasSeeder extends Seeder
             }
 
             $setup->bootstrap($company);
+            $tenantRoles->provisionForCompany($company);
 
-            User::updateOrCreate(
+            $adminUser = User::updateOrCreate(
                 ['email' => $row['admin_email']],
                 [
                     'name' => $row['name'].' Admin',
@@ -77,6 +84,9 @@ class SaasSeeder extends Seeder
                     'status' => true,
                 ]
             );
+            $userRoles->assignRole($adminUser, User::ROLE_COMPANY_ADMIN);
+
+            $company->update(['primary_admin_id' => $adminUser->id]);
 
             $doctorUser = User::updateOrCreate(
                 ['email' => $row['doctor_email']],
@@ -88,6 +98,7 @@ class SaasSeeder extends Seeder
                     'status' => true,
                 ]
             );
+            $userRoles->assignRole($doctorUser, User::ROLE_DOCTOR);
 
             $departmentId = Department::where('company_id', $company->id)->value('id');
 

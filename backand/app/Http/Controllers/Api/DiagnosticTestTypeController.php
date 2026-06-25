@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiagnosticTestType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class DiagnosticTestTypeController extends Controller
 {
@@ -17,10 +18,12 @@ class DiagnosticTestTypeController extends Controller
         $companyId = $this->optionalCompanyId($request);
 
         return response()->json(
-            DiagnosticTestType::when($companyId, fn ($q) => $q->where('company_id', $companyId))
+            DiagnosticTestType::with('category')
+                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+                ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
                 ->when($request->filled('modality'), fn ($q) => $q->where('modality', $request->modality))
                 ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
-                ->orderBy('modality')
+                ->orderBy('category_id')
                 ->orderBy('name')
                 ->get()
         );
@@ -28,45 +31,57 @@ class DiagnosticTestTypeController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'company_id'                => ['sometimes', 'exists:companies,id'],
-            'name'                      => ['required', 'string', 'max:150'],
-            'code'                      => ['nullable', 'string', 'max:30'],
-            'modality'                  => ['required', 'in:xray,ct,mri,ultrasound,ecg,echo,other'],
-            'description'               => ['nullable', 'string'],
-            'preparation_instructions'  => ['nullable', 'string'],
-            'price'                     => ['required', 'numeric', 'min:0'],
-            'is_active'                 => ['boolean'],
-        ]);
-
-        $data['company_id'] = $this->resolveCompanyId($request);
-
-        return response()->json(DiagnosticTestType::create($data), 201);
-    }
-
-    public function update(Request $request, DiagnosticTestType $diagnosticTestType): JsonResponse
-    {
-        $this->assertTenantAccess($diagnosticTestType);
+        $this->prepareCompanyScope($request);
+        $companyId = $this->resolveCompanyId($request);
 
         $data = $request->validate([
-            'name'                      => ['sometimes', 'string', 'max:150'],
-            'code'                      => ['nullable', 'string', 'max:30'],
-            'modality'                  => ['sometimes', 'in:xray,ct,mri,ultrasound,ecg,echo,other'],
-            'description'               => ['nullable', 'string'],
-            'preparation_instructions'  => ['nullable', 'string'],
-            'price'                     => ['sometimes', 'numeric', 'min:0'],
-            'is_active'                 => ['boolean'],
+            'company_id'               => $this->companyIdRules(),
+            'category_id'              => [
+                'required',
+                Rule::exists('diagnostic_categories', 'id')->where('company_id', $companyId),
+            ],
+            'name'                     => ['required', 'string', 'max:150'],
+            'code'                     => ['nullable', 'string', 'max:30'],
+            'modality'                 => ['nullable', 'in:xray,ct,mri,ultrasound,ecg,echo,other'],
+            'description'              => ['nullable', 'string'],
+            'preparation_instructions' => ['nullable', 'string'],
+            'price'                    => ['required', 'numeric', 'min:0'],
+            'is_active'                => ['boolean'],
         ]);
 
-        $diagnosticTestType->update($data);
+        $data['company_id'] = $companyId;
+        $data['modality'] = $data['modality'] ?? 'other';
 
-        return response()->json($diagnosticTestType);
+        return response()->json(DiagnosticTestType::create($data)->load('category'), 201);
     }
 
-    public function destroy(DiagnosticTestType $diagnosticTestType): JsonResponse
+    public function update(Request $request, DiagnosticTestType $type): JsonResponse
     {
-        $this->assertTenantAccess($diagnosticTestType);
-        $diagnosticTestType->delete();
+        $this->assertTenantAccess($type);
+
+        $data = $request->validate([
+            'category_id'              => [
+                'sometimes',
+                Rule::exists('diagnostic_categories', 'id')->where('company_id', $type->company_id),
+            ],
+            'name'                     => ['sometimes', 'string', 'max:150'],
+            'code'                     => ['nullable', 'string', 'max:30'],
+            'modality'                 => ['nullable', 'in:xray,ct,mri,ultrasound,ecg,echo,other'],
+            'description'              => ['nullable', 'string'],
+            'preparation_instructions' => ['nullable', 'string'],
+            'price'                    => ['sometimes', 'numeric', 'min:0'],
+            'is_active'                => ['boolean'],
+        ]);
+
+        $type->update($data);
+
+        return response()->json($type->fresh('category'));
+    }
+
+    public function destroy(DiagnosticTestType $type): JsonResponse
+    {
+        $this->assertTenantAccess($type);
+        $type->delete();
 
         return response()->json(null, 204);
     }

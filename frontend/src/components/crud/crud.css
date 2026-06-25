@@ -224,9 +224,41 @@
   max-width: 920px;
 }
 
-.crud-modal h3 {
-  font-size: 1.125rem;
+.crud-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
+}
+
+.crud-modal-header h3 {
+  font-size: 1.125rem;
+  margin: 0;
+  flex: 1;
+  line-height: 1.35;
+}
+
+.crud-modal-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--me-radius-md);
+  background: transparent;
+  color: var(--me-text-muted);
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: background var(--me-transition), color var(--me-transition);
+}
+
+.crud-modal-close:hover {
+  background: var(--me-surface-muted);
+  color: var(--me-text);
 }
 
 .crud-form-grid {

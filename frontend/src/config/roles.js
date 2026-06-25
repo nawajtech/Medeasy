@@ -22,7 +22,8 @@ const labMenu = [
 ];
 
 const diagnosticsMenu = [
-  { to: "/diagnostics", label: "Diagnostics" },
+  { to: "/diagnostics", label: "Diagnostic Catalog" },
+  { to: "/diagnostics/orders", label: "Diagnostic Orders" },
 ];
 
 const pharmacyMenu = [
@@ -50,7 +51,7 @@ export const menuByRole = {
     ...diagnosticsMenu,
     ...pharmacyMenu,
     { to: "/reports", label: "Reports" },
-    { to: "/users", label: "Staff" },
+    { to: "/users", label: "Users" },
     { to: "/settings", label: "Settings" },
   ],
   [ROLES.STAFF]: [
@@ -84,7 +85,7 @@ export const menuByRole = {
     { to: "/patients", label: "My patients" },
     ...pharmacyMenu,
     { to: "/lab/orders", label: "Lab Orders" },
-    { to: "/diagnostics", label: "Diagnostics" },
+    { to: "/diagnostics/orders", label: "Diagnostic Orders" },
     { to: "/my-schedule", label: "My schedule" },
   ],
   [ROLES.PHARMACIST]: [

@@ -1,0 +1,72 @@
+.roles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.role-card {
+  border: 1px solid var(--me-border);
+  border-radius: 12px;
+  padding: 1.25rem;
+  background: var(--me-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.role-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.role-card-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.role-badge {
+  font-size: 0.7rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.role-badge--system {
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--me-primary);
+}
+
+.role-card-desc {
+  margin: 0;
+  color: var(--me-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  flex: 1;
+}
+
+.role-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--me-text-muted);
+}
+
+.role-card-meta code {
+  background: var(--me-surface-2);
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.role-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}

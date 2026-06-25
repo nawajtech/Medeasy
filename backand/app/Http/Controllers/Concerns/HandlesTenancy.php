@@ -20,7 +20,28 @@ trait HandlesTenancy
             ])['company_id'];
         }
 
+        abort_unless($user->company_id, 403, 'Your account is not linked to a company.');
+
         return (int) $user->company_id;
+    }
+
+    /**
+     * Tenant users must not send company_id — it comes from auth.
+     * Strips empty values so "sometimes|exists" does not reject "".
+     */
+    protected function prepareCompanyScope(Request $request): void
+    {
+        if (! auth()->user()->isSuperAdmin()) {
+            $request->request->remove('company_id');
+        }
+    }
+
+    /** @return array<int, mixed> */
+    protected function companyIdRules(): array
+    {
+        return auth()->user()->isSuperAdmin()
+            ? ['required', 'exists:companies,id']
+            : ['prohibited'];
     }
 
     protected function optionalCompanyId(Request $request): ?int

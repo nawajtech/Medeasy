@@ -125,3 +125,19 @@
   border-radius: var(--me-radius-md);
   margin-bottom: 8px;
 }
+
+.dgn-category-block {
+  margin-bottom: 1.5rem;
+}
+
+.dgn-category-title {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+  color: var(--me-primary);
+}
+
+.dgn-cat-desc {
+  font-size: 0.8rem;
+  color: var(--me-text-muted);
+  margin-top: 2px;
+}

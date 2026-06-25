@@ -12,6 +12,7 @@ class DiagnosticTestType extends Model
 
     protected $fillable = [
         'company_id',
+        'category_id',
         'name',
         'code',
         'modality',
@@ -27,6 +28,11 @@ class DiagnosticTestType extends Model
             'price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
+    }
+
+    public function category()
+    {
+        return $this->belongsTo(DiagnosticCategory::class, 'category_id');
     }
 
     public function orders()

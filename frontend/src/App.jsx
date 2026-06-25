@@ -20,9 +20,12 @@ import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
 import LabOrders from "./pages/LabOrders";
+import DiagnosticCatalog from "./pages/DiagnosticCatalog";
 import DiagnosticOrders from "./pages/DiagnosticOrders";
 import Medicines from "./pages/Medicines";
 import PatientChart from "./pages/PatientChart";
+import Roles from "./pages/Roles";
+import RolePermissions from "./pages/RolePermissions";
 import "./App.css";
 
 function App() {
@@ -48,12 +51,15 @@ function App() {
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="reports" element={<Reports />} />
                 <Route path="users" element={<Users />} />
+                <Route path="roles" element={<Roles />} />
+                <Route path="roles/:roleId" element={<RolePermissions />} />
                 <Route path="settings" element={<Settings />} />
                 {/* Lab module */}
                 <Route path="lab/tests" element={<LabTests />} />
                 <Route path="lab/orders" element={<LabOrders />} />
                 {/* Diagnostics module */}
-                <Route path="diagnostics" element={<DiagnosticOrders />} />
+                <Route path="diagnostics" element={<DiagnosticCatalog />} />
+                <Route path="diagnostics/orders" element={<DiagnosticOrders />} />
                 {/* Pharmacy module */}
                 <Route path="pharmacy/medicines" element={<Medicines />} />
               </Route>

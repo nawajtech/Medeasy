@@ -123,4 +123,163 @@
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
 }
 
+/* Module badges in table */
+.company-module-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+
+.company-module-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.company-module-badge--clinic { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.company-module-badge--pharmacy { background: rgba(16, 185, 129, 0.12); color: #059669; }
+.company-module-badge--laboratory { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
+.company-module-badge--diagnostics { background: rgba(217, 119, 6, 0.12); color: #d97706; }
+
+.company-modules-summary {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--me-text-muted);
+}
+
+/* Module picker in modal */
+.company-modules-field {
+  margin-bottom: 0.5rem;
+}
+
+.company-modules-label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--me-text);
+  margin-bottom: 0.35rem;
+}
+
+.company-modules-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
+.company-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.company-preset-chip {
+  border: 1px solid var(--me-border);
+  background: var(--me-surface);
+  color: var(--me-text-secondary);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.company-preset-chip:hover {
+  border-color: var(--me-primary);
+  color: var(--me-primary);
+}
+
+.company-preset-chip.is-active {
+  background: var(--me-primary-soft);
+  border-color: var(--me-primary);
+  color: var(--me-primary);
+}
+
+.company-module-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.company-module-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.company-module-card:has(input:checked) {
+  border-color: var(--me-primary);
+  background: var(--me-primary-soft);
+}
+
+.company-module-card input {
+  margin-bottom: 0.25rem;
+  accent-color: var(--me-primary);
+}
+
+.company-module-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--me-text);
+}
+
+.company-module-card-desc {
+  font-size: 0.75rem;
+  color: var(--me-text-muted);
+  line-height: 1.35;
+}
+
+.company-modules-selected {
+  margin: 0.75rem 0 0;
+  font-size: 0.8125rem;
+  color: var(--me-text-secondary);
+}
+
+@media (max-width: 640px) {
+  .company-module-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.company-admin-section {
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--me-border);
+}
+
+.company-admin-heading {
+  margin: 0 0 0.35rem;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--me-text);
+}
+
+.company-admin-hint {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--me-text-secondary);
+  line-height: 1.45;
+}
+
+.company-admin-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.company-admin-email {
+  font-size: 0.8125rem;
+  color: var(--me-text-muted);
+}
+
 /* type badge styles live in crud.css */

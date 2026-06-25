@@ -9,6 +9,7 @@ import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { withCompanyScope } from "../utils/tenantPayload";
 import "./LabTests.css";
 
 const SAMPLE_TYPES = ["blood", "urine", "stool", "swab", "sputum", "other"];
@@ -111,12 +112,13 @@ function LabTests() {
     setSaving(true);
     setError("");
     try {
+      const payload = withCompanyScope(form, isSuperAdmin);
       if (tab === "Categories") {
-        editing ? await updateLabCategory(editing.id, form) : await createLabCategory(form);
+        editing ? await updateLabCategory(editing.id, payload) : await createLabCategory(payload);
       } else if (tab === "Tests") {
-        editing ? await updateLabTest(editing.id, form) : await createLabTest(form);
+        editing ? await updateLabTest(editing.id, payload) : await createLabTest(payload);
       } else {
-        editing ? await updateLabPackage(editing.id, form) : await createLabPackage(form);
+        editing ? await updateLabPackage(editing.id, payload) : await createLabPackage(payload);
       }
       closeModal();
       await loadAll();

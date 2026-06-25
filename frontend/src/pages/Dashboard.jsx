@@ -14,6 +14,8 @@ import {
 } from "recharts";
 import { getDashboard } from "../api/dashboard";
 import { useAuth } from "../auth/AuthContext";
+import { PERMISSIONS } from "../config/permissions";
+import { usePermissions } from "../hooks/usePermissions";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -176,7 +178,8 @@ function DoctorPerformanceTable({ rows, showCompanyCol, startRank = 1 }) {
 
 function Dashboard() {
   const { isSuperAdmin, isDoctor, isCompanyAdmin, isStaff } = useAuth();
-  const showAdminPayments = !isDoctor && (isSuperAdmin || isCompanyAdmin || isStaff);
+  const { can } = usePermissions();
+  const showAdminPayments = !isDoctor && (isSuperAdmin || isCompanyAdmin || isStaff) && can(PERMISSIONS.BILLING_VIEW);
 
   const initialRange = useMemo(() => defaultDateRange(), []);
   const [dateFrom, setDateFrom] = useState(initialRange.from);
@@ -243,10 +246,10 @@ function Dashboard() {
     status: row.status,
   }));
 
-  const showBillingChart = !isDoctor && billing_by_month.length > 0;
-  const showCompaniesOverview = data.companies_overview?.length > 0;
+  const showBillingChart = can(PERMISSIONS.BILLING_VIEW) && !isDoctor && billing_by_month.length > 0;
+  const showCompaniesOverview = can(PERMISSIONS.COMPANY_VIEW) && data.companies_overview?.length > 0;
   const showCompaniesPaymentGrid =
-    isSuperAdmin && !filterCompanyId && data.companies_payment?.length > 0;
+    can(PERMISSIONS.BILLING_VIEW) && isSuperAdmin && !filterCompanyId && data.companies_payment?.length > 0;
 
   const doctorPerformance = data.doctor_performance ?? [];
   const showDoctorCompanyCol = doctorPerformance.some((row) => row.company_name);
@@ -263,7 +266,7 @@ function Dashboard() {
   ];
 
   const statCardConfig = [
-    ...(!isDoctor && summary.companies != null
+    ...(!isDoctor && summary.companies != null && can(PERMISSIONS.COMPANY_VIEW)
       ? [{
           key: "companies",
           label: "Active clinics",
@@ -273,36 +276,42 @@ function Dashboard() {
           icon: IconBuilding,
         }]
       : []),
-    {
-      key: "patients",
-      label: "Patients",
-      value: summary.patients,
-      hint: "Registered patients",
-      icon: IconPatient,
-    },
-    {
-      key: "doctors",
-      label: isDoctor ? "You" : "Doctors",
-      value: summary.doctors,
-      hint: isDoctor ? "Your profile" : "Active doctors",
-      icon: IconStethoscope,
-    },
-    {
-      key: "appointments",
-      label: "Appointments in range",
-      value: summary.appointments_total,
-      hint: doctorRangeLabel || "Selected period",
-      accent: true,
-      icon: IconCalendarDays,
-    },
-    {
-      key: "today",
-      label: "Today's appointments",
-      value: summary.appointments_today,
-      hint: "Scheduled for today",
-      icon: IconCalendar,
-    },
-    ...(!isDoctor
+    ...(can(PERMISSIONS.PATIENT_VIEW)
+      ? [{
+          key: "patients",
+          label: "Patients",
+          value: summary.patients,
+          hint: "Registered patients",
+          icon: IconPatient,
+        }]
+      : []),
+    ...(can(PERMISSIONS.DOCTOR_VIEW)
+      ? [{
+          key: "doctors",
+          label: isDoctor ? "You" : "Doctors",
+          value: summary.doctors,
+          hint: isDoctor ? "Your profile" : "Active doctors",
+          icon: IconStethoscope,
+        }]
+      : []),
+    ...(can(PERMISSIONS.APPOINTMENT_VIEW)
+      ? [{
+          key: "appointments",
+          label: "Appointments in range",
+          value: summary.appointments_total,
+          hint: doctorRangeLabel || "Selected period",
+          accent: true,
+          icon: IconCalendarDays,
+        },
+        {
+          key: "today",
+          label: "Today's appointments",
+          value: summary.appointments_today,
+          hint: "Scheduled for today",
+          icon: IconCalendar,
+        }]
+      : []),
+    ...(!isDoctor && can(PERMISSIONS.DEPARTMENT_VIEW)
       ? [{
           key: "departments",
           label: "Departments",
@@ -313,7 +322,7 @@ function Dashboard() {
       : []),
   ];
 
-  const paymentCards = payment_overview
+  const paymentCards = payment_overview && can(PERMISSIONS.BILLING_VIEW)
     ? [
         {
           key: "today",

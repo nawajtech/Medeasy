@@ -8,6 +8,7 @@ import {
   updatePatient,
 } from "../api/patients";
 import { useAuth } from "../auth/AuthContext";
+import Can from "../components/Can";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -193,11 +194,11 @@ function Patients() {
             />
           )}
         </div>
-        {!isDoctor && (
+        <Can permission="patient.create">
           <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
             Add patient
           </button>
-        )}
+        </Can>
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
@@ -273,24 +274,24 @@ function Patients() {
                     >
                       Chart
                     </Link>
-                    {!isDoctor && (
-                      <>
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--ghost crud-btn--sm"
-                          onClick={() => openEdit(patient)}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--danger crud-btn--sm"
-                          onClick={() => handleDelete(patient)}
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
+                    <Can permission="patient.edit">
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--ghost crud-btn--sm"
+                        onClick={() => openEdit(patient)}
+                      >
+                        Edit
+                      </button>
+                    </Can>
+                    <Can permission="patient.delete">
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--danger crud-btn--sm"
+                        onClick={() => handleDelete(patient)}
+                      >
+                        Delete
+                      </button>
+                    </Can>
                   </div>
                 </td>
               </tr>

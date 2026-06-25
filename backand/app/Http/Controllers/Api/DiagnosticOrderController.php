@@ -19,10 +19,14 @@ class DiagnosticOrderController extends Controller
     {
         $companyId = $this->optionalCompanyId($request);
 
-        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType', 'technician', 'report', 'branch'])
+        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType.category', 'technician', 'report', 'branch'])
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', (int) $request->branch_id))
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
+            ->when($request->filled('category_id'), fn ($q) => $q->whereHas(
+                'testType',
+                fn ($q2) => $q2->where('category_id', $request->category_id)
+            ))
             ->when($request->filled('modality'), fn ($q) => $q->whereHas('testType', fn ($q2) => $q2->where('modality', $request->modality)))
             ->when($request->filled('patient_id'), fn ($q) => $q->where('patient_id', $request->patient_id))
             ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
@@ -35,8 +39,10 @@ class DiagnosticOrderController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->prepareCompanyScope($request);
+
         $data = $request->validate([
-            'company_id'        => ['sometimes', 'exists:companies,id'],
+            'company_id'        => $this->companyIdRules(),
             'branch_id'         => ['nullable', 'exists:branches,id'],
             'patient_id'        => ['required', 'exists:patients,id'],
             'doctor_id'         => ['nullable', 'exists:doctors,id'],
@@ -63,7 +69,7 @@ class DiagnosticOrderController extends Controller
         $this->assertTenantAccess($diagnosticOrder);
 
         return response()->json(
-            $diagnosticOrder->load(['patient', 'doctor.user', 'testType', 'technician', 'report.reporter'])
+            $diagnosticOrder->load(['patient', 'doctor.user', 'testType.category', 'technician', 'report.reporter'])
         );
     }
 

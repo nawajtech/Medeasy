@@ -29,6 +29,13 @@ class DashboardController extends Controller
         $scopeLabel = $this->scopeLabel($companyId);
         $company = $companyId ? Company::find($companyId) : null;
 
+        $canBilling = $user->can('billing.view');
+        $canPatients = $user->can('patient.view');
+        $canDoctors = $user->can('doctor.view');
+        $canAppointments = $user->can('appointment.view');
+        $canDepartments = $user->can('department.view');
+        $canCompanies = $user->can('company.view');
+
         return response()->json([
             'scope_label' => $scopeLabel,
             'company' => $company ? [
@@ -40,19 +47,38 @@ class DashboardController extends Controller
                 'from' => $dateFrom->format('Y-m-d'),
                 'to' => $dateTo->format('Y-m-d'),
             ],
-            'payment_overview' => $doctorId ? null : $this->paymentOverview($companyId, $dateFrom, $dateTo),
-            'companies_payment' => $user->isSuperAdmin() && ! $companyId && ! $doctorId
+            'payment_overview' => $canBilling && ! $doctorId
+                ? $this->paymentOverview($companyId, $dateFrom, $dateTo)
+                : null,
+            'companies_payment' => $canBilling && $user->isSuperAdmin() && ! $companyId && ! $doctorId
                 ? $this->companiesPaymentOverview($dateFrom, $dateTo)
                 : [],
-            'summary' => $this->summary($companyId, $doctorId, $user->isSuperAdmin() && ! $companyId, $dateFrom, $dateTo),
-            'appointments_by_status' => $this->appointmentsByStatus($companyId, $doctorId, $dateFrom, $dateTo),
-            'appointments_by_month' => $this->appointmentsByMonth($companyId, $doctorId, $dateFrom, $dateTo),
-            'billing_by_month' => $doctorId ? [] : $this->billingByMonth($companyId, $dateFrom, $dateTo),
-            'doctor_performance' => $this->doctorPerformance($companyId, $doctorId, $dateFrom, $dateTo),
-            'companies_overview' => $user->isSuperAdmin() && ! $companyId && ! $doctorId
+            'summary' => $this->summary(
+                $companyId,
+                $doctorId,
+                $canCompanies && $user->isSuperAdmin() && ! $companyId,
+                $dateFrom,
+                $dateTo,
+                compact('canPatients', 'canDoctors', 'canAppointments', 'canDepartments', 'canBilling', 'canCompanies')
+            ),
+            'appointments_by_status' => $canAppointments
+                ? $this->appointmentsByStatus($companyId, $doctorId, $dateFrom, $dateTo)
+                : [],
+            'appointments_by_month' => $canAppointments
+                ? $this->appointmentsByMonth($companyId, $doctorId, $dateFrom, $dateTo)
+                : [],
+            'billing_by_month' => $canBilling && ! $doctorId
+                ? $this->billingByMonth($companyId, $dateFrom, $dateTo)
+                : [],
+            'doctor_performance' => $canDoctors
+                ? $this->doctorPerformance($companyId, $doctorId, $dateFrom, $dateTo)
+                : [],
+            'companies_overview' => $canCompanies && $user->isSuperAdmin() && ! $companyId && ! $doctorId
                 ? $this->companiesOverview($dateFrom, $dateTo)
                 : [],
-            'recent_appointments' => $this->recentAppointments($companyId, $doctorId, $dateFrom, $dateTo),
+            'recent_appointments' => $canAppointments
+                ? $this->recentAppointments($companyId, $doctorId, $dateFrom, $dateTo)
+                : [],
         ]);
     }
 
@@ -222,26 +248,42 @@ class DashboardController extends Controller
             ->all();
     }
 
-    private function summary(?int $companyId, ?int $doctorId, bool $allCompanies, Carbon $from, Carbon $to): array
-    {
+    private function summary(
+        ?int $companyId,
+        ?int $doctorId,
+        bool $allCompanies,
+        Carbon $from,
+        Carbon $to,
+        array $flags = [],
+    ): array {
         $today = Carbon::today();
+        $canPatients = $flags['canPatients'] ?? true;
+        $canDoctors = $flags['canDoctors'] ?? true;
+        $canAppointments = $flags['canAppointments'] ?? true;
+        $canDepartments = $flags['canDepartments'] ?? true;
+        $canBilling = $flags['canBilling'] ?? true;
+        $canCompanies = $flags['canCompanies'] ?? true;
 
         $summary = [
-            'patients' => $this->patientQuery($companyId, $doctorId)->count(),
-            'doctors' => $doctorId ? 1 : $this->doctorQuery($companyId, $doctorId)->count(),
-            'departments' => $doctorId ? 0 : ($companyId
-                ? Department::where('company_id', $companyId)->count()
-                : Department::count()),
-            'appointments_total' => $this->appointmentQuery($companyId, $doctorId, $from, $to)->count(),
-            'appointments_today' => $this->appointmentQuery($companyId, $doctorId)
-                ->whereDate('appointment_date', $today)
-                ->count(),
+            'patients' => $canPatients ? $this->patientQuery($companyId, $doctorId)->count() : 0,
+            'doctors' => $canDoctors ? ($doctorId ? 1 : $this->doctorQuery($companyId, $doctorId)->count()) : 0,
+            'departments' => $canDepartments && ! $doctorId
+                ? ($companyId
+                    ? Department::where('company_id', $companyId)->count()
+                    : Department::count())
+                : 0,
+            'appointments_total' => $canAppointments
+                ? $this->appointmentQuery($companyId, $doctorId, $from, $to)->count()
+                : 0,
+            'appointments_today' => $canAppointments
+                ? $this->appointmentQuery($companyId, $doctorId)->whereDate('appointment_date', $today)->count()
+                : 0,
             'billing_collected' => 0,
             'billing_pending' => 0,
-            'companies' => $allCompanies ? Company::where('is_active', true)->count() : null,
+            'companies' => $canCompanies && $allCompanies ? Company::where('is_active', true)->count() : null,
         ];
 
-        if (! $doctorId) {
+        if ($canBilling && ! $doctorId) {
             $billing = $this->billingQuery($companyId, $from, $to);
             $summary['billing_collected'] = (float) (clone $billing)->sum('paid_amount');
             $summary['billing_pending'] = (float) (clone $billing)->sum('due_amount');

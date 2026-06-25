@@ -1,6 +1,6 @@
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { menuByRole } from "../config/roles";
+import { filterMenuByPermissions, groupMenuItems } from "../config/permissions";
 import "./Sidebar.css";
 import {
   IconDashboard,
@@ -16,27 +16,8 @@ import {
   IconRadiology,
   IconBranch,
   IconClipboard,
+  IconPill,
 } from "./icons";
-
-const LAB_LABELS = new Set(["Lab Catalog", "Lab Orders"]);
-const DIAGNOSTICS_LABELS = new Set(["Diagnostics"]);
-const ADMIN_LABELS = new Set(["Companies", "Branches", "Users", "Staff", "Reports", "Settings"]);
-
-function groupMenuItems(items) {
-  const general = [], lab = [], diagnostics = [], admin = [];
-  for (const item of items) {
-    if (LAB_LABELS.has(item.label)) lab.push(item);
-    else if (DIAGNOSTICS_LABELS.has(item.label)) diagnostics.push(item);
-    else if (ADMIN_LABELS.has(item.label)) admin.push(item);
-    else general.push(item);
-  }
-  const groups = [];
-  if (general.length) groups.push({ label: "Menu", items: general });
-  if (lab.length) groups.push({ label: "Laboratory", items: lab });
-  if (diagnostics.length) groups.push({ label: "Diagnostics", items: diagnostics });
-  if (admin.length) groups.push({ label: "Admin", items: admin });
-  return groups;
-}
 
 const iconMap = {
   Overview: IconDashboard,
@@ -51,16 +32,27 @@ const iconMap = {
   "My schedule": IconCalendar,
   "Lab Catalog": IconFlask,
   "Lab Orders": IconClipboard,
-  Diagnostics: IconRadiology,
+  "Diagnostic Catalog": IconRadiology,
+  "Diagnostic Orders": IconClipboard,
+  "Medicine Master": IconPill,
   Reports: IconChart,
   Users: IconUsers,
-  Staff: IconUsers,
+  Roles: IconUsers,
   Settings: IconSettings,
+};
+
+const sectionIconMap = {
+  overview: IconDashboard,
+  clinic: IconStethoscope,
+  laboratory: IconFlask,
+  diagnostics: IconRadiology,
+  admin: IconSettings,
 };
 
 function Sidebar() {
   const { user } = useAuth();
-  const items = menuByRole[user?.role] || [];
+  const items = filterMenuByPermissions(user?.permissions, user?.role, user?.company?.modules);
+  const groups = groupMenuItems(items);
 
   return (
     <aside className="sidebar" aria-label="Main navigation">
@@ -78,28 +70,44 @@ function Sidebar() {
         </Link>
 
         <nav className="menu">
-          {groupMenuItems(items).map((group) => (
-            <div className="menu-section" key={group.label}>
-              <span className="menu-label">{group.label}</span>
-              <ul className="menu-list">
-                {group.items.map((item) => {
-                  const Icon = iconMap[item.label] || IconDashboard;
-                  return (
-                    <li key={item.to + item.label}>
-                      <NavLink
-                        to={item.to}
-                        end={item.end}
-                        className={({ isActive }) => (isActive ? "active" : undefined)}
-                      >
-                        <span className="menu-icon"><Icon size={20} /></span>
-                        <span className="menu-text">{item.label}</span>
-                      </NavLink>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          ))}
+          {groups.map((group) => {
+            const SectionIcon = sectionIconMap[group.id] || IconDashboard;
+            return (
+              <div
+                className={`menu-section menu-section--${group.id}`}
+                key={group.id}
+              >
+                <div className="menu-section-head">
+                  <span className="menu-section-icon" aria-hidden="true">
+                    <SectionIcon size={14} />
+                  </span>
+                  <div className="menu-section-titles">
+                    <span className="menu-label">{group.label}</span>
+                    {group.description ? (
+                      <span className="menu-sublabel">{group.description}</span>
+                    ) : null}
+                  </div>
+                </div>
+                <ul className="menu-list">
+                  {group.items.map((item) => {
+                    const Icon = iconMap[item.label] || IconDashboard;
+                    return (
+                      <li key={item.to + item.label}>
+                        <NavLink
+                          to={item.to}
+                          end={item.end}
+                          className={({ isActive }) => (isActive ? "active" : undefined)}
+                        >
+                          <span className="menu-icon"><Icon size={20} /></span>
+                          <span className="menu-text">{item.label}</span>
+                        </NavLink>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="sidebar-footer">
@@ -109,7 +117,7 @@ function Sidebar() {
             </span>
             <div className="sidebar-profile-meta">
               <p className="sidebar-footer-title">{user?.name}</p>
-              <p className="sidebar-footer-desc">{user?.role?.replace("_", " ")}</p>
+              <p className="sidebar-footer-desc">{user?.role?.replace(/_/g, " ")}</p>
             </div>
           </div>
         </div>

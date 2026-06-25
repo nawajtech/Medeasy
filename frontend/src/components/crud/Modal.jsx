@@ -6,9 +6,24 @@ function Modal({ title, open, onClose, children, wide, className = "" }) {
     .join(" ");
 
   return (
-    <div className="crud-modal-backdrop" onClick={onClose}>
-      <div className={modalClass} onClick={(e) => e.stopPropagation()}>
-        <h3>{title}</h3>
+    <div className="crud-modal-backdrop" role="presentation">
+      <div
+        className={modalClass}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="crud-modal-title"
+      >
+        <div className="crud-modal-header">
+          <h3 id="crud-modal-title">{title}</h3>
+          <button
+            type="button"
+            className="crud-modal-close"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
         {children}
       </div>
     </div>

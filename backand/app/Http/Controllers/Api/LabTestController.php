@@ -28,8 +28,10 @@ class LabTestController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->prepareCompanyScope($request);
+
         $data = $request->validate([
-            'company_id'        => ['sometimes', 'exists:companies,id'],
+            'company_id'        => $this->companyIdRules(),
             'category_id'       => ['required', 'exists:lab_test_categories,id'],
             'name'              => ['required', 'string', 'max:150'],
             'code'              => ['nullable', 'string', 'max:30'],

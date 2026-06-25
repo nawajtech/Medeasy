@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\DiagnosticCategoryController;
 use App\Http\Controllers\Api\DiagnosticOrderController;
 use App\Http\Controllers\Api\DiagnosticTestTypeController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
@@ -17,8 +18,10 @@ use App\Http\Controllers\Api\LabTestController;
 use App\Http\Controllers\Api\LabTestPackageController;
 use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\PatientController;
+use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
@@ -40,81 +43,177 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('notifications/{id}/read', [NotificationController::class, 'markAsRead']);
     Route::post('notifications/test', [NotificationController::class, 'test']);
 
-    Route::middleware('role:super_admin')->group(function () {
-        Route::apiResource('companies', CompanyController::class);
+    // ── Roles & Permissions ─────────────────────────────────────
+    Route::middleware('permission:role.view')->group(function () {
+        Route::get('permissions', [PermissionController::class, 'index']);
+        Route::get('roles/assignable', [RoleController::class, 'assignable']);
+        Route::get('roles', [RoleController::class, 'index']);
+        Route::get('roles/{role}', [RoleController::class, 'show']);
     });
 
-    // Admin + staff + new specialized roles
-    $adminRoles = 'super_admin,company_admin,staff,lab_technician,radiologist,receptionist,pharmacist';
+    Route::middleware('permission:role.create')->post('roles', [RoleController::class, 'store']);
+    Route::middleware('permission:role.edit')->put('roles/{role}', [RoleController::class, 'update']);
+    Route::middleware('permission:role.delete')->delete('roles/{role}', [RoleController::class, 'destroy']);
+    Route::middleware('permission:role.assign_permissions')->put('roles/{role}/permissions', [RoleController::class, 'syncPermissions']);
 
-    Route::middleware("role:{$adminRoles}")->group(function () {
-        Route::apiResource('users', UserController::class);
-        Route::apiResource('departments', DepartmentController::class);
-        Route::apiResource('reports', ReportController::class);
-        Route::get('settings/form', [SettingController::class, 'form']);
-        Route::post('settings/upload-image', [SettingController::class, 'uploadImage']);
-        Route::put('settings/bulk', [SettingController::class, 'bulkUpdate']);
-        Route::apiResource('settings', SettingController::class);
-        Route::apiResource('branches', BranchController::class)->only(['index', 'store', 'update', 'destroy']);
-    });
+    // ── Companies (super admin) ─────────────────────────────────
+    Route::middleware('permission:company.view')->get('companies', [CompanyController::class, 'index']);
+    Route::middleware('permission:company.view')->get('companies/{company}', [CompanyController::class, 'show']);
+    Route::middleware('permission:company.create')->post('companies', [CompanyController::class, 'store']);
+    Route::middleware('permission:company.edit')->put('companies/{company}', [CompanyController::class, 'update']);
+    Route::middleware('permission:company.delete')->delete('companies/{company}', [CompanyController::class, 'destroy']);
 
-    // Clinical + lab + diagnostics — all non-super-only roles
-    Route::middleware("role:{$adminRoles},doctor")->group(function () {
-        Route::get('pharmacy/medicines/export', [MedicineController::class, 'export']);
-        Route::post('pharmacy/medicines/import', [MedicineController::class, 'import']);
-        Route::apiResource('pharmacy/medicines', MedicineController::class)->except(['show']);
+    // ── Users & admin ───────────────────────────────────────────
+    Route::middleware('permission:users.view')->get('users/assignable-roles', [UserController::class, 'assignableRoles']);
+    Route::middleware('permission:users.view')->get('users', [UserController::class, 'index']);
+    Route::middleware('permission:users.view')->get('users/{user}', [UserController::class, 'show']);
+    Route::middleware('permission:users.create')->post('users', [UserController::class, 'store']);
+    Route::middleware('permission:users.edit')->put('users/{user}', [UserController::class, 'update']);
+    Route::middleware('permission:users.delete')->delete('users/{user}', [UserController::class, 'destroy']);
 
-        Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::middleware('permission:department.view')->get('departments', [DepartmentController::class, 'index']);
+    Route::middleware('permission:department.view')->get('departments/{department}', [DepartmentController::class, 'show']);
+    Route::middleware('permission:department.create')->post('departments', [DepartmentController::class, 'store']);
+    Route::middleware('permission:department.edit')->put('departments/{department}', [DepartmentController::class, 'update']);
+    Route::middleware('permission:department.delete')->delete('departments/{department}', [DepartmentController::class, 'destroy']);
 
-        
+    Route::middleware('permission:report.view')->get('reports', [ReportController::class, 'index']);
+    Route::middleware('permission:report.view')->get('reports/{report}', [ReportController::class, 'show']);
+    Route::middleware('permission:report.export')->post('reports', [ReportController::class, 'store']);
+
+    Route::middleware('permission:settings.view')->get('settings/form', [SettingController::class, 'form']);
+    Route::middleware('permission:settings.view')->get('settings', [SettingController::class, 'index']);
+    Route::middleware('permission:settings.view')->get('settings/{setting}', [SettingController::class, 'show']);
+    Route::middleware('permission:settings.edit')->post('settings/upload-image', [SettingController::class, 'uploadImage']);
+    Route::middleware('permission:settings.edit')->put('settings/bulk', [SettingController::class, 'bulkUpdate']);
+    Route::middleware('permission:settings.edit')->post('settings', [SettingController::class, 'store']);
+    Route::middleware('permission:settings.edit')->put('settings/{setting}', [SettingController::class, 'update']);
+    Route::middleware('permission:settings.edit')->delete('settings/{setting}', [SettingController::class, 'destroy']);
+
+    Route::middleware('permission:branch.view')->get('branches', [BranchController::class, 'index']);
+    Route::middleware('permission:branch.create')->post('branches', [BranchController::class, 'store']);
+    Route::middleware('permission:branch.edit')->put('branches/{branch}', [BranchController::class, 'update']);
+    Route::middleware('permission:branch.delete')->delete('branches/{branch}', [BranchController::class, 'destroy']);
+
+    // ── Dashboard ───────────────────────────────────────────────
+    Route::middleware('permission:dashboard.view')->get('dashboard', [DashboardController::class, 'index']);
+
+    // ── Pharmacy / Medicine ───────────────────────────────────────
+    Route::middleware('permission:medicine.view')->get('pharmacy/medicines', [MedicineController::class, 'index']);
+    Route::middleware('permission:medicine.view')->get('pharmacy/medicines/export', [MedicineController::class, 'export']);
+    Route::middleware('permission:medicine.create')->post('pharmacy/medicines', [MedicineController::class, 'store']);
+    Route::middleware('permission:medicine.create')->post('pharmacy/medicines/import', [MedicineController::class, 'import']);
+    Route::middleware('permission:medicine.edit')->put('pharmacy/medicines/{medicine}', [MedicineController::class, 'update']);
+    Route::middleware('permission:medicine.delete')->delete('pharmacy/medicines/{medicine}', [MedicineController::class, 'destroy']);
+
+    // ── Patients ──────────────────────────────────────────────────
+    Route::middleware('permission:patient.view')->group(function () {
+        Route::get('patients', [PatientController::class, 'index']);
+        Route::get('patients/{patient}', [PatientController::class, 'show']);
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
-        Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
-        Route::get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
-        Route::post('appointments/{appointment}/prescription/upload', [AppointmentController::class, 'uploadPrescription']);
-        Route::get('appointments/{appointment}/vitals', [AppointmentController::class, 'showVitals']);
-        Route::put('appointments/{appointment}/vitals', [AppointmentController::class, 'updateVitals']);
+    });
+    Route::middleware('permission:patient.create')->post('patients', [PatientController::class, 'store']);
+    Route::middleware('permission:patient.edit')->put('patients/{patient}', [PatientController::class, 'update']);
+    Route::middleware('permission:patient.delete')->delete('patients/{patient}', [PatientController::class, 'destroy']);
 
+    // ── Doctors ─────────────────────────────────────────────────
+    Route::middleware('permission:doctor.view')->group(function () {
+        Route::get('doctors', [DoctorController::class, 'index']);
+        Route::get('doctors/{doctor}', [DoctorController::class, 'show']);
         Route::get('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'index']);
-        Route::put('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'sync']);
         Route::post('doctors/{doctor}/availability/check', [DoctorAvailabilityController::class, 'check']);
+    });
+    Route::middleware('permission:doctor.create')->post('doctors', [DoctorController::class, 'store']);
+    Route::middleware('permission:doctor.edit')->group(function () {
+        Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
+        Route::put('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'sync']);
+    });
+    Route::middleware('permission:doctor.delete')->delete('doctors/{doctor}', [DoctorController::class, 'destroy']);
 
-        Route::apiResource('patients', PatientController::class);
-        Route::apiResource('doctors', DoctorController::class);
-        Route::apiResource('appointments', AppointmentController::class);
-        Route::apiResource('billings', BillingController::class);
+    // ── Appointments & prescriptions ──────────────────────────────
+    Route::middleware('permission:appointment.view')->group(function () {
+        Route::get('appointments', [AppointmentController::class, 'index']);
+        Route::get('appointments/{appointment}', [AppointmentController::class, 'show']);
+        Route::get('appointments/{appointment}/vitals', [AppointmentController::class, 'showVitals']);
+    });
+    Route::middleware('permission:appointment.create')->post('appointments', [AppointmentController::class, 'store']);
+    Route::middleware('permission:appointment.edit')->group(function () {
+        Route::put('appointments/{appointment}', [AppointmentController::class, 'update']);
+        Route::put('appointments/{appointment}/vitals', [AppointmentController::class, 'updateVitals']);
+    });
+    Route::middleware('permission:appointment.delete')->delete('appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-        // ── Lab module ────────────────────────────────────
-        Route::apiResource('lab/categories', LabTestCategoryController::class)
-            ->except(['show']);
-        Route::apiResource('lab/tests', LabTestController::class)
-            ->except(['show']);
-        Route::apiResource('lab/packages', LabTestPackageController::class)
-            ->except(['show']);
+    Route::middleware('permission:prescription.view')->get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
+    Route::middleware('permission:prescription.create')->post('appointments/{appointment}/prescription/upload', [AppointmentController::class, 'uploadPrescription']);
 
+    // ── Billing ───────────────────────────────────────────────────
+    Route::middleware('permission:billing.view')->group(function () {
+        Route::get('billings', [BillingController::class, 'index']);
+        Route::get('billings/{billing}', [BillingController::class, 'show']);
+        Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
+    });
+    Route::middleware('permission:billing.create')->post('billings', [BillingController::class, 'store']);
+    Route::middleware('permission:billing.edit')->put('billings/{billing}', [BillingController::class, 'update']);
+    Route::middleware('permission:billing.delete')->delete('billings/{billing}', [BillingController::class, 'destroy']);
+
+    // ── Lab module ────────────────────────────────────────────────
+    Route::middleware('permission:lab.view')->group(function () {
+        Route::get('lab/categories', [LabTestCategoryController::class, 'index']);
+        Route::get('lab/tests', [LabTestController::class, 'index']);
+        Route::get('lab/packages', [LabTestPackageController::class, 'index']);
         Route::get('lab/orders', [LabOrderController::class, 'index']);
-        Route::post('lab/orders', [LabOrderController::class, 'store']);
         Route::get('lab/orders/{labOrder}', [LabOrderController::class, 'show']);
+    });
+    Route::middleware('permission:lab.create')->group(function () {
+        Route::post('lab/categories', [LabTestCategoryController::class, 'store']);
+        Route::post('lab/tests', [LabTestController::class, 'store']);
+        Route::post('lab/packages', [LabTestPackageController::class, 'store']);
+        Route::post('lab/orders', [LabOrderController::class, 'store']);
         Route::post('lab/orders/{labOrder}/collect', [LabOrderController::class, 'collect']);
         Route::post('lab/orders/{labOrder}/results', [LabOrderController::class, 'results']);
-        Route::patch('lab/orders/{labOrder}/verify', [LabOrderController::class, 'verify']);
-        Route::patch('lab/orders/{labOrder}/approve', [LabOrderController::class, 'approve']);
+    });
+    Route::middleware('permission:lab.edit')->group(function () {
+        Route::put('lab/categories/{category}', [LabTestCategoryController::class, 'update']);
+        Route::put('lab/tests/{test}', [LabTestController::class, 'update']);
+        Route::put('lab/packages/{package}', [LabTestPackageController::class, 'update']);
+    });
+    Route::middleware('permission:lab.delete')->group(function () {
+        Route::delete('lab/categories/{category}', [LabTestCategoryController::class, 'destroy']);
+        Route::delete('lab/tests/{test}', [LabTestController::class, 'destroy']);
+        Route::delete('lab/packages/{package}', [LabTestPackageController::class, 'destroy']);
         Route::patch('lab/orders/{labOrder}/cancel', [LabOrderController::class, 'cancel']);
+    });
+    Route::middleware('permission:lab.verify')->patch('lab/orders/{labOrder}/verify', [LabOrderController::class, 'verify']);
+    Route::middleware('permission:lab.approve')->patch('lab/orders/{labOrder}/approve', [LabOrderController::class, 'approve']);
 
-        // ── Diagnostic module ─────────────────────────────
-        Route::apiResource('diagnostics/types', DiagnosticTestTypeController::class)
-            ->except(['show']);
+    // ── Diagnostic module ─────────────────────────────────────────
+    Route::middleware('permission:diagnostic.view')->group(function () {
+        Route::get('diagnostics/categories', [DiagnosticCategoryController::class, 'index']);
+        Route::get('diagnostics/types', [DiagnosticTestTypeController::class, 'index']);
         Route::get('diagnostics/orders', [DiagnosticOrderController::class, 'index']);
-        Route::post('diagnostics/orders', [DiagnosticOrderController::class, 'store']);
         Route::get('diagnostics/orders/{diagnosticOrder}', [DiagnosticOrderController::class, 'show']);
+    });
+    Route::middleware('permission:diagnostic.create')->group(function () {
+        Route::post('diagnostics/categories', [DiagnosticCategoryController::class, 'store']);
+        Route::post('diagnostics/types', [DiagnosticTestTypeController::class, 'store']);
+        Route::post('diagnostics/orders', [DiagnosticOrderController::class, 'store']);
+        Route::post('diagnostics/orders/{diagnosticOrder}/report', [DiagnosticOrderController::class, 'uploadReport']);
+    });
+    Route::middleware('permission:diagnostic.edit')->group(function () {
+        Route::put('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'update']);
+        Route::put('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'update']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/schedule', [DiagnosticOrderController::class, 'schedule']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/start', [DiagnosticOrderController::class, 'start']);
-        Route::post('diagnostics/orders/{diagnosticOrder}/report', [DiagnosticOrderController::class, 'uploadReport']);
-        Route::patch('diagnostics/orders/{diagnosticOrder}/approve', [DiagnosticOrderController::class, 'approveReport']);
+    });
+    Route::middleware('permission:diagnostic.delete')->group(function () {
+        Route::delete('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'destroy']);
+        Route::delete('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'destroy']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/cancel', [DiagnosticOrderController::class, 'cancel']);
     });
+    Route::middleware('permission:diagnostic.approve')->patch('diagnostics/orders/{diagnosticOrder}/approve', [DiagnosticOrderController::class, 'approveReport']);
 
     Route::get('companies-list', fn () => response()->json(
         \App\Models\Company::orderBy('name')->get(['id', 'name', 'code', 'type', 'is_active'])
-    ))->middleware("role:{$adminRoles},doctor");
+    ))->middleware('permission:dashboard.view');
 });
