@@ -17,10 +17,10 @@ return [
         ],
         'pharmacy' => ['medicine'],
         'laboratory' => ['lab'],
-        'diagnostics' => ['diagnostics'],
+        'diagnostics' => ['diagnostics', 'doctors', 'departments'],
     ],
 
-    'tenant_core_modules' => ['settings', 'users', 'roles', 'patients'],
+    'tenant_core_modules' => ['settings', 'users', 'roles', 'patients', 'finance'],
 
     'modules' => [
         'dashboard' => [
@@ -111,6 +111,14 @@ return [
                 'billing.delete' => 'Delete',
             ],
         ],
+        'finance' => [
+            'label' => 'Finance & P&L',
+            'permissions' => [
+                'financial.view' => 'View financial reports',
+                'financial.create' => 'Record expenses',
+                'financial.delete' => 'Delete expenses',
+            ],
+        ],
         'lab' => [
             'label' => 'Laboratory',
             'permissions' => [
@@ -168,6 +176,19 @@ return [
     ],
 
     /**
+     * Reduced permission sets when a role operates in a specific tenant context.
+     * Used instead of the default role permissions list during tenant provisioning.
+     */
+    'role_context_permissions' => [
+        'doctor' => [
+            'diagnostics_only' => [
+                'diagnostic.view',
+                'diagnostic.edit',
+            ],
+        ],
+    ],
+
+    /**
      * Default role definitions. Permission lists use wildcard module.action patterns
      * resolved by RolePermissionSeeder.
      */
@@ -193,6 +214,7 @@ return [
                 'prescription.*',
                 'medicine.*',
                 'billing.*',
+                'financial.*',
                 'lab.*',
                 'diagnostic.*',
                 'report.*',
@@ -219,6 +241,7 @@ return [
                 'lab.create',
                 'diagnostic.view',
                 'diagnostic.create',
+                'diagnostic.edit',
                 'billing.view',
             ],
         ],

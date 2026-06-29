@@ -48,11 +48,11 @@ class CompanySetupService
     public function ensureSettings(Company $company): void
     {
         $defaults = [
-            'clinic_name' => $company->name,
-            'clinic_email' => $company->email ?? '',
-            'clinic_phone' => $company->phone ?? '',
-            'clinic_address' => $company->address ?? '',
-            'clinic_website' => $company->website ?? '',
+            'organisation_name' => $company->name,
+            'organisation_email' => $company->email ?? '',
+            'organisation_phone' => $company->phone ?? '',
+            'organisation_address' => $company->address ?? '',
+            'organisation_website' => $company->website ?? '',
             'company_logo' => $company->logo_url ?? '',
         ];
 

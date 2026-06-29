@@ -64,4 +64,9 @@ class Patient extends Model
     {
         return $this->hasMany(Billing::class);
     }
+
+    public function wallet()
+    {
+        return $this->hasOne(PatientWallet::class);
+    }
 }

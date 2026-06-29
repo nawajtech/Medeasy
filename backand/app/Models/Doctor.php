@@ -57,6 +57,12 @@ class Doctor extends Model
         return $this->hasMany(DoctorAvailability::class);
     }
 
+    public function diagnosticTestTypes()
+    {
+        return $this->belongsToMany(DiagnosticTestType::class, 'diagnostic_test_type_doctor', 'doctor_id', 'diagnostic_test_type_id')
+            ->withTimestamps();
+    }
+
     public function getSpecializationAttribute(): ?string
     {
         return $this->department?->name;

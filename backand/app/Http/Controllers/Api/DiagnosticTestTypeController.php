@@ -18,7 +18,7 @@ class DiagnosticTestTypeController extends Controller
         $companyId = $this->optionalCompanyId($request);
 
         return response()->json(
-            DiagnosticTestType::with('category')
+            DiagnosticTestType::with(['category', 'doctors.user'])
                 ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
                 ->when($request->filled('category_id'), fn ($q) => $q->where('category_id', $request->category_id))
                 ->when($request->filled('modality'), fn ($q) => $q->where('modality', $request->modality))
@@ -46,13 +46,27 @@ class DiagnosticTestTypeController extends Controller
             'description'              => ['nullable', 'string'],
             'preparation_instructions' => ['nullable', 'string'],
             'price'                    => ['required', 'numeric', 'min:0'],
+            'referral_commission'      => ['nullable', 'numeric', 'min:0'],
+            'doctor_commission'        => ['nullable', 'numeric', 'min:0'],
             'is_active'                => ['boolean'],
+            'doctor_ids'               => ['nullable', 'array'],
+            'doctor_ids.*'             => [
+                Rule::exists('doctors', 'id')->where('company_id', $companyId),
+            ],
         ]);
 
         $data['company_id'] = $companyId;
         $data['modality'] = $data['modality'] ?? 'other';
+        $doctorIds = $data['doctor_ids'] ?? [];
+        unset($data['doctor_ids']);
 
-        return response()->json(DiagnosticTestType::create($data)->load('category'), 201);
+        $type = DiagnosticTestType::create($data);
+
+        if ($doctorIds) {
+            $type->doctors()->sync($doctorIds);
+        }
+
+        return response()->json($type->load(['category', 'doctors.user']), 201);
     }
 
     public function update(Request $request, DiagnosticTestType $type): JsonResponse
@@ -70,12 +84,25 @@ class DiagnosticTestTypeController extends Controller
             'description'              => ['nullable', 'string'],
             'preparation_instructions' => ['nullable', 'string'],
             'price'                    => ['sometimes', 'numeric', 'min:0'],
+            'referral_commission'      => ['nullable', 'numeric', 'min:0'],
+            'doctor_commission'        => ['nullable', 'numeric', 'min:0'],
             'is_active'                => ['boolean'],
+            'doctor_ids'               => ['nullable', 'array'],
+            'doctor_ids.*'             => [
+                Rule::exists('doctors', 'id')->where('company_id', $type->company_id),
+            ],
         ]);
+
+        $doctorIds = $data['doctor_ids'] ?? null;
+        unset($data['doctor_ids']);
 
         $type->update($data);
 
-        return response()->json($type->fresh('category'));
+        if ($doctorIds !== null) {
+            $type->doctors()->sync($doctorIds);
+        }
+
+        return response()->json($type->fresh(['category', 'doctors.user']));
     }
 
     public function destroy(DiagnosticTestType $type): JsonResponse

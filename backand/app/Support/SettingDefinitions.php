@@ -10,11 +10,11 @@ class SettingDefinitions
     {
         return [
             [
-                'key' => 'clinic_name',
-                'label' => 'Clinic / organization name',
+                'key' => 'organisation_name',
+                'label' => 'Organisation name',
                 'group' => 'general',
                 'type' => 'text',
-                'placeholder' => 'e.g. Apollo Clinic',
+                'placeholder' => 'e.g. Apollo Diagnostics',
             ],
             [
                 'key' => 'company_logo',
@@ -31,32 +31,39 @@ class SettingDefinitions
                 'placeholder' => 'Upload or paste favicon URL',
             ],
             [
-                'key' => 'clinic_email',
+                'key' => 'organisation_email',
                 'label' => 'Contact email',
                 'group' => 'general',
                 'type' => 'email',
-                'placeholder' => 'contact@clinic.com',
+                'placeholder' => 'contact@organisation.com',
             ],
             [
-                'key' => 'clinic_phone',
+                'key' => 'organisation_phone',
                 'label' => 'Contact phone',
                 'group' => 'general',
                 'type' => 'tel',
                 'placeholder' => '+1 234 567 8900',
             ],
             [
-                'key' => 'clinic_address',
-                'label' => 'Clinic address',
+                'key' => 'organisation_address',
+                'label' => 'Organisation address',
                 'group' => 'general',
                 'type' => 'textarea',
                 'placeholder' => 'Street, city, state',
             ],
             [
-                'key' => 'clinic_website',
+                'key' => 'organisation_website',
                 'label' => 'Website',
                 'group' => 'general',
                 'type' => 'url',
-                'placeholder' => 'https://www.clinic.com',
+                'placeholder' => 'https://www.organisation.com',
+            ],
+            [
+                'key' => 'organisation_division',
+                'label' => 'Division / tagline (shown on bills)',
+                'group' => 'general',
+                'type' => 'text',
+                'placeholder' => 'e.g. MOLECULAR IMAGING DIVISION',
             ],
             [
                 'key' => 'currency',
@@ -67,11 +74,18 @@ class SettingDefinitions
                 'placeholder' => 'USD',
             ],
             [
+                'key' => 'gst_number',
+                'label' => 'GST number (shown on bills)',
+                'group' => 'billing',
+                'type' => 'text',
+                'placeholder' => 'e.g. 19AAECS5237Q1ZN',
+            ],
+            [
                 'key' => 'invoice_footer',
                 'label' => 'Invoice footer note',
                 'group' => 'billing',
                 'type' => 'textarea',
-                'placeholder' => 'Thank you for choosing our clinic.',
+                'placeholder' => 'Thank you for choosing our organisation.',
             ],
             [
                 'key' => 'appointment_slot_minutes',

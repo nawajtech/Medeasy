@@ -36,11 +36,22 @@ class TenantRoleProvisioningService
                 ]
             );
 
-            $resolved = $this->permissions->resolvePatterns($definition['permissions'] ?? []);
+            $patterns = $this->permissionPatternsForRole($name, $definition, $company);
+            $resolved = $this->permissions->resolvePatterns($patterns);
             $role->syncPermissions(array_values(array_intersect($resolved, $allowed)));
         }
 
         $this->permissions->forgetCache();
+    }
+
+    /** @return array<int, string> */
+    private function permissionPatternsForRole(string $name, array $definition, Company $company): array
+    {
+        if ($name === User::ROLE_DOCTOR && $company->isDiagnosticsOnly()) {
+            return config('permissions.role_context_permissions.doctor.diagnostics_only', []);
+        }
+
+        return $definition['permissions'] ?? [];
     }
 
     /** Trim all company roles when super admin changes enabled modules. */

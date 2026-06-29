@@ -19,6 +19,8 @@ class DiagnosticTestType extends Model
         'description',
         'preparation_instructions',
         'price',
+        'referral_commission',
+        'doctor_commission',
         'is_active',
     ];
 
@@ -26,6 +28,8 @@ class DiagnosticTestType extends Model
     {
         return [
             'price' => 'decimal:2',
+            'referral_commission' => 'decimal:2',
+            'doctor_commission' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }
@@ -38,5 +42,11 @@ class DiagnosticTestType extends Model
     public function orders()
     {
         return $this->hasMany(DiagnosticOrder::class, 'test_type_id');
+    }
+
+    public function doctors()
+    {
+        return $this->belongsToMany(Doctor::class, 'diagnostic_test_type_doctor', 'diagnostic_test_type_id', 'doctor_id')
+            ->withTimestamps();
     }
 }

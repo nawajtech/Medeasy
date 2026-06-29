@@ -104,6 +104,15 @@ class Company extends Model
         return in_array($module, $this->modules ?? [], true);
     }
 
+    /** Diagnostic center without clinic module — doctors only see today's queue. */
+    public function isDiagnosticsOnly(): bool
+    {
+        $modules = self::normalizeModules($this->modules ?? []);
+
+        return in_array(self::MODULE_DIAGNOSTICS, $modules, true)
+            && ! in_array(self::MODULE_CLINIC, $modules, true);
+    }
+
     protected function modulesLabel(): Attribute
     {
         return Attribute::get(function (): string {

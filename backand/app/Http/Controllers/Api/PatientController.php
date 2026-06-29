@@ -8,6 +8,7 @@ use App\Models\DiagnosticOrder;
 use App\Models\LabOrder;
 use App\Models\Patient;
 use App\Models\Appointment;
+use App\Services\PatientWalletService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,7 +20,7 @@ class PatientController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = Patient::with('company')->orderByDesc('created_at');
+        $query = Patient::with(['company', 'wallet'])->orderByDesc('created_at');
 
         if ($doctorId = $this->doctorIdForUser()) {
             $query->whereHas('appointments', fn ($q) => $q->where('doctor_id', $doctorId));
@@ -35,6 +36,7 @@ class PatientController extends Controller
     public function store(Request $request): JsonResponse
     {
         $companyId = $this->resolveCompanyId($request);
+        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
         $validated = $request->validate($this->rules(null, $companyId));
 
         $patient = Patient::create([
@@ -44,7 +46,9 @@ class PatientController extends Controller
             'status' => $request->boolean('status', true),
         ]);
 
-        return response()->json($patient->load('company'), 201);
+        app(PatientWalletService::class)->ensureWallet($patient);
+
+        return response()->json($patient->load(['company', 'wallet']), 201);
     }
 
     public function show(string $id): JsonResponse
@@ -57,7 +61,20 @@ class PatientController extends Controller
             abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
         }
 
-        return response()->json($patient);
+        return response()->json($patient->load(['company', 'wallet']));
+    }
+
+    public function wallet(string $id): JsonResponse
+    {
+        $patient = Patient::with('company')->findOrFail($id);
+        $this->assertTenantAccess($patient);
+
+        if ($doctorId = $this->doctorIdForUser()) {
+            $hasAccess = $patient->appointments()->where('doctor_id', $doctorId)->exists();
+            abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
+        }
+
+        return response()->json(app(PatientWalletService::class)->summary($patient));
     }
 
     public function history(string $id): JsonResponse
@@ -196,6 +213,7 @@ class PatientController extends Controller
             abort(403, 'Doctors cannot update patient records.');
         }
 
+        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
         $validated = $request->validate($this->rules($patient, $patient->company_id));
 
         if (empty($validated['password'])) {
@@ -240,7 +258,7 @@ class PatientController extends Controller
             ],
             'password' => [$patient ? 'nullable' : 'required', 'string', 'min:8'],
             'phone' => [
-                'nullable',
+                'required',
                 'string',
                 'max:20',
                 Rule::unique('patients', 'phone')->where('company_id', $companyId)->ignore($patientId),

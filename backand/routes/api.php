@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\DiagnosticOrderController;
 use App\Http\Controllers\Api\DiagnosticTestTypeController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorController;
+use App\Http\Controllers\Api\FinancialReportController;
 use App\Http\Controllers\Api\LabOrderController;
 use App\Http\Controllers\Api\LabTestCategoryController;
 use App\Http\Controllers\Api\LabTestController;
@@ -19,7 +20,7 @@ use App\Http\Controllers\Api\LabTestPackageController;
 use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PermissionController;
-use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\ReferralPartnerController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
@@ -111,6 +112,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('patients', [PatientController::class, 'index']);
         Route::get('patients/{patient}', [PatientController::class, 'show']);
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
+        Route::get('patients/{patient}/wallet', [PatientController::class, 'wallet']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
     });
     Route::middleware('permission:patient.create')->post('patients', [PatientController::class, 'store']);
@@ -157,6 +159,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:billing.edit')->put('billings/{billing}', [BillingController::class, 'update']);
     Route::middleware('permission:billing.delete')->delete('billings/{billing}', [BillingController::class, 'destroy']);
 
+    // ── Finance & P&L (company admin only) ────────────────────────
+    Route::middleware('role:company_admin')->group(function () {
+        Route::middleware('permission:financial.view')->get('financials/summary', [FinancialReportController::class, 'summary']);
+        Route::middleware('permission:financial.view')->get('financials/expenses', [FinancialReportController::class, 'expenses']);
+        Route::middleware('permission:financial.create')->post('financials/expenses', [FinancialReportController::class, 'storeExpense']);
+        Route::middleware('permission:financial.delete')->delete('financials/expenses/{expense}', [FinancialReportController::class, 'destroyExpense']);
+    });
+
     // ── Lab module ────────────────────────────────────────────────
     Route::middleware('permission:lab.view')->group(function () {
         Route::get('lab/categories', [LabTestCategoryController::class, 'index']);
@@ -191,24 +201,37 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.view')->group(function () {
         Route::get('diagnostics/categories', [DiagnosticCategoryController::class, 'index']);
         Route::get('diagnostics/types', [DiagnosticTestTypeController::class, 'index']);
+        Route::get('diagnostics/referral-partners', [ReferralPartnerController::class, 'index']);
+        Route::get('diagnostics/referral-partners/{referralPartner}/ledger', [ReferralPartnerController::class, 'ledger']);
         Route::get('diagnostics/orders', [DiagnosticOrderController::class, 'index']);
+        Route::get('diagnostics/today-queue', [DiagnosticOrderController::class, 'todayQueue']);
         Route::get('diagnostics/orders/{diagnosticOrder}', [DiagnosticOrderController::class, 'show']);
+        Route::get('diagnostics/orders/{diagnosticOrder}/invoice', [DiagnosticOrderController::class, 'invoice']);
+        Route::get('diagnostics/orders/{diagnosticOrder}/prescription', [DiagnosticOrderController::class, 'prescription']);
     });
     Route::middleware('permission:diagnostic.create')->group(function () {
         Route::post('diagnostics/categories', [DiagnosticCategoryController::class, 'store']);
         Route::post('diagnostics/types', [DiagnosticTestTypeController::class, 'store']);
+        Route::post('diagnostics/referral-partners', [ReferralPartnerController::class, 'store']);
         Route::post('diagnostics/orders', [DiagnosticOrderController::class, 'store']);
         Route::post('diagnostics/orders/{diagnosticOrder}/report', [DiagnosticOrderController::class, 'uploadReport']);
     });
     Route::middleware('permission:diagnostic.edit')->group(function () {
         Route::put('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'update']);
         Route::put('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'update']);
+        Route::put('diagnostics/referral-partners/{referralPartner}', [ReferralPartnerController::class, 'update']);
+        Route::post('diagnostics/referral-partners/{referralPartner}/payouts', [ReferralPartnerController::class, 'storePayout']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/schedule', [DiagnosticOrderController::class, 'schedule']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/start', [DiagnosticOrderController::class, 'start']);
+        Route::patch('diagnostics/orders/{diagnosticOrder}/visit-status', [DiagnosticOrderController::class, 'updateVisitStatus']);
+        Route::patch('diagnostics/orders/{diagnosticOrder}/prescription', [DiagnosticOrderController::class, 'savePrescription']);
+        Route::post('diagnostics/orders/{diagnosticOrder}/payments', [DiagnosticOrderController::class, 'recordPayment']);
+        Route::post('diagnostics/orders/{diagnosticOrder}/refunds', [DiagnosticOrderController::class, 'processRefund']);
     });
     Route::middleware('permission:diagnostic.delete')->group(function () {
         Route::delete('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'destroy']);
         Route::delete('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'destroy']);
+        Route::delete('diagnostics/referral-partners/{referralPartner}', [ReferralPartnerController::class, 'destroy']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/cancel', [DiagnosticOrderController::class, 'cancel']);
     });
     Route::middleware('permission:diagnostic.approve')->patch('diagnostics/orders/{diagnosticOrder}/approve', [DiagnosticOrderController::class, 'approveReport']);

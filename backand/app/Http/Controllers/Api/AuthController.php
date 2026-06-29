@@ -13,7 +13,7 @@ use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
-    public function login(Request $request): JsonResponse
+    public function login(Request $request, UserRoleService $userRoles): JsonResponse
     {
         $credentials = $request->validate([
             'email' => ['required', 'email'],
@@ -34,19 +34,23 @@ class AuthController extends Controller
             ]);
         }
 
+        $this->refreshTenantUserRole($user, $userRoles);
+
         $user->update(['last_login_at' => now()]);
         $user->loadMissing('roles');
         $token = $user->createToken('medeasy-api')->plainTextToken;
 
         return response()->json([
             'token' => $token,
-            'user' => $this->userPayload($user),
+            'user' => $this->userPayload($user->load(['company', 'doctor.department'])),
         ]);
     }
 
-    public function me(Request $request): JsonResponse
+    public function me(Request $request, UserRoleService $userRoles): JsonResponse
     {
-        $user = $request->user()->load(['company', 'doctor.department']);
+        $user = $request->user();
+        $this->refreshTenantUserRole($user, $userRoles);
+        $user->load(['company', 'doctor.department']);
 
         return response()->json([
             'user' => $this->userPayload($user),
@@ -96,6 +100,22 @@ class AuthController extends Controller
         $user->update(['password' => $validated['password']]);
 
         return response()->json(['message' => 'Password changed successfully.']);
+    }
+
+    private function refreshTenantUserRole(User $user, UserRoleService $userRoles): void
+    {
+        if (! $user->company_id || $user->isSuperAdmin() || ! $user->role) {
+            return;
+        }
+
+        try {
+            $userRoles->assignRole($user, $user->role);
+        } catch (\Throwable) {
+            // Role may not exist yet for this tenant.
+        }
+
+        $user->unsetRelation('roles');
+        $user->unsetRelation('permissions');
     }
 
     private function userPayload(User $user): array
