@@ -1,0 +1,65 @@
+.searchable-select {
+  position: relative;
+}
+
+.searchable-select__control {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchable-select__control input {
+  width: 100%;
+  padding-right: 2rem;
+}
+
+.searchable-select__clear {
+  position: absolute;
+  right: 0.35rem;
+  border: none;
+  background: transparent;
+  color: var(--me-muted, #64748b);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.15rem 0.35rem;
+}
+
+.searchable-select__list {
+  position: absolute;
+  z-index: 30;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 0.25rem 0;
+  list-style: none;
+  max-height: 220px;
+  overflow-y: auto;
+  background: var(--me-surface, #fff);
+  border: 1px solid var(--me-border, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.searchable-select__list button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: none;
+  background: transparent;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  font: inherit;
+}
+
+.searchable-select__list button:hover,
+.searchable-select__list button.is-selected {
+  background: var(--me-primary-soft, #eff6ff);
+}
+
+.searchable-select__empty {
+  padding: 0.65rem 0.75rem;
+  color: var(--me-muted, #64748b);
+  font-size: 0.9rem;
+}

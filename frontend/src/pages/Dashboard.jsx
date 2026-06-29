@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Navigate } from "react-router-dom";
 import {
   Bar,
   BarChart,
@@ -14,7 +15,7 @@ import {
 } from "recharts";
 import { getDashboard } from "../api/dashboard";
 import { useAuth } from "../auth/AuthContext";
-import { PERMISSIONS } from "../config/permissions";
+import { PERMISSIONS, isDiagnosticsOnlyDoctor } from "../config/permissions";
 import { usePermissions } from "../hooks/usePermissions";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
@@ -177,7 +178,7 @@ function DoctorPerformanceTable({ rows, showCompanyCol, startRank = 1 }) {
 }
 
 function Dashboard() {
-  const { isSuperAdmin, isDoctor, isCompanyAdmin, isStaff } = useAuth();
+  const { user, isSuperAdmin, isDoctor, isCompanyAdmin, isStaff } = useAuth();
   const { can } = usePermissions();
   const showAdminPayments = !isDoctor && (isSuperAdmin || isCompanyAdmin || isStaff) && can(PERMISSIONS.BILLING_VIEW);
 
@@ -355,6 +356,10 @@ function Dashboard() {
         },
       ]
     : [];
+
+  if (isDiagnosticsOnlyDoctor(user?.role, user?.company?.modules)) {
+    return <Navigate to="/diagnostics/today" replace />;
+  }
 
   return (
     <div className="dashboard-page">

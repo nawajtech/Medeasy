@@ -1,0 +1,37 @@
+.dgn-rx-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--me-muted, #64748b);
+}
+
+.dgn-rx-hint {
+  margin-bottom: 0.75rem;
+  padding: 0.55rem 0.75rem;
+  border-radius: 8px;
+  background: var(--me-bg-subtle, #f8fafc);
+  border: 1px solid var(--me-border, #e2e8f0);
+  font-size: 0.82rem;
+  color: var(--me-muted, #64748b);
+  line-height: 1.45;
+}
+
+.dgn-rx-hint code {
+  font-size: 0.8rem;
+  background: #fff;
+  padding: 0.05rem 0.25rem;
+  border-radius: 4px;
+}
+
+.dgn-rx-body {
+  font-family: "Times New Roman", Times, serif;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.dgn-rx-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}

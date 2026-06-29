@@ -455,7 +455,7 @@ function Settings() {
     <section className="page-card settings-page">
       <div className="page-card-header settings-page-header">
         <h2>Settings</h2>
-        <p>Configure branding, billing, and clinic preferences per organization.</p>
+        <p>Configure branding, billing, and organisation preferences.</p>
       </div>
 
       {isSuperAdmin && (
@@ -464,7 +464,7 @@ function Settings() {
             id="settings_company_id"
             value={selectedCompanyId}
             onChange={handleCompanyChange}
-            label="Organization"
+            label="Organisation"
           />
         </div>
       )}
@@ -473,7 +473,7 @@ function Settings() {
       {success && <div className="crud-alert crud-alert--success">{success}</div>}
 
       {!hasCompany && (
-        <p className="settings-empty">Select an organization to manage its settings.</p>
+        <p className="settings-empty">Select an organisation to manage its settings.</p>
       )}
 
       {hasCompany && loading && <p className="settings-loading">Loading settings…</p>}

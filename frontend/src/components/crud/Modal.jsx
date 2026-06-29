@@ -1,12 +1,16 @@
-function Modal({ title, open, onClose, children, wide, className = "" }) {
+function Modal({ title, open, onClose, children, wide, elevated, className = "" }) {
   if (!open) return null;
+
+  const backdropClass = ["crud-modal-backdrop", elevated ? "crud-modal-backdrop--elevated" : ""]
+    .filter(Boolean)
+    .join(" ");
 
   const modalClass = ["crud-modal", wide ? "crud-modal--wide" : "", className]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <div className="crud-modal-backdrop" role="presentation">
+    <div className={backdropClass} role="presentation">
       <div
         className={modalClass}
         role="dialog"

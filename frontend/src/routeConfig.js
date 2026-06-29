@@ -34,6 +34,11 @@ export const routeMeta = {
     breadcrumb: "Reports",
     description: "View analytics and clinic reports.",
   },
+  "/finance": {
+    title: "Finance & P&L",
+    breadcrumb: "Finance & P&L",
+    description: "Today's profit margin, doctor commission, referral costs, and all gains vs expenses.",
+  },
   "/users": {
     title: "Users",
     breadcrumb: "Users",
@@ -42,7 +47,7 @@ export const routeMeta = {
   "/settings": {
     title: "Settings",
     breadcrumb: "Settings",
-    description: "Manage clinic and account settings.",
+    description: "Manage organisation and account settings.",
   },
   "/pharmacy/medicines": {
     title: "Medicine Master",
@@ -54,6 +59,20 @@ export const routeMeta = {
 export function getRouteMeta(pathname) {
   if (pathname === "/my-schedule") {
     return { title: "My schedule", breadcrumb: "My schedule", description: "Your weekly availability." };
+  }
+  if (pathname === "/diagnostics/today") {
+    return {
+      title: "Today's appointments",
+      breadcrumb: "Today's appointments",
+      description: "Your patient queue for today — serial order with live status updates.",
+    };
+  }
+  if (pathname === "/diagnostics/referrals") {
+    return {
+      title: "Referral By",
+      breadcrumb: "Referral By",
+      description: "Manage referral partners — doctors, clinics, hospitals, and agents.",
+    };
   }
   const patientMatch = pathname.match(/^\/patients\/(\d+)$/);
   if (patientMatch) {

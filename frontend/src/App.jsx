@@ -22,6 +22,9 @@ import LabTests from "./pages/LabTests";
 import LabOrders from "./pages/LabOrders";
 import DiagnosticCatalog from "./pages/DiagnosticCatalog";
 import DiagnosticOrders from "./pages/DiagnosticOrders";
+import DiagnosticTodayQueue from "./pages/DiagnosticTodayQueue";
+import ReferralPartners from "./pages/ReferralPartners";
+import FinancialReport from "./pages/FinancialReport";
 import Medicines from "./pages/Medicines";
 import PatientChart from "./pages/PatientChart";
 import Roles from "./pages/Roles";
@@ -50,6 +53,7 @@ function App() {
                 <Route path="doctors/:doctorId/availability" element={<DoctorAvailability />} />
                 <Route path="appointments" element={<Appointments />} />
                 <Route path="reports" element={<Reports />} />
+                <Route path="finance" element={<FinancialReport />} />
                 <Route path="users" element={<Users />} />
                 <Route path="roles" element={<Roles />} />
                 <Route path="roles/:roleId" element={<RolePermissions />} />
@@ -60,6 +64,8 @@ function App() {
                 {/* Diagnostics module */}
                 <Route path="diagnostics" element={<DiagnosticCatalog />} />
                 <Route path="diagnostics/orders" element={<DiagnosticOrders />} />
+                <Route path="diagnostics/referrals" element={<ReferralPartners />} />
+                <Route path="diagnostics/today" element={<DiagnosticTodayQueue />} />
                 {/* Pharmacy module */}
                 <Route path="pharmacy/medicines" element={<Medicines />} />
               </Route>

@@ -103,3 +103,19 @@
   flex-wrap: nowrap;
   gap: 6px;
 }
+
+.patients-table__wallet {
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.patients-wallet-link {
+  color: #0d9488;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.patients-wallet-link:hover {
+  color: #0f766e;
+  text-decoration: underline;
+}

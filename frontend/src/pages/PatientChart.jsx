@@ -1,18 +1,68 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { openPrescription } from "../api/appointments";
-import { getPatientHistory } from "../api/patients";
+import { getPatientHistory, getPatientWallet } from "../api/patients";
+import { useAuth } from "../auth/AuthContext";
+import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./PatientChart.css";
 
-const TABS = [
+const WALLET_TYPE_LABELS = {
+  refund_credit: "Refund credit",
+  payment_debit: "Payment from wallet",
+  manual_credit: "Manual credit",
+  manual_debit: "Manual debit",
+};
+
+const ALL_TABS = [
   { id: "overview", label: "Overview", icon: "📋" },
-  { id: "appointments", label: "Appointments", icon: "📅" },
-  { id: "prescriptions", label: "Prescriptions", icon: "💊" },
-  { id: "labs", label: "Lab Reports", icon: "🧪" },
-  { id: "diagnostics", label: "Diagnostics", icon: "🩻" },
+  { id: "appointments", label: "Appointments", icon: "📅", module: "clinic" },
+  { id: "prescriptions", label: "Prescriptions", icon: "💊", module: "clinic" },
+  { id: "labs", label: "Lab Reports", icon: "🧪", module: "laboratory" },
+  { id: "diagnostics", label: "Diagnostics", icon: "🩻", module: "diagnostics" },
+  { id: "wallet", label: "Wallet", icon: "💳" },
   { id: "profile", label: "Patient Profile", icon: "👤" },
 ];
+
+function resolveCompanyModules(patientCompany, userCompany) {
+  const raw = patientCompany?.modules?.length
+    ? patientCompany.modules
+    : userCompany?.modules;
+  if (raw?.length) return normalizeModules(raw);
+  const legacyType = patientCompany?.type || userCompany?.type;
+  return normalizeModules(modulesFromLegacyType(legacyType));
+}
+
+function getVisibleTabs(modules) {
+  const enabled = new Set(modules);
+  return ALL_TABS.filter((t) => !t.module || enabled.has(t.module));
+}
+
+function getVisibleQuickStats(modules, summary) {
+  const enabled = new Set(modules);
+  const stats = [];
+  if (enabled.has("clinic")) {
+    stats.push({ key: "visits", value: summary.appointments, label: "Visits" });
+    stats.push({ key: "rx", value: summary.prescriptions, label: "Rx" });
+  }
+  if (enabled.has("laboratory")) {
+    stats.push({ key: "lab", value: summary.lab_orders, label: "Lab" });
+  }
+  if (enabled.has("diagnostics")) {
+    stats.push({ key: "scans", value: summary.diagnostic_orders, label: "Scans" });
+  }
+  return stats;
+}
+
+function filterTimelineByModules(timeline, modules) {
+  const enabled = new Set(modules);
+  return timeline.filter((item) => {
+    if (item.type === "appointment") return enabled.has("clinic");
+    if (item.type === "lab_order") return enabled.has("laboratory");
+    if (item.type === "diagnostic_order") return enabled.has("diagnostics");
+    return true;
+  });
+}
 
 function formatDate(iso) {
   if (!iso) return "—";
@@ -152,9 +202,12 @@ function TimelineCard({ item }) {
 
 function PatientChart() {
   const { patientId } = useParams();
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
   const tab = searchParams.get("tab") || "overview";
   const [data, setData] = useState(null);
+  const [walletData, setWalletData] = useState(null);
+  const [walletLoading, setWalletLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -179,6 +232,38 @@ function PatientChart() {
     load();
   }, [load]);
 
+  const companyModules = useMemo(
+    () => (data ? resolveCompanyModules(data.patient?.company, user?.company) : []),
+    [data, user?.company]
+  );
+
+  const visibleTabs = useMemo(
+    () => getVisibleTabs(companyModules),
+    [companyModules]
+  );
+
+  useEffect(() => {
+    if (!data || visibleTabs.some((t) => t.id === tab)) return;
+    setSearchParams({ tab: "overview" }, { replace: true });
+  }, [tab, visibleTabs, data, setSearchParams]);
+
+  useEffect(() => {
+    if (tab !== "wallet" || !patientId) return;
+    let cancelled = false;
+    setWalletLoading(true);
+    getPatientWallet(patientId)
+      .then(({ data: wallet }) => {
+        if (!cancelled) setWalletData(wallet);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(getApiErrorMessage(err, "Failed to load wallet."));
+      })
+      .finally(() => {
+        if (!cancelled) setWalletLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [tab, patientId]);
+
   if (loading) {
     return <div className="patient-chart-loading">Loading patient chart…</div>;
   }
@@ -193,6 +278,9 @@ function PatientChart() {
   }
 
   const { patient, summary, timeline, appointments, prescriptions, lab_orders, diagnostic_orders } = data;
+  const quickStats = getVisibleQuickStats(companyModules, summary);
+  const filteredTimeline = filterTimelineByModules(timeline, companyModules);
+  const activeTab = visibleTabs.some((t) => t.id === tab) ? tab : "overview";
 
   return (
     <div className="patient-chart">
@@ -206,23 +294,27 @@ function PatientChart() {
           <h2>{patient.name}</h2>
           <p className="patient-chart-code">{patient.patient_code}</p>
           {patient.company?.name ? <p className="patient-chart-clinic">{patient.company.name}</p> : null}
-          <div className="patient-chart-quick-stats">
-            <div><strong>{summary.appointments}</strong><span>Visits</span></div>
-            <div><strong>{summary.prescriptions}</strong><span>Rx</span></div>
-            <div><strong>{summary.lab_orders}</strong><span>Lab</span></div>
-            <div><strong>{summary.diagnostic_orders}</strong><span>Scans</span></div>
-          </div>
+          {quickStats.length > 0 ? (
+            <div className="patient-chart-quick-stats">
+              {quickStats.map((stat) => (
+                <div key={stat.key}>
+                  <strong>{stat.value}</strong>
+                  <span>{stat.label}</span>
+                </div>
+              ))}
+            </div>
+          ) : null}
           {summary.last_visit ? (
             <p className="patient-chart-last-visit">Last visit: {formatDateShort(summary.last_visit)}</p>
           ) : null}
         </div>
 
         <nav className="patient-chart-nav" aria-label="Patient sections">
-          {TABS.map((t) => (
+          {visibleTabs.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={tab === t.id ? "active" : undefined}
+              className={activeTab === t.id ? "active" : undefined}
               onClick={() => setTab(t.id)}
             >
               <span aria-hidden="true">{t.icon}</span>
@@ -233,17 +325,17 @@ function PatientChart() {
       </aside>
 
       <div className="patient-chart-main">
-        {tab === "overview" && (
+        {activeTab === "overview" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Medical timeline</h1>
               <p>All visits, prescriptions, lab and diagnostic reports — newest first.</p>
             </header>
-            {timeline.length === 0 ? (
+            {filteredTimeline.length === 0 ? (
               <p className="patient-chart-empty">No records yet for this patient.</p>
             ) : (
               <div className="patient-chart-timeline">
-                {timeline.map((item) => (
+                {filteredTimeline.map((item) => (
                   <TimelineCard key={`${item.type}-${item.id}`} item={item} />
                 ))}
               </div>
@@ -251,7 +343,7 @@ function PatientChart() {
           </section>
         )}
 
-        {tab === "appointments" && (
+        {activeTab === "appointments" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Appointments</h1>
@@ -285,7 +377,7 @@ function PatientChart() {
           </section>
         )}
 
-        {tab === "prescriptions" && (
+        {activeTab === "prescriptions" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Prescriptions</h1>
@@ -320,7 +412,7 @@ function PatientChart() {
           </section>
         )}
 
-        {tab === "labs" && (
+        {activeTab === "labs" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Lab reports</h1>
@@ -357,7 +449,7 @@ function PatientChart() {
           </section>
         )}
 
-        {tab === "diagnostics" && (
+        {activeTab === "diagnostics" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Diagnostic reports</h1>
@@ -391,7 +483,60 @@ function PatientChart() {
           </section>
         )}
 
-        {tab === "profile" && (
+        {activeTab === "wallet" && (
+          <section className="patient-chart-section">
+            <header className="patient-chart-section-header">
+              <h1>Patient wallet</h1>
+              <p>Balance and transaction history for refunds and wallet payments.</p>
+            </header>
+            {walletLoading ? (
+              <p className="patient-chart-empty">Loading wallet…</p>
+            ) : (
+              <>
+                <div className="patient-chart-wallet-balance">
+                  <span>Available balance</span>
+                  <strong>₹{Number(walletData?.balance ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</strong>
+                </div>
+                {!walletData?.transactions?.length ? (
+                  <p className="patient-chart-empty">No wallet transactions yet.</p>
+                ) : (
+                  <div className="patient-chart-table-wrap">
+                    <table className="patient-chart-table">
+                      <thead>
+                        <tr>
+                          <th>Date</th>
+                          <th>Type</th>
+                          <th>Amount</th>
+                          <th>Balance after</th>
+                          <th>Method</th>
+                          <th>Reference</th>
+                          <th>Notes</th>
+                          <th>By</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {walletData.transactions.map((tx) => (
+                          <tr key={tx.id}>
+                            <td>{formatDate(tx.transacted_at)}</td>
+                            <td>{WALLET_TYPE_LABELS[tx.type] || tx.type}</td>
+                            <td>₹{Number(tx.amount).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                            <td>₹{Number(tx.balance_after).toLocaleString("en-IN", { minimumFractionDigits: 2 })}</td>
+                            <td>{tx.method || "—"}</td>
+                            <td>{tx.reference || "—"}</td>
+                            <td>{tx.notes || "—"}</td>
+                            <td>{tx.recorded_by || "—"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </>
+            )}
+          </section>
+        )}
+
+        {activeTab === "profile" && (
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Patient profile</h1>

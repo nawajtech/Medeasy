@@ -1,0 +1,102 @@
+.dtq-page .page-card-header p {
+  max-width: 52rem;
+}
+
+.dtq-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.dtq-date {
+  padding: 8px 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  font-size: 0.875rem;
+}
+
+.dtq-today-badge {
+  padding: 8px 14px;
+  border-radius: var(--me-radius-md);
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.dtq-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-bottom: 1.25rem;
+}
+
+.dtq-summary-card {
+  background: var(--me-bg-subtle, #f8fafc);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.dtq-summary-num {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--me-text);
+  line-height: 1.2;
+}
+
+.dtq-summary-label {
+  font-size: 0.78rem;
+  color: var(--me-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dtq-summary-card--waiting .dtq-summary-num { color: #2563eb; }
+.dtq-summary-card--progress .dtq-summary-num { color: #d97706; }
+.dtq-summary-card--done .dtq-summary-num { color: #059669; }
+.dtq-summary-card--absent .dtq-summary-num { color: #dc2626; }
+
+.dtq-serial {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2rem;
+  height: 2rem;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.dtq-sub {
+  font-size: 0.78rem;
+  color: var(--me-text-muted);
+  margin-top: 2px;
+}
+
+.dtq-status {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.dtq-waiting { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
+.dtq-progress { background: rgba(217, 119, 6, 0.15); color: #d97706; }
+.dtq-done { background: rgba(5, 150, 105, 0.12); color: #059669; }
+.dtq-absent { background: rgba(220, 38, 38, 0.12); color: #dc2626; }
+
+.dtq-row-active {
+  background: rgba(217, 119, 6, 0.06);
+}
+
+.dtq-actions {
+  flex-wrap: wrap;
+}

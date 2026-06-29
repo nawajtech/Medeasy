@@ -3,6 +3,7 @@ import {
   getDiagnosticCategories, createDiagnosticCategory, updateDiagnosticCategory, deleteDiagnosticCategory,
   getDiagnosticTypes, createDiagnosticType, updateDiagnosticType, deleteDiagnosticType,
 } from "../api/diagnostics";
+import { getDoctors } from "../api/doctors";
 import Modal from "../components/crud/Modal";
 import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
@@ -15,8 +16,8 @@ const CATALOG_TABS = ["Categories", "Tests"];
 
 const emptyCategory = { company_id: "", name: "", description: "", sort_order: 0, is_active: true };
 const emptyTest = {
-  company_id: "", category_id: "", name: "", code: "", price: "",
-  description: "", preparation_instructions: "", is_active: true,
+  company_id: "", category_id: "", name: "", code: "", price: "", referral_commission: "", doctor_commission: "",
+  description: "", preparation_instructions: "", is_active: true, doctor_ids: [],
 };
 
 function DiagnosticCatalog() {
@@ -35,6 +36,17 @@ function DiagnosticCatalog() {
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [editingTest, setEditingTest] = useState(null);
   const [testForm, setTestForm] = useState(emptyTest);
+  const [doctors, setDoctors] = useState([]);
+
+  const loadDoctors = useCallback(async (companyId = "") => {
+    try {
+      const params = companyId ? { company_id: companyId } : {};
+      const { data } = await getDoctors(params);
+      setDoctors(data || []);
+    } catch {
+      setDoctors([]);
+    }
+  }, []);
 
   const loadCatalog = useCallback(async () => {
     setLoading(true);
@@ -55,7 +67,8 @@ function DiagnosticCatalog() {
 
   useEffect(() => {
     loadCatalog();
-  }, [loadCatalog]);
+    loadDoctors();
+  }, [loadCatalog, loadDoctors]);
 
   const testsByCategory = useMemo(() => {
     const map = new Map();
@@ -137,6 +150,7 @@ function DiagnosticCatalog() {
       category_id: activeCategories[0]?.id ? String(activeCategories[0].id) : "",
     });
     setTestModalOpen(true);
+    loadDoctors(testForm.company_id || "");
   };
 
   const openTestEdit = (row) => {
@@ -147,11 +161,30 @@ function DiagnosticCatalog() {
       name: row.name || "",
       code: row.code || "",
       price: row.price || "",
+      referral_commission: row.referral_commission ?? "",
+      doctor_commission: row.doctor_commission ?? "",
       description: row.description || "",
       preparation_instructions: row.preparation_instructions || "",
       is_active: Boolean(row.is_active),
+      doctor_ids: (row.doctors || []).map((d) => d.id),
     });
     setTestModalOpen(true);
+    loadDoctors(String(row.company_id || ""));
+  };
+
+  const handleTestCompanyChange = (e) => {
+    const cid = e.target.value;
+    setTestForm((p) => ({ ...p, company_id: cid, doctor_ids: [] }));
+    loadDoctors(cid);
+  };
+
+  const toggleTestDoctor = (doctorId) => {
+    setTestForm((prev) => {
+      const set = new Set(prev.doctor_ids || []);
+      if (set.has(doctorId)) set.delete(doctorId);
+      else set.add(doctorId);
+      return { ...prev, doctor_ids: [...set] };
+    });
   };
 
   const handleTestSave = async (e) => {
@@ -255,13 +288,20 @@ function DiagnosticCatalog() {
               ) : (
                 <div className="crud-table-wrap">
                   <table className="crud-table">
-                    <thead><tr><th>Test name</th><th>Code</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Test name</th><th>Code</th><th>Doctors</th><th>Price</th><th>Referral comm.</th><th>Doctor comm.</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody>
                       {tests.map((t) => (
                         <tr key={t.id}>
                           <td><strong>{t.name}</strong></td>
                           <td>{t.code || "—"}</td>
+                          <td>
+                            {(t.doctors || []).length
+                              ? (t.doctors || []).map((d) => d.user?.name || `Doctor #${d.id}`).join(", ")
+                              : "—"}
+                          </td>
                           <td>₹{Number(t.price).toLocaleString("en-IN")}</td>
+                          <td>{Number(t.referral_commission || 0) > 0 ? `₹${Number(t.referral_commission).toLocaleString("en-IN")}` : "—"}</td>
+                          <td>{Number(t.doctor_commission || 0) > 0 ? `₹${Number(t.doctor_commission).toLocaleString("en-IN")}` : "—"}</td>
                           <td><span className={`crud-badge ${t.is_active ? "crud-badge--active" : "crud-badge--inactive"}`}>{t.is_active ? "Active" : "Inactive"}</span></td>
                           <td>
                             <div className="crud-actions">
@@ -318,7 +358,7 @@ function DiagnosticCatalog() {
             {isSuperAdmin && (
               <div className="crud-field crud-field--full">
                 <label>Organization *</label>
-                <CompanySelect name="company_id" value={testForm.company_id} onChange={(e) => setTestForm((p) => ({ ...p, company_id: e.target.value }))} required />
+                <CompanySelect name="company_id" value={testForm.company_id} onChange={handleTestCompanyChange} required />
               </div>
             )}
             <div className="crud-field crud-field--full">
@@ -336,9 +376,37 @@ function DiagnosticCatalog() {
               <label>Code</label>
               <input name="code" value={testForm.code} onChange={(e) => setTestForm((p) => ({ ...p, code: e.target.value }))} placeholder="e.g. BT-001" />
             </div>
+            <div className="crud-field crud-field--full">
+              <label>Assigned doctors</label>
+              {!doctors.length ? (
+                <p className="company-modules-hint">No doctors found — add doctors under Diagnostics first.</p>
+              ) : (
+                <div className="dgn-doctor-picks">
+                  {doctors.map((d) => (
+                    <label key={d.id} className="crud-checkbox dgn-doctor-pick">
+                      <input
+                        type="checkbox"
+                        checked={(testForm.doctor_ids || []).includes(d.id)}
+                        onChange={() => toggleTestDoctor(d.id)}
+                      />
+                      {d.user?.name || `Doctor #${d.id}`}
+                      {d.department?.name ? ` (${d.department.name})` : ""}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="crud-field">
               <label>Price (₹) *</label>
               <input type="number" min="0" step="0.01" name="price" value={testForm.price} onChange={(e) => setTestForm((p) => ({ ...p, price: e.target.value }))} required />
+            </div>
+            <div className="crud-field">
+              <label>Referral commission (₹)</label>
+              <input type="number" min="0" step="0.01" name="referral_commission" value={testForm.referral_commission} onChange={(e) => setTestForm((p) => ({ ...p, referral_commission: e.target.value }))} placeholder="Normal commission for all partners" />
+            </div>
+            <div className="crud-field">
+              <label>Doctor commission (₹)</label>
+              <input type="number" min="0" step="0.01" name="doctor_commission" value={testForm.doctor_commission} onChange={(e) => setTestForm((p) => ({ ...p, doctor_commission: e.target.value }))} placeholder="Per-order doctor share" />
             </div>
             <div className="crud-field crud-field--full">
               <label>Preparation instructions</label>

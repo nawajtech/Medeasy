@@ -209,6 +209,11 @@
   padding: 24px;
 }
 
+.crud-modal-backdrop--elevated {
+  z-index: 1100;
+  background: rgba(15, 23, 42, 0.55);
+}
+
 .crud-modal {
   width: 100%;
   max-width: 640px;
@@ -222,6 +227,11 @@
 
 .crud-modal--wide {
   max-width: 920px;
+}
+
+.crud-modal--order-detail {
+  max-width: min(980px, 96vw);
+  max-height: 92vh;
 }
 
 .crud-modal-header {

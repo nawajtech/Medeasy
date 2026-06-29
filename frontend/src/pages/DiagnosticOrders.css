@@ -1,4 +1,19 @@
 /* Shared with LabOrders — empty state & bill panel */
+.dgn-doctor-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  padding: 10px 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  background: var(--me-bg-subtle, #f8fafc);
+}
+
+.dgn-doctor-pick {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
 .lo-empty-tests {
   padding: 16px;
   text-align: center;
@@ -31,6 +46,76 @@
   font-size: 0.875rem;
   padding: 3px 0;
 }
+.lo-bill-due {
+  font-weight: 700;
+  color: #b45309;
+}
+
+.dgn-pay-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.dgn-pay-pending { background: #fef3c7; color: #92400e; }
+.dgn-pay-partial { background: #dbeafe; color: #1d4ed8; }
+.dgn-pay-paid { background: #dcfce7; color: #166534; }
+
+.dgn-due-cell {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.dgn-payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--me-bg-subtle, #f8fafc);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  font-size: 0.875rem;
+}
+
+.dgn-payment-history {
+  margin-top: 16px;
+}
+.dgn-payment-history h4 {
+  margin-bottom: 8px;
+  font-size: 0.9375rem;
+}
+
+.dgn-order-detail-modal .lab-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.dgn-payment-history-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+}
+
+.dgn-payment-history .dgn-payment-history-table {
+  margin: 0;
+  font-size: 0.8125rem;
+}
+
+.dgn-payment-history .dgn-payment-history-table th,
+.dgn-payment-history .dgn-payment-history-table td {
+  padding: 8px 10px;
+  vertical-align: middle;
+}
+
+.dgn-payment-history .dgn-payment-history-table th:last-child,
+.dgn-payment-history .dgn-payment-history-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
+
 .lo-bill-net {
   font-size: 1rem;
   font-weight: 700;
@@ -57,6 +142,7 @@
 .dgn-progress  { background: #ede9fe; color: #6d28d9; }
 .dgn-completed { background: #d1fae5; color: #065f46; }
 .dgn-cancelled { background: #fee2e2; color: #991b1b; }
+.dgn-absent { background: #fecaca; color: #b91c1c; }
 
 .dgn-modality {
   display: inline-block;

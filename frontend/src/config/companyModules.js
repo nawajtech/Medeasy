@@ -2,7 +2,7 @@ export const COMPANY_MODULES = [
   { key: "clinic", label: "Clinic", description: "Patients, doctors, appointments" },
   { key: "pharmacy", label: "Pharmacy", description: "Medicine master & dispensing" },
   { key: "laboratory", label: "Laboratory", description: "Lab catalog, orders & results" },
-  { key: "diagnostics", label: "Diagnostics", description: "Imaging & diagnostic orders" },
+  { key: "diagnostics", label: "Diagnostics", description: "Doctors, imaging & diagnostic orders" },
 ];
 
 export const MODULE_PRESETS = [

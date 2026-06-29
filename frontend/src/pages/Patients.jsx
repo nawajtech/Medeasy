@@ -214,6 +214,7 @@ function Patients() {
               <th>Blood</th>
               <th>H / W</th>
               <th>Emergency</th>
+              <th>Wallet</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -221,7 +222,7 @@ function Patients() {
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={isSuperAdmin ? 9 : 8} className="crud-empty">
+                <td colSpan={isSuperAdmin ? 10 : 9} className="crud-empty">
                   No patients yet. Click &quot;Add patient&quot; to create one.
                 </td>
               </tr>
@@ -256,6 +257,15 @@ function Patients() {
                   {patient.emergency_contact_name
                     ? `${patient.emergency_contact_name}${patient.emergency_contact_phone ? ` (${patient.emergency_contact_phone})` : ""}`
                     : "—"}
+                </td>
+                <td className="patients-table__wallet">
+                  <Link
+                    to={`/patients/${patient.id}?tab=wallet`}
+                    className="patients-wallet-link"
+                    title="View wallet & transaction history"
+                  >
+                    ₹{Number(patient.wallet?.balance ?? 0).toLocaleString("en-IN", { minimumFractionDigits: 2 })}
+                  </Link>
                 </td>
                 <td>
                   <span
@@ -342,8 +352,8 @@ function Patients() {
               />
             </div>
             <div className="crud-field">
-              <label htmlFor="phone">Phone</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} />
+              <label htmlFor="phone">Mobile number *</label>
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required />
             </div>
             <div className="crud-field">
               <label htmlFor="password">

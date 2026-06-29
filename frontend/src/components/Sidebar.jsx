@@ -17,6 +17,7 @@ import {
   IconBranch,
   IconClipboard,
   IconPill,
+  IconDollar,
 } from "./icons";
 
 const iconMap = {
@@ -32,10 +33,12 @@ const iconMap = {
   "My schedule": IconCalendar,
   "Lab Catalog": IconFlask,
   "Lab Orders": IconClipboard,
+  "Today's appointments": IconCalendar,
   "Diagnostic Catalog": IconRadiology,
   "Diagnostic Orders": IconClipboard,
   "Medicine Master": IconPill,
   Reports: IconChart,
+  "Finance & P&L": IconDollar,
   Users: IconUsers,
   Roles: IconUsers,
   Settings: IconSettings,
@@ -46,6 +49,7 @@ const sectionIconMap = {
   clinic: IconStethoscope,
   laboratory: IconFlask,
   diagnostics: IconRadiology,
+  finance: IconDollar,
   admin: IconSettings,
 };
 
