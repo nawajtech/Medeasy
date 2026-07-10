@@ -12,9 +12,9 @@ use App\Models\DiagnosticReport;
 use App\Models\DiagnosticTestType;
 use App\Models\ReferralPartner;
 use App\Services\ClinicBrandingService;
+use App\Services\DiagnosticOrderBillingService;
 use App\Services\DiagnosticPaymentService;
 use App\Services\PatientWalletService;
-use App\Services\ReferralBillingService;
 use App\Support\AmountInWords;
 use App\Support\PrescriptionFormatter;
 use Illuminate\Http\JsonResponse;
@@ -91,19 +91,19 @@ class DiagnosticOrderController extends Controller
 
         $partner = $this->resolveReferralPartner($data);
         $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
-        $billing = app(ReferralBillingService::class)->calculate(
+        $billing = app(DiagnosticOrderBillingService::class)->calculate(
             (float) $testType->price,
             (float) ($testType->referral_commission ?? 0),
             $partner,
-            $deductCommission
+            $deductCommission,
+            (int) $data['company_id'],
         );
 
         $data = $this->mergeReferralSnapshot($data, $partner);
         $data = array_merge($data, $billing);
         $data['package_discount'] = 0;
-        $data['amount'] = $billing['net_amount'];
-        $data['doctor_commission_amount'] = round((float) ($testType->doctor_commission ?? 0), 2);
         $data['status'] = 'booked';
+        $data['doctor_commission_amount'] = round((float) ($testType->doctor_commission ?? 0), 2);
 
         $paidAmount = (float) ($data['paid_amount'] ?? 0);
         $paymentMethod = $data['payment_method'] ?? null;
@@ -140,7 +140,7 @@ class DiagnosticOrderController extends Controller
 
         $partner = $this->resolveReferralPartner($data);
         $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
-        $referralService = app(ReferralBillingService::class);
+        $referralService = app(DiagnosticOrderBillingService::class);
         $paymentService = app(DiagnosticPaymentService::class);
 
         $paidAmount = (float) ($data['paid_amount'] ?? 0);
@@ -163,7 +163,8 @@ class DiagnosticOrderController extends Controller
                 $discountedGross,
                 (float) ($testType->referral_commission ?? 0),
                 $partner,
-                $deductCommission
+                $deductCommission,
+                $companyId,
             );
 
             $prepared[] = array_merge($base, $billing, [
@@ -172,13 +173,12 @@ class DiagnosticOrderController extends Controller
                 'package_id' => $package->id,
                 'package_discount' => $packageDiscount,
                 'gross_amount' => $originalGross,
-                'amount' => $billing['net_amount'],
                 'doctor_commission_amount' => round((float) ($testType->doctor_commission ?? 0), 2),
                 'status' => 'booked',
             ]);
         }
 
-        $totalNet = round(collect($prepared)->sum('net_amount'), 2);
+        $totalGrand = round(collect($prepared)->sum('grand_total'), 2);
         $remainingPaid = $paidAmount;
         $orders = [];
 
@@ -189,8 +189,8 @@ class DiagnosticOrderController extends Controller
             $isLast = $index === count($prepared) - 1;
             $orderPaid = $isLast
                 ? round($remainingPaid, 2)
-                : ($totalNet > 0
-                    ? round($paidAmount * ($orderData['net_amount'] / $totalNet), 2)
+                : ($totalGrand > 0
+                    ? round($paidAmount * ($orderData['grand_total'] / $totalGrand), 2)
                     : 0);
             $remainingPaid = round($remainingPaid - $orderPaid, 2);
 
@@ -208,7 +208,8 @@ class DiagnosticOrderController extends Controller
         return response()->json([
             'package' => $package->only(['id', 'package_name', 'offer_percentage']),
             'orders' => $orders,
-            'total_net' => $totalNet,
+            'total_grand' => $totalGrand,
+            'total_net' => round(collect($prepared)->sum('net_amount'), 2),
             'total_package_discount' => round(collect($prepared)->sum('package_discount'), 2),
         ], 201);
     }
@@ -269,7 +270,8 @@ class DiagnosticOrderController extends Controller
         $gross = (float) ($order->gross_amount ?: $order->amount ?: 0);
         $packageAdjusted = (float) ($order->package_discount ?: 0);
         $adjusted = (float) ($order->referral_discount ?: 0);
-        $payable = (float) ($order->net_amount ?: $order->amount ?: 0);
+        $payable = (float) ($order->grand_total ?: $order->net_amount ?: $order->amount ?: 0);
+        $taxable = (float) ($order->taxable_amount ?: $order->net_amount ?: $payable);
         $paid = (float) ($order->paid_amount ?? 0);
         $due = (float) ($order->due_amount ?? max(0, $payable - $paid));
 
@@ -305,6 +307,19 @@ class DiagnosticOrderController extends Controller
             'packageName' => $order->package?->package_name,
             'adjusted' => $adjusted,
             'payable' => $payable,
+            'taxable' => $taxable,
+            'tax' => [
+                'enabled' => (bool) $order->tax_enabled,
+                'mode' => $order->tax_mode,
+                'rate' => (float) $order->tax_rate,
+                'cgst_rate' => (float) $order->cgst_rate,
+                'sgst_rate' => (float) $order->sgst_rate,
+                'igst_rate' => (float) $order->igst_rate,
+                'cgst_amount' => (float) $order->cgst_amount,
+                'sgst_amount' => (float) $order->sgst_amount,
+                'igst_amount' => (float) $order->igst_amount,
+                'tax_amount' => (float) $order->tax_amount,
+            ],
             'paid' => $paid,
             'due' => $due,
             'paymentStatus' => $order->payment_status,

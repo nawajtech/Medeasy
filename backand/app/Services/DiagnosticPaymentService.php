@@ -11,6 +11,11 @@ class DiagnosticPaymentService
 {
     public const STATUSES = ['pending', 'partial', 'paid'];
 
+    public function payableAmount(DiagnosticOrder $order): float
+    {
+        return (float) ($order->grand_total ?: $order->net_amount ?: $order->amount ?: 0);
+    }
+
     public function compute(float $netAmount, float $paidAmount): array
     {
         $net = round(max(0, $netAmount), 2);
@@ -38,7 +43,7 @@ class DiagnosticPaymentService
         ?string $reference = null,
         ?string $notes = null,
     ): DiagnosticOrder {
-        $net = (float) ($order->net_amount ?? $order->amount ?? 0);
+        $net = $this->payableAmount($order);
 
         if ($paidAmount > $net) {
             throw new InvalidArgumentException('Paid amount cannot exceed payable amount.');
@@ -99,7 +104,7 @@ class DiagnosticPaymentService
         }
 
         return DB::transaction(function () use ($order, $amount, $method, $reference, $notes, $paidAt) {
-            $net = (float) ($order->net_amount ?? $order->amount ?? 0);
+            $net = $this->payableAmount($order);
             $newPaid = round((float) $order->paid_amount + $amount, 2);
             $totals = $this->compute($net, $newPaid);
 
@@ -141,7 +146,7 @@ class DiagnosticPaymentService
                 $payment->id,
             );
 
-            $net = (float) ($order->net_amount ?? $order->amount ?? 0);
+            $net = $this->payableAmount($order);
             $newPaid = $isInitial ? $amount : round((float) $order->paid_amount + $amount, 2);
             $totals = $this->compute($net, $newPaid);
 

@@ -20,10 +20,21 @@ class SubscriptionPayment extends Model
         'invoice_number',
         'payment_date',
         'amount',
+        'subtotal',
         'currency',
         'payment_status',
         'payment_method',
         'transaction_reference',
+        'tax_enabled',
+        'tax_mode',
+        'tax_rate',
+        'cgst_rate',
+        'sgst_rate',
+        'igst_rate',
+        'cgst_amount',
+        'sgst_amount',
+        'igst_amount',
+        'tax_amount',
         'notes',
     ];
 
@@ -32,6 +43,16 @@ class SubscriptionPayment extends Model
         return [
             'payment_date' => 'datetime',
             'amount' => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'tax_enabled' => 'boolean',
+            'tax_rate' => 'decimal:2',
+            'cgst_rate' => 'decimal:2',
+            'sgst_rate' => 'decimal:2',
+            'igst_rate' => 'decimal:2',
+            'cgst_amount' => 'decimal:2',
+            'sgst_amount' => 'decimal:2',
+            'igst_amount' => 'decimal:2',
+            'tax_amount' => 'decimal:2',
             'notes' => 'array',
         ];
     }

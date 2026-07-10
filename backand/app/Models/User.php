@@ -154,13 +154,27 @@ class User extends Authenticatable
         $names = $this->getAllPermissions()->pluck('name')->values()->all();
 
         if ($this->isSuperAdmin()) {
-            return array_values(array_filter($names, fn (string $n) => ! str_starts_with($n, 'role.')));
+            $names = array_values(array_filter($names, fn (string $n) => ! str_starts_with($n, 'role.')));
+
+            if ($names === []) {
+                $names = app(PermissionRegistryService::class)->resolveRolePermissions(
+                    ['*'],
+                    ['role.*']
+                );
+            }
+
+            return $names;
         }
 
         if ($this->isTenantUser() && $this->company) {
             $allowed = app(PermissionRegistryService::class)->permissionNamesForCompany($this->company);
+            $names = array_values(array_intersect($names, $allowed));
 
-            return array_values(array_intersect($names, $allowed));
+            if ($this->isCompanyAdmin() && ! in_array('dashboard.view', $names, true)) {
+                $names[] = 'dashboard.view';
+            }
+
+            return $names;
         }
 
         return $names;

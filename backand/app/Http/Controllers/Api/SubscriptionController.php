@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\SubscriptionPayment;
 use App\Services\SubscriptionService;
+use App\Services\TaxSettingsService;
+use App\Support\TaxCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -13,30 +15,44 @@ use InvalidArgumentException;
 
 class SubscriptionController extends Controller
 {
-    public function plans(): JsonResponse
+    public function plans(TaxSettingsService $taxSettings): JsonResponse
     {
         $plans = Plan::query()
             ->where('status', Plan::STATUS_ACTIVE)
             ->with(['enabledFeatures:id,key,name', 'limits:id,plan_id,limit_key,limit_value'])
             ->orderBy('display_order')
             ->get()
-            ->map(fn (Plan $plan) => [
-                'id' => $plan->id,
-                'code' => $plan->code,
-                'name' => $plan->name,
-                'description' => $plan->description,
-                'monthly_price' => $plan->monthly_price,
-                'yearly_price' => $plan->yearly_price,
-                'discount_percent' => $plan->discount_percent ?? 0,
-                'monthly_price_final' => $plan->discountedAmount('monthly'),
-                'yearly_price_final' => $plan->discountedAmount('yearly'),
-                'currency' => $plan->currency,
-                'trial_days' => $plan->trial_days,
-                'features' => $plan->enabledFeatures->pluck('key')->values(),
-                'limits' => $plan->limits->mapWithKeys(
-                    fn ($limit) => [$limit->limit_key => $limit->limit_value]
-                ),
-            ]);
+            ->map(function (Plan $plan) use ($taxSettings) {
+                $monthlySubtotal = $plan->discountedAmount('monthly');
+                $yearlySubtotal = $plan->discountedAmount('yearly');
+                $taxConfig = $taxSettings->forSubscription($plan);
+                $monthlyTax = TaxCalculator::apply($monthlySubtotal, $taxConfig);
+                $yearlyTax = TaxCalculator::apply($yearlySubtotal, $taxConfig);
+
+                return [
+                    'id' => $plan->id,
+                    'code' => $plan->code,
+                    'name' => $plan->name,
+                    'description' => $plan->description,
+                    'monthly_price' => $plan->monthly_price,
+                    'yearly_price' => $plan->yearly_price,
+                    'discount_percent' => $plan->discount_percent ?? 0,
+                    'monthly_price_final' => $monthlySubtotal,
+                    'yearly_price_final' => $yearlySubtotal,
+                    'monthly_total' => $monthlyTax['grand_total'],
+                    'yearly_total' => $yearlyTax['grand_total'],
+                    'currency' => $plan->currency,
+                    'tax_enabled' => (bool) $plan->tax_enabled,
+                    'tax_mode' => $plan->tax_mode,
+                    'tax_rate' => (float) $plan->tax_rate,
+                    'tax_inclusive' => (bool) $plan->tax_inclusive,
+                    'trial_days' => $plan->trial_days,
+                    'features' => $plan->enabledFeatures->pluck('key')->values(),
+                    'limits' => $plan->limits->mapWithKeys(
+                        fn ($limit) => [$limit->limit_key => $limit->limit_value]
+                    ),
+                ];
+            });
 
         return response()->json([
             'plans' => $plans,
@@ -92,12 +108,23 @@ class SubscriptionController extends Controller
                 'id' => $payment->id,
                 'invoice_number' => $payment->invoice_number,
                 'amount' => $payment->amount,
-                'base_amount' => $payment->notes['base_amount'] ?? $payment->amount,
+                'subtotal' => $payment->subtotal,
+                'base_amount' => $payment->notes['base_amount'] ?? $payment->subtotal,
                 'discount_percent' => $payment->notes['discount_percent'] ?? 0,
                 'currency' => $payment->currency,
                 'payment_status' => $payment->payment_status,
                 'plan_name' => $plan->name,
                 'billing_cycle' => $validated['billing_cycle'],
+                'tax_enabled' => (bool) $payment->tax_enabled,
+                'tax_mode' => $payment->tax_mode,
+                'tax_rate' => (float) $payment->tax_rate,
+                'cgst_rate' => (float) $payment->cgst_rate,
+                'sgst_rate' => (float) $payment->sgst_rate,
+                'igst_rate' => (float) $payment->igst_rate,
+                'cgst_amount' => (float) $payment->cgst_amount,
+                'sgst_amount' => (float) $payment->sgst_amount,
+                'igst_amount' => (float) $payment->igst_amount,
+                'tax_amount' => (float) $payment->tax_amount,
             ],
         ], 201);
     }

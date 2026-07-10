@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Setting;
 use App\Models\User;
 use App\Services\SubscriptionService;
 use App\Services\UserRoleService;
@@ -132,6 +133,7 @@ class AuthController extends Controller
             'status' => $user->status,
             'company_id' => $user->company_id,
             'company' => $user->company,
+            'currency' => $this->resolveCurrency($user),
             'doctor_id' => $user->doctor?->id,
             'doctor' => $user->doctor,
         ];
@@ -142,5 +144,22 @@ class AuthController extends Controller
         }
 
         return $payload;
+    }
+
+    /** Active display currency for the user's organisation (defaults to INR). */
+    private function resolveCurrency(User $user): string
+    {
+        $default = config('theme.currency', 'INR');
+
+        if (! $user->company_id) {
+            return $default;
+        }
+
+        $value = Setting::withoutGlobalScopes()
+            ->where('company_id', $user->company_id)
+            ->where('key', 'currency')
+            ->value('value');
+
+        return $value ?: $default;
     }
 }

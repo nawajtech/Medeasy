@@ -12,7 +12,7 @@ const FEATURE_LABELS = {
   appointment_management: "Appointment Management",
   billing: "Billing",
   lab_module: "Lab Module",
-  pharmacy: "Pharmacy",
+  pharmacy: "Medicine Master",
   inventory: "Inventory",
   multi_branch: "Multi Branch",
   api_access: "API Access",
@@ -57,20 +57,36 @@ function PlanCard({ plan, isCurrent, busy, onSelect }) {
   const currency = plan.currency || "INR";
   const monthly = plan.monthly_price_final ?? plan.monthly_price;
   const yearly = plan.yearly_price_final ?? plan.yearly_price;
+  const monthlyTotal = plan.monthly_total ?? monthly;
+  const yearlyTotal = plan.yearly_total ?? yearly;
   const hasDiscount = Number(plan.discount_percent) > 0;
+  const hasTax = Boolean(plan.tax_enabled) && monthlyTotal !== monthly;
 
   return (
     <div className={`subscription-plan-card${isCurrent ? " is-current" : ""}`}>
       <div className="subscription-plan-card-head">
         <h4>{plan.name}</h4>
-        {isCurrent ? <span className="subscription-plan-current-badge">Current plan</span> : null}
-        {hasDiscount ? (
-          <span className="subscription-plan-current-badge">{plan.discount_percent}% off</span>
-        ) : null}
+        {(isCurrent || hasDiscount || plan.tax_enabled) && (
+          <div className="subscription-plan-card-badges">
+            {isCurrent ? (
+              <span className="subscription-plan-badge subscription-plan-badge--current">Current plan</span>
+            ) : null}
+            {hasDiscount ? (
+              <span className="subscription-plan-badge subscription-plan-badge--discount">
+                {plan.discount_percent}% off
+              </span>
+            ) : null}
+            {plan.tax_enabled ? (
+              <span className="subscription-plan-badge subscription-plan-badge--tax">
+                {plan.tax_rate}% {plan.tax_mode === "igst" ? "IGST" : "CGST+SGST"}
+              </span>
+            ) : null}
+          </div>
+        )}
       </div>
       <p className="subscription-plan-card-price">
-        {formatMoney(monthly, currency)}
-        <span> / month</span>
+        {formatMoney(hasTax ? monthlyTotal : monthly, currency)}
+        <span> / month{hasTax ? " incl. tax" : ""}</span>
       </p>
       {hasDiscount ? (
         <p className="subscription-plan-card-yearly">
@@ -78,7 +94,7 @@ function PlanCard({ plan, isCurrent, busy, onSelect }) {
         </p>
       ) : null}
       <p className="subscription-plan-card-yearly">
-        {formatMoney(yearly, currency)} / year
+        {formatMoney(hasTax ? yearlyTotal : yearly, currency)} / year
       </p>
       <p className="subscription-plan-card-desc">{plan.description}</p>
       <ul className="subscription-plan-card-features">
@@ -124,8 +140,10 @@ function PaymentModal({
   const baseAmount =
     checkoutData?.base_amount ??
     (billingCycle === "yearly" ? plan?.yearly_price : plan?.monthly_price);
-  const amount = checkoutData?.amount ?? plan?.[`${billingCycle}_price_final`] ?? baseAmount;
+  const subtotal = checkoutData?.subtotal ?? checkoutData?.amount ?? plan?.[`${billingCycle}_price_final`] ?? baseAmount;
+  const amount = checkoutData?.amount ?? subtotal;
   const discountPercent = checkoutData?.discount_percent ?? plan?.discount_percent ?? 0;
+  const taxEnabled = Boolean(checkoutData?.tax_enabled);
 
   return (
     <Modal title={`Pay for ${plan?.name}`} open={open} onClose={onClose} wide>
@@ -146,6 +164,20 @@ function PaymentModal({
               <span className="crud-muted">
                 {discountPercent}% off · was {formatMoney(baseAmount, currency)}
               </span>
+            ) : null}
+            {checkoutData && taxEnabled ? (
+              <div className="subscription-tax-breakdown">
+                <span>Subtotal: {formatMoney(subtotal, currency)}</span>
+                {Number(checkoutData.cgst_amount) > 0 && (
+                  <span>CGST @ {checkoutData.cgst_rate}%: {formatMoney(checkoutData.cgst_amount, currency)}</span>
+                )}
+                {Number(checkoutData.sgst_amount) > 0 && (
+                  <span>SGST @ {checkoutData.sgst_rate}%: {formatMoney(checkoutData.sgst_amount, currency)}</span>
+                )}
+                {Number(checkoutData.igst_amount) > 0 && (
+                  <span>IGST @ {checkoutData.igst_rate}%: {formatMoney(checkoutData.igst_amount, currency)}</span>
+                )}
+              </div>
             ) : null}
           </div>
         </div>

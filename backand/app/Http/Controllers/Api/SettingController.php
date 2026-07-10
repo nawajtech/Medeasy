@@ -45,6 +45,7 @@ class SettingController extends Controller
                 'label' => $definition['label'],
                 'type' => $definition['type'],
                 'placeholder' => $definition['placeholder'] ?? null,
+                'options' => $definition['options'] ?? null,
                 'id' => $row?->id,
                 'value' => $this->formatValueForResponse($definition['type'], $rawValue),
             ];

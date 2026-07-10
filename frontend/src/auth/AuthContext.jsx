@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { getMe, login as apiLogin, logout as apiLogout } from "../api/auth";
 import { hasPermission } from "../config/permissions";
+import { setActiveCurrency } from "../config/currency";
 import { ROLES } from "../config/roles";
 
 const AuthContext = createContext(null);
@@ -28,6 +29,7 @@ export function AuthProvider({ children }) {
   const persist = useCallback((nextToken, nextUser) => {
     setToken(nextToken);
     setUser(nextUser);
+    setActiveCurrency(nextUser?.currency);
     if (nextToken && nextUser) {
       localStorage.setItem(TOKEN_KEY, nextToken);
       localStorage.setItem(USER_KEY, JSON.stringify(nextUser));

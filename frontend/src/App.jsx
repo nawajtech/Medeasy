@@ -1,5 +1,6 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { AuthProvider } from "./auth/AuthContext";
+import { ThemeProvider } from "./theme/ThemeContext";
 import { NotificationProvider } from "./notifications/NotificationContext";
 import NotificationToast from "./components/NotificationToast";
 import ProtectedRoute from "./auth/ProtectedRoute";
@@ -32,12 +33,14 @@ import Medicines from "./pages/Medicines";
 import PatientChart from "./pages/PatientChart";
 import Roles from "./pages/Roles";
 import RolePermissions from "./pages/RolePermissions";
+import ThemeSettings from "./pages/ThemeSettings";
 import "./App.css";
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ThemeProvider>
         <NotificationProvider>
           <NotificationToast />
           <Routes>
@@ -64,6 +67,7 @@ function App() {
                 <Route path="roles/:roleId" element={<RolePermissions />} />
                 <Route path="subscription" element={<Subscription />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="appearance" element={<ThemeSettings />} />
                 {/* Lab module */}
                 <Route path="lab/tests" element={<LabTests />} />
                 <Route path="lab/orders" element={<LabOrders />} />
@@ -80,6 +84,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </NotificationProvider>
+        </ThemeProvider>
       </AuthProvider>
     </BrowserRouter>
   );

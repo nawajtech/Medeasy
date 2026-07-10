@@ -13,14 +13,13 @@ return [
     'company_module_map' => [
         'clinic' => [
             'dashboard', 'branches', 'departments', 'patients', 'appointments',
-            'doctors', 'prescriptions', 'billing', 'reports',
+            'doctors', 'prescriptions', 'billing', 'reports', 'medicine',
         ],
-        'pharmacy' => ['medicine'],
         'laboratory' => ['lab'],
         'diagnostics' => ['diagnostics', 'doctors', 'departments'],
     ],
 
-    'tenant_core_modules' => ['settings', 'users', 'roles', 'patients', 'finance'],
+    'tenant_core_modules' => ['dashboard', 'settings', 'users', 'roles', 'patients', 'finance'],
 
     'modules' => [
         'dashboard' => [

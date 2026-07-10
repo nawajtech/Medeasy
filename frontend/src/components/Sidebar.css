@@ -148,6 +148,11 @@
   color: #2563eb;
 }
 
+.menu-section--directory .menu-section-icon {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+}
+
 .menu-section--laboratory .menu-section-icon {
   background: rgba(124, 58, 237, 0.1);
   color: #7c3aed;
@@ -158,27 +163,65 @@
   color: #d97706;
 }
 
+.menu-section--reports .menu-section-icon {
+  background: rgba(79, 70, 229, 0.12);
+  color: #4f46e5;
+}
+
 .menu-section--admin .menu-section-icon {
   background: rgba(100, 116, 139, 0.12);
   color: #64748b;
 }
 
+/* Per-section active accent — bold bar + tinted glow */
 .menu-section--clinic .menu-list a.active {
   color: #2563eb;
-  background: rgba(37, 99, 235, 0.08);
-  box-shadow: inset 3px 0 0 #2563eb;
+  background: linear-gradient(90deg, rgba(37, 99, 235, 0.16), rgba(37, 99, 235, 0.02));
+  box-shadow: inset 4px 0 0 #2563eb, 0 3px 12px rgba(37, 99, 235, 0.18);
+}
+
+.menu-section--clinic .menu-list a.active .menu-icon {
+  color: #2563eb;
+}
+
+.menu-section--directory .menu-list a.active {
+  color: #0d9488;
+  background: linear-gradient(90deg, rgba(13, 148, 136, 0.16), rgba(13, 148, 136, 0.02));
+  box-shadow: inset 4px 0 0 #0d9488, 0 3px 12px rgba(13, 148, 136, 0.18);
+}
+
+.menu-section--directory .menu-list a.active .menu-icon {
+  color: #0d9488;
 }
 
 .menu-section--laboratory .menu-list a.active {
   color: #7c3aed;
-  background: rgba(124, 58, 237, 0.08);
-  box-shadow: inset 3px 0 0 #7c3aed;
+  background: linear-gradient(90deg, rgba(124, 58, 237, 0.16), rgba(124, 58, 237, 0.02));
+  box-shadow: inset 4px 0 0 #7c3aed, 0 3px 12px rgba(124, 58, 237, 0.18);
+}
+
+.menu-section--laboratory .menu-list a.active .menu-icon {
+  color: #7c3aed;
 }
 
 .menu-section--diagnostics .menu-list a.active {
   color: #d97706;
-  background: rgba(217, 119, 6, 0.08);
-  box-shadow: inset 3px 0 0 #d97706;
+  background: linear-gradient(90deg, rgba(217, 119, 6, 0.16), rgba(217, 119, 6, 0.02));
+  box-shadow: inset 4px 0 0 #d97706, 0 3px 12px rgba(217, 119, 6, 0.18);
+}
+
+.menu-section--diagnostics .menu-list a.active .menu-icon {
+  color: #d97706;
+}
+
+.menu-section--reports .menu-list a.active {
+  color: #4f46e5;
+  background: linear-gradient(90deg, rgba(79, 70, 229, 0.16), rgba(79, 70, 229, 0.02));
+  box-shadow: inset 4px 0 0 #4f46e5, 0 3px 12px rgba(79, 70, 229, 0.18);
+}
+
+.menu-section--reports .menu-list a.active .menu-icon {
+  color: #4f46e5;
 }
 
 .menu-list {
@@ -232,14 +275,37 @@
 .menu-list a.active,
 .menu-list .active {
   color: var(--me-primary);
-  background: var(--me-primary-soft);
-  font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--me-primary);
+  background: linear-gradient(90deg, var(--me-primary-soft), rgba(15, 118, 110, 0.02));
+  font-weight: 700;
+  box-shadow: inset 4px 0 0 var(--me-primary), 0 3px 12px rgba(15, 118, 110, 0.16);
+  transform: translateX(2px);
 }
 
 .menu-list a.active .menu-icon,
 .menu-list .active .menu-icon {
   color: var(--me-primary);
+  transform: scale(1.12);
+}
+
+/* Trailing active dot for extra emphasis */
+.menu-list a.active .menu-text,
+.menu-list .active .menu-text {
+  position: relative;
+  flex: 1;
+}
+
+.menu-list a.active .menu-text::after,
+.menu-list .active .menu-text::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: var(--me-radius-full);
+  background: currentColor;
+  box-shadow: 0 0 0 3px color-mix(in srgb, currentColor 18%, transparent);
 }
 
 .menu-text {

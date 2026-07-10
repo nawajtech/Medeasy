@@ -59,7 +59,7 @@ class SaasSeeder extends Seeder
                     'code' => $row['code'],
                     'email' => $row['admin_email'],
                     'phone' => '+92 300 0000000',
-                    'modules' => ['clinic', 'pharmacy', 'laboratory', 'diagnostics'],
+                    'modules' => ['clinic', 'laboratory', 'diagnostics'],
                     'is_active' => true,
                 ]);
             } else {

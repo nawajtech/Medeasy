@@ -18,6 +18,9 @@ import {
   IconClipboard,
   IconPill,
   IconDollar,
+  IconReferral,
+  IconLayers,
+  IconPalette,
 } from "./icons";
 
 const iconMap = {
@@ -27,8 +30,9 @@ const iconMap = {
   Subscriptions: IconDollar,
   Branches: IconBranch,
   Patients: IconPatient,
-  Departments: IconChart,
+  Departments: IconLayers,
   Doctors: IconStethoscope,
+  "Referral By": IconReferral,
   Appointments: IconCalendar,
   "My appointments": IconCalendar,
   "My patients": IconPatient,
@@ -45,14 +49,16 @@ const iconMap = {
   Roles: IconUsers,
   Subscription: IconDollar,
   Settings: IconSettings,
+  Appearance: IconPalette,
 };
 
 const sectionIconMap = {
   overview: IconDashboard,
-  clinic: IconStethoscope,
+  clinic: IconHeartPulse,
+  directory: IconStethoscope,
   laboratory: IconFlask,
   diagnostics: IconRadiology,
-  finance: IconDollar,
+  reports: IconChart,
   admin: IconSettings,
 };
 

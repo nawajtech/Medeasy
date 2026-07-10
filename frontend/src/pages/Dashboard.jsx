@@ -15,6 +15,7 @@ import {
 } from "recharts";
 import { getDashboard } from "../api/dashboard";
 import { useAuth } from "../auth/AuthContext";
+import { currencySymbol, formatCurrency } from "../config/currency";
 import { PERMISSIONS, isDiagnosticsOnlyDoctor } from "../config/permissions";
 import { usePermissions } from "../hooks/usePermissions";
 import CompanySelect from "../components/CompanySelect";
@@ -98,17 +99,11 @@ function defaultDateRange() {
 }
 
 function formatMoney(value) {
-  return `$${Number(value || 0).toLocaleString(undefined, {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
+  return formatCurrency(value);
 }
 
 function formatRupee(value) {
-  return `₹${Number(value || 0).toLocaleString("en-IN", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  })}`;
+  return formatCurrency(value);
 }
 
 function formatPercent(value) {
@@ -374,9 +369,13 @@ function Dashboard() {
             <h1>Dashboard</h1>
           </div>
           <p>
-            {isDoctor
-              ? "Your appointments and assigned patients at a glance."
-              : "Clinic analytics and payment overview for your organization."}
+            {isSuperAdmin
+              ? "Platform-wide analytics across all organisations."
+              : isCompanyAdmin
+                ? `Organisation overview for ${user?.company?.name || "your hospital"}.`
+                : isDoctor
+                  ? "Your appointments and assigned patients at a glance."
+                  : "Clinic analytics and payment overview for your organization."}
           </p>
           <span className="dashboard-scope-badge">
             Viewing: <strong>{data.scope_label}</strong>
@@ -705,7 +704,7 @@ function Dashboard() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                   <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={(v) => `$${v}`} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={(v) => `${currencySymbol()}${v}`} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTooltipContent valueFormatter={(v) => formatMoney(v)} />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
                   <Bar dataKey="collected" name="Collected" fill="url(#collectedGrad)" radius={[8, 8, 0, 0]} />

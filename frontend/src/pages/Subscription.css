@@ -269,7 +269,7 @@
 
 .subscription-plans-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   gap: var(--me-space-4);
 }
 
@@ -281,6 +281,8 @@
   border: 1px solid var(--me-border);
   border-radius: var(--me-radius-lg);
   background: var(--me-surface);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .subscription-plan-card.is-current {
@@ -290,24 +292,52 @@
 
 .subscription-plan-card-head {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
+  align-items: flex-start;
   gap: var(--me-space-2);
+  min-width: 0;
 }
 
 .subscription-plan-card-head h4 {
   margin: 0;
   font-size: 1.0625rem;
+  line-height: 1.3;
 }
 
+.subscription-plan-card-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+}
+
+.subscription-plan-badge,
 .subscription-plan-current-badge {
+  display: inline-flex;
+  align-items: center;
   padding: 0.2rem 0.6rem;
   border-radius: var(--me-radius-full);
-  background: var(--me-primary-soft);
-  color: var(--me-primary);
   font-size: var(--me-text-xs);
   font-weight: 700;
   white-space: nowrap;
+  max-width: 100%;
+}
+
+.subscription-plan-badge--current,
+.subscription-plan-current-badge {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
+.subscription-plan-badge--discount {
+  background: var(--me-warning-soft);
+  color: #b45309;
+}
+
+.subscription-plan-badge--tax {
+  background: var(--me-surface-muted);
+  color: var(--me-text-secondary);
+  border: 1px solid var(--me-border);
 }
 
 .subscription-plan-card-price {
@@ -416,6 +446,59 @@
 
 .subscription-summary-link:hover {
   text-decoration: underline;
+}
+
+.subscription-tax-card {
+  margin-bottom: var(--me-space-6);
+  padding: var(--me-space-5);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  background: var(--me-surface-muted);
+}
+
+.subscription-tax-card h3 {
+  margin: 0 0 var(--me-space-2);
+  font-size: 1rem;
+}
+
+.subscription-tax-card > p {
+  margin: 0 0 var(--me-space-4);
+}
+
+.subscription-tax-card .crud-btn {
+  margin-top: var(--me-space-3);
+}
+
+.subscription-tax-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: var(--me-space-4);
+  border-radius: var(--me-radius-md);
+  background: var(--me-surface-muted);
+}
+
+.subscription-tax-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: var(--me-space-2);
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+
+.plans-page .crud-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.plans-page .crud-table {
+  min-width: 980px;
+}
+
+.plans-page .crud-table td:last-child,
+.plans-page .crud-table th:last-child {
+  white-space: nowrap;
 }
 
 @media (max-width: 768px) {

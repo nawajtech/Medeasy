@@ -6,6 +6,8 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
+use App\Services\TaxSettingsService;
+use App\Support\TaxCalculator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
@@ -204,19 +206,32 @@ class SubscriptionService
             throw new InvalidArgumentException('You are already on this plan and billing cycle.');
         }
 
-        $amount = $plan->discountedAmount($billingCycle);
+        $subtotal = $plan->discountedAmount($billingCycle);
         $baseAmount = $plan->baseAmount($billingCycle);
 
-        if ($amount <= 0) {
+        if ($subtotal <= 0) {
             throw new InvalidArgumentException('This plan requires a paid amount before activation.');
         }
+
+        $tax = TaxCalculator::apply($subtotal, app(TaxSettingsService::class)->forSubscription($plan));
 
         return SubscriptionPayment::create([
             'subscription_id' => $subscription->id,
             'invoice_number' => $this->generateInvoiceNumber(),
-            'amount' => $amount,
+            'amount' => $tax['grand_total'],
+            'subtotal' => $subtotal,
             'currency' => $plan->currency,
             'payment_status' => SubscriptionPayment::STATUS_PENDING,
+            'tax_enabled' => $tax['tax_enabled'],
+            'tax_mode' => $tax['tax_mode'],
+            'tax_rate' => $tax['tax_rate'],
+            'cgst_rate' => $tax['cgst_rate'],
+            'sgst_rate' => $tax['sgst_rate'],
+            'igst_rate' => $tax['igst_rate'],
+            'cgst_amount' => $tax['cgst_amount'],
+            'sgst_amount' => $tax['sgst_amount'],
+            'igst_amount' => $tax['igst_amount'],
+            'tax_amount' => $tax['tax_amount'],
             'notes' => [
                 'type' => 'plan_change',
                 'plan_id' => $plan->id,
@@ -225,6 +240,8 @@ class SubscriptionService
                 'billing_cycle' => $billingCycle,
                 'base_amount' => $baseAmount,
                 'discount_percent' => $plan->discount_percent ?? 0,
+                'subtotal' => $subtotal,
+                'tax' => $tax,
             ],
         ]);
     }
@@ -291,6 +308,7 @@ class SubscriptionService
             'id' => $payment->id,
             'invoice_number' => $payment->invoice_number,
             'amount' => $payment->amount,
+            'subtotal' => $payment->subtotal ?? ($payment->notes['subtotal'] ?? null),
             'currency' => $payment->currency,
             'payment_status' => $payment->payment_status,
             'payment_method' => $payment->payment_method,
@@ -300,6 +318,16 @@ class SubscriptionService
             'billing_cycle' => $payment->notes['billing_cycle'] ?? null,
             'discount_percent' => $payment->notes['discount_percent'] ?? 0,
             'base_amount' => $payment->notes['base_amount'] ?? null,
+            'tax_enabled' => (bool) $payment->tax_enabled,
+            'tax_mode' => $payment->tax_mode,
+            'tax_rate' => (float) $payment->tax_rate,
+            'cgst_rate' => (float) $payment->cgst_rate,
+            'sgst_rate' => (float) $payment->sgst_rate,
+            'igst_rate' => (float) $payment->igst_rate,
+            'cgst_amount' => (float) $payment->cgst_amount,
+            'sgst_amount' => (float) $payment->sgst_amount,
+            'igst_amount' => (float) $payment->igst_amount,
+            'tax_amount' => (float) $payment->tax_amount,
             'created_at' => $payment->created_at,
         ];
     }

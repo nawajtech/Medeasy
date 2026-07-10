@@ -35,7 +35,7 @@ class SubscriptionSeeder extends Seeder
             [Feature::BILLING, 'Billing', 'core', 30],
             [Feature::LAB_MODULE, 'Lab Module', 'modules', 40],
             [Feature::DIAGNOSTICS_MODULE, 'Diagnostics Module', 'modules', 45],
-            [Feature::PHARMACY, 'Pharmacy', 'modules', 50],
+            [Feature::PHARMACY, 'Medicine Master', 'modules', 50],
             [Feature::INVENTORY, 'Inventory', 'modules', 60],
             [Feature::MULTI_BRANCH, 'Multi Branch', 'enterprise', 70],
             [Feature::API_ACCESS, 'API Access', 'enterprise', 80],

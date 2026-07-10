@@ -22,6 +22,11 @@ class DashboardController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = auth()->user();
+
+        if (! $user->isSuperAdmin() && ! $user->isCompanyAdmin() && ! $user->can('dashboard.view')) {
+            abort(403, 'You are not allowed to view the dashboard.');
+        }
+
         $companyId = $this->resolveDashboardCompanyId($request);
         $doctorId = $this->doctorIdForUser();
         [$dateFrom, $dateTo] = $this->resolveDateRange($request);

@@ -23,13 +23,20 @@ use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ReferralPartnerController;
 use App\Http\Controllers\Api\NotificationController;
+use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
+use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AdminPlanController;
 use App\Http\Controllers\Api\SubscriptionController;
+use App\Http\Controllers\Api\TaxController;
+use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
+
+// Public — the active theme is applied on the login screen and for every user.
+Route::get('theme', [ThemeController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
@@ -37,16 +44,23 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
 
+    // Appearance — only the Platform Admin can change the global theme.
+    Route::middleware('role:super_admin')->put('theme', [ThemeController::class, 'update']);
+
     // Outside the subscription gate so an expired company can still upgrade.
     Route::get('subscription/plans', [SubscriptionController::class, 'plans']);
     Route::get('subscription/payments', [SubscriptionController::class, 'payments']);
     Route::middleware('role:company_admin')->post('subscription/checkout', [SubscriptionController::class, 'checkout']);
     Route::middleware('role:company_admin')->post('subscription/payments/{paymentId}/confirm', [SubscriptionController::class, 'confirmPayment']);
 
+    Route::get('tax/settings', [TaxController::class, 'settings']);
+
     // ── Subscription admin (platform super admin) ───────────────
     Route::middleware('permission:company.view')->prefix('admin')->group(function () {
         Route::get('plans', [AdminPlanController::class, 'index']);
         Route::get('plans/features', [AdminPlanController::class, 'features']);
+        Route::get('subscription-tax', [AdminPlanController::class, 'subscriptionTax']);
+        Route::middleware('permission:company.edit')->put('subscription-tax', [AdminPlanController::class, 'updateSubscriptionTax']);
         Route::middleware('permission:company.create')->post('plans', [AdminPlanController::class, 'store']);
         Route::middleware('permission:company.edit')->put('plans/{plan}', [AdminPlanController::class, 'update']);
         Route::middleware('permission:company.delete')->delete('plans/{plan}', [AdminPlanController::class, 'destroy']);
@@ -118,7 +132,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:branch.delete')->delete('branches/{branch}', [BranchController::class, 'destroy']);
 
     // ── Dashboard ───────────────────────────────────────────────
-    Route::middleware('permission:dashboard.view')->get('dashboard', [DashboardController::class, 'index']);
+    Route::get('dashboard', [DashboardController::class, 'index']);
 
     // ── Pharmacy / Medicine ───────────────────────────────────────
     Route::middleware('permission:medicine.view')->get('pharmacy/medicines', [MedicineController::class, 'index']);

@@ -12,15 +12,12 @@ class Company extends Model
 
     public const MODULE_CLINIC = 'clinic';
 
-    public const MODULE_PHARMACY = 'pharmacy';
-
     public const MODULE_LABORATORY = 'laboratory';
 
     public const MODULE_DIAGNOSTICS = 'diagnostics';
 
     public const MODULES = [
         self::MODULE_CLINIC => 'Clinic',
-        self::MODULE_PHARMACY => 'Pharmacy',
         self::MODULE_LABORATORY => 'Laboratory',
         self::MODULE_DIAGNOSTICS => 'Diagnostics',
     ];
@@ -89,7 +86,6 @@ class Company extends Model
 
         if (count($modules) === 1) {
             return match ($modules[0]) {
-                self::MODULE_PHARMACY => 'pharmacy',
                 self::MODULE_LABORATORY => 'pathology_lab',
                 self::MODULE_DIAGNOSTICS => 'diagnostic_center',
                 default => 'clinic',
@@ -123,7 +119,7 @@ class Company extends Model
             }
 
             if ($modules === array_keys(self::MODULES)) {
-                return 'Hospital (All services)';
+                return 'All services';
             }
 
             return collect($modules)

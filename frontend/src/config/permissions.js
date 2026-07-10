@@ -1,7 +1,3 @@
-/**
- * Navigation and route access keyed by Spatie permission names.
- * Permissions are loaded from the API — this file only maps routes to required permissions.
- */
 export const PERMISSIONS = {
   DASHBOARD_VIEW: "dashboard.view",
   COMPANY_VIEW: "company.view",
@@ -49,39 +45,54 @@ export const PERMISSIONS = {
 /** Sidebar sections — order defines display sequence. */
 export const MENU_SECTIONS = [
   { id: "overview", label: "Overview" },
-  { id: "clinic", label: "Clinic", description: "Patients, doctors & appointments" },
+  { id: "clinic", label: "Clinic", description: "Patients, appointments & prescriptions" },
+  { id: "directory", label: "Directory", description: "Departments, doctors & referrals" },
   { id: "laboratory", label: "Laboratory", description: "Tests, catalog & orders" },
-  { id: "diagnostics", label: "Diagnostics", description: "Doctors, imaging & diagnostic orders" },
-  { id: "finance", label: "Finance", description: "Profit, commissions & expenses" },
+  { id: "diagnostics", label: "Diagnostics", description: "Imaging & diagnostic orders" },
+  { id: "reports", label: "Reports & Finance", description: "Analytics, profit & loss" },
   { id: "admin", label: "Administration", description: "Settings & tenant management" },
 ];
 
 export const menuItems = [
+  // Overview
   { to: "/", label: "Overview", permission: PERMISSIONS.DASHBOARD_VIEW, end: true, section: "overview" },
   { to: "/patients", label: "Patients", permission: PERMISSIONS.PATIENT_VIEW, section: "overview" },
-  { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "clinic", altSection: "diagnostics", tenantModule: ["clinic", "diagnostics"] },
-  { to: "/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "clinic", altSection: "diagnostics", tenantModule: ["clinic", "diagnostics"] },
+
+  // Clinic
   { to: "/appointments", label: "Appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, section: "clinic", tenantModule: "clinic" },
   { to: "/appointments", label: "My appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
   { to: "/patients", label: "My patients", permission: PERMISSIONS.PATIENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
   { to: "/my-schedule", label: "My schedule", permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
-  { to: "/pharmacy/medicines", label: "Medicine Master", permission: PERMISSIONS.MEDICINE_VIEW, section: "clinic", tenantModule: "pharmacy" },
+  { to: "/pharmacy/medicines", label: "Medicine Master", permission: PERMISSIONS.MEDICINE_VIEW, section: "clinic", tenantModule: "clinic" },
+
+  // Directory — departments, doctors & referral partners
+  { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "directory", tenantModule: ["clinic", "diagnostics"] },
+  { to: "/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "directory", tenantModule: ["clinic", "diagnostics"] },
+  { to: "/diagnostics/referrals", label: "Referral By", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "directory", tenantModule: "diagnostics" },
+
+  // Laboratory
   { to: "/lab/tests", label: "Lab Catalog", permission: PERMISSIONS.LAB_VIEW, section: "laboratory", tenantModule: "laboratory" },
   { to: "/lab/orders", label: "Lab Orders", permission: PERMISSIONS.LAB_VIEW, section: "laboratory", tenantModule: "laboratory" },
+
+  // Diagnostics
   { to: "/diagnostics/today", label: "Today's appointments", permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor", section: "diagnostics", tenantModule: "diagnostics" },
   { to: "/diagnostics", label: "Diagnostic Catalog", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics", end: true },
-  { to: "/diagnostics/referrals", label: "Referral By", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
   { to: "/diagnostics/orders", label: "Diagnostic Orders", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
-  { to: "/finance", label: "Finance & P&L", permission: PERMISSIONS.FINANCIAL_VIEW, roleOnly: "company_admin", section: "finance" },
+
+  // Reports & Finance
+  { to: "/reports", label: "Reports", permission: PERMISSIONS.REPORT_VIEW, section: "reports", tenantModule: "clinic" },
+  { to: "/finance", label: "Finance & P&L", permission: PERMISSIONS.FINANCIAL_VIEW, roleOnly: "company_admin", section: "reports" },
+
+  // Administration
   { to: "/companies", label: "Companies", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
   { to: "/plans", label: "Plans", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
   { to: "/admin/subscriptions", label: "Subscriptions", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
   { to: "/branches", label: "Branches", permission: PERMISSIONS.BRANCH_VIEW, section: "admin" },
-  { to: "/reports", label: "Reports", permission: PERMISSIONS.REPORT_VIEW, section: "admin", tenantModule: "clinic" },
   { to: "/users", label: "Users", permission: PERMISSIONS.USERS_VIEW, section: "admin" },
   { to: "/roles", label: "Roles", permission: PERMISSIONS.ROLE_VIEW, section: "admin" },
   { to: "/subscription", label: "Subscription", permission: PERMISSIONS.SETTINGS_VIEW, roleOnly: "company_admin", section: "admin" },
   { to: "/settings", label: "Settings", permission: PERMISSIONS.SETTINGS_VIEW, section: "admin" },
+  { to: "/appearance", label: "Appearance", roleOnly: "super_admin", section: "admin" },
 ];
 
 function tenantHasModule(modules, tenantModule) {
@@ -90,10 +101,7 @@ function tenantHasModule(modules, tenantModule) {
   return list.some((m) => modules.has(m));
 }
 
-function resolveMenuSection(item, modules) {
-  if (item.altSection && !modules.has("clinic") && modules.has("diagnostics")) {
-    return item.altSection;
-  }
+function resolveMenuSection(item) {
   return item.section || "clinic";
 }
 
@@ -103,10 +111,16 @@ export function isDiagnosticsOnlyDoctor(role, companyModules = null) {
   return role === "doctor" && modules.has("diagnostics") && !modules.has("clinic");
 }
 
+/** Super admin and hospital admin always get the organisation dashboard. */
+export function isAdminRole(role) {
+  return role === "super_admin" || role === "company_admin";
+}
+
 export function filterMenuByPermissions(permissions = [], role, companyModules = null) {
   const set = new Set(permissions);
   const modules = new Set(companyModules || []);
   const isSuperAdmin = role === "super_admin";
+  const adminRole = isAdminRole(role);
   const diagnosticsOnlyDoctor = isDiagnosticsOnlyDoctor(role, companyModules);
   const seen = new Set();
 
@@ -120,7 +134,13 @@ export function filterMenuByPermissions(permissions = [], role, companyModules =
       }
       if (item.roleOnly && item.roleOnly !== role) return false;
       if (item.tenantModule && !isSuperAdmin && !tenantHasModule(modules, item.tenantModule)) return false;
-      if (item.permission && !set.has(item.permission)) return false;
+      if (
+        item.permission &&
+        !set.has(item.permission) &&
+        !(adminRole && item.to === "/" && item.label === "Overview")
+      ) {
+        return false;
+      }
       const key = item.to + item.label;
       if (seen.has(key)) return false;
       seen.add(key);
@@ -128,7 +148,7 @@ export function filterMenuByPermissions(permissions = [], role, companyModules =
     })
     .map((item) => ({
       ...item,
-      section: resolveMenuSection(item, modules),
+      section: resolveMenuSection(item),
     }));
 }
 
@@ -157,6 +177,7 @@ const routeRules = [
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
   { pattern: /^\/doctors\/\d+\/availability$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/roles\/\d+$/, permission: PERMISSIONS.ROLE_VIEW },
+  { pattern: /^\/appearance$/, roleOnly: "super_admin" },
 ];
 
 export function canAccessRoute(permissions = [], role, path, companyModules = null) {
@@ -166,6 +187,10 @@ export function canAccessRoute(permissions = [], role, path, companyModules = nu
 
   if (isDiagnosticsOnlyDoctor(role, companyModules)) {
     return path === "/" || path === "/diagnostics/today";
+  }
+
+  if (isAdminRole(role) && path === "/") {
+    return true;
   }
 
   const set = new Set(permissions);

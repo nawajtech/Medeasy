@@ -287,6 +287,34 @@
                         <td class="num">{{ number_format($adjusted, 2) }}</td>
                     </tr>
                 @endif
+                @if(($taxable ?? $payable) != $payable || !empty($tax['enabled']))
+                    <tr>
+                        <th>Taxable Amount</th>
+                        <td class="num">{{ number_format($taxable ?? $payable, 2) }}</td>
+                    </tr>
+                @endif
+                @if(!empty($tax['enabled']) && ($tax['cgst_amount'] ?? 0) > 0)
+                    <tr>
+                        <th>CGST @ {{ number_format($tax['cgst_rate'], 2) }}%</th>
+                        <td class="num">{{ number_format($tax['cgst_amount'], 2) }}</td>
+                    </tr>
+                    <tr>
+                        <th>SGST @ {{ number_format($tax['sgst_rate'], 2) }}%</th>
+                        <td class="num">{{ number_format($tax['sgst_amount'], 2) }}</td>
+                    </tr>
+                @endif
+                @if(!empty($tax['enabled']) && ($tax['igst_amount'] ?? 0) > 0)
+                    <tr>
+                        <th>IGST @ {{ number_format($tax['igst_rate'], 2) }}%</th>
+                        <td class="num">{{ number_format($tax['igst_amount'], 2) }}</td>
+                    </tr>
+                @endif
+                @if(!empty($tax['enabled']) && ($tax['tax_amount'] ?? 0) > 0)
+                    <tr>
+                        <th>Total Tax</th>
+                        <td class="num">{{ number_format($tax['tax_amount'], 2) }}</td>
+                    </tr>
+                @endif
                 <tr>
                     <th>Payable Amount</th>
                     <td class="num">{{ number_format($payable, 2) }}</td>

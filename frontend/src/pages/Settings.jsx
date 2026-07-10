@@ -231,6 +231,22 @@ function SettingField({ field, formValues, editorRef, onChange, onImageUpload })
     );
   }
 
+  if (field.type === "select") {
+    return (
+      <select
+        id={field.key}
+        value={entry.value}
+        onChange={(e) => onChange(field.key, { value: e.target.value })}
+      >
+        {(field.options || []).map((opt) => (
+          <option key={opt.value} value={opt.value}>
+            {opt.label}
+          </option>
+        ))}
+      </select>
+    );
+  }
+
   return (
     <input
       id={field.key}

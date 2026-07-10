@@ -8,6 +8,7 @@ import {
   updateBilling,
 } from "../api/billings";
 import { getPatients } from "../api/patients";
+import { formatCurrency } from "../config/currency";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -186,7 +187,7 @@ function Billing() {
               <tr key={row.id}>
                 <td>{row.invoice_number}</td>
                 <td>{row.patient?.name || "—"}</td>
-                <td>${Number(row.amount).toFixed(2)}</td>
+                <td>{formatCurrency(row.amount, { decimals: 2 })}</td>
                 <td>
                   <span
                     className={`crud-badge ${

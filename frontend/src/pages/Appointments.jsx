@@ -22,6 +22,7 @@ import PrescriptionEntryModal from "../components/prescription/PrescriptionEntry
 import "../components/prescription/PrescriptionEntry.css";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { formatCurrency } from "../config/currency";
 import "./Appointments.css";
 
 const STATUS_OPTIONS = [
@@ -675,11 +676,11 @@ function Appointments() {
                             : "appt-pay-due appt-pay-due--clear"
                         }
                       >
-                        ${Number(b?.due_amount || 0).toFixed(2)} due
+                        {formatCurrency(b?.due_amount, { decimals: 2 })} due
                       </strong>
                       <span className="appt-pay-meta">
-                        Paid ${Number(b?.paid_amount || 0).toFixed(2)} / $
-                        {Number(b?.total_amount || 0).toFixed(2)}
+                        Paid {formatCurrency(b?.paid_amount, { decimals: 2 })} /{" "}
+                        {formatCurrency(b?.total_amount, { decimals: 2 })}
                       </span>
                       <button
                         type="button"
@@ -892,23 +893,23 @@ function Appointments() {
           {payError && <div className="crud-alert crud-alert--error">{payError}</div>}
           <div className="billing-summary-box">
             <p>
-              <strong>Previous due</strong>: ${Number(payForm.previous_due || 0).toFixed(2)}
+              <strong>Previous due</strong>: {formatCurrency(payForm.previous_due, { decimals: 2 })}
             </p>
             <p>
-              <strong>+ Doctor charge</strong>: ${Number(payForm.charge_amount || 0).toFixed(2)}
+              <strong>+ Doctor charge</strong>: {formatCurrency(payForm.charge_amount, { decimals: 2 })}
               {payDoctor && (
                 <span className="field-hint">
                   {" "}
-                  (fee: ${Number(payDoctor.consultation_fee || 0).toFixed(2)})
+                  (fee: {formatCurrency(payDoctor.consultation_fee, { decimals: 2 })})
                 </span>
               )}
             </p>
             <p>
-              <strong>= Total payable</strong>: ${payTotals.total.toFixed(2)}
+              <strong>= Total payable</strong>: {formatCurrency(payTotals.total, { decimals: 2 })}
             </p>
             <p className="billing-summary-due">
-              <strong>− Paid now</strong> → <strong>Balance due</strong>: $
-              {payTotals.balanceDue.toFixed(2)}
+              <strong>− Paid now</strong> → <strong>Balance due</strong>:{" "}
+              {formatCurrency(payTotals.balanceDue, { decimals: 2 })}
             </p>
           </div>
           <div className="crud-form-grid">
@@ -956,7 +957,7 @@ function Appointments() {
                 type="text"
                 readOnly
                 className="readonly-total"
-                value={`$${payTotals.balanceDue.toFixed(2)}`}
+                value={formatCurrency(payTotals.balanceDue, { decimals: 2 })}
               />
             </div>
             <div className="crud-field">
@@ -1197,22 +1198,22 @@ function Appointments() {
               <div className="billing-summary-box">
                 <p>
                   <strong>Previous due</strong> (from last visit):{" "}
-                  {loadingBalance ? "…" : `$${Number(form.previous_due || 0).toFixed(2)}`}
+                  {loadingBalance ? "…" : formatCurrency(form.previous_due, { decimals: 2 })}
                 </p>
                 <p>
-                  <strong>+ Doctor charge</strong>: ${Number(form.charge_amount || 0).toFixed(2)}
+                  <strong>+ Doctor charge</strong>: {formatCurrency(form.charge_amount, { decimals: 2 })}
                   {selectedDoctor && (
                     <span className="field-hint">
                       {" "}
-                      (fee: ${Number(selectedDoctor.consultation_fee || 0).toFixed(2)})
+                      (fee: {formatCurrency(selectedDoctor.consultation_fee, { decimals: 2 })})
                     </span>
                   )}
                 </p>
                 <p>
-                  <strong>= Total payable</strong>: ${total.toFixed(2)}
+                  <strong>= Total payable</strong>: {formatCurrency(total, { decimals: 2 })}
                 </p>
                 <p className="billing-summary-due">
-                  <strong>− Paid now</strong> → <strong>Balance due</strong>: ${balanceDue.toFixed(2)}
+                  <strong>− Paid now</strong> → <strong>Balance due</strong>: {formatCurrency(balanceDue, { decimals: 2 })}
                 </p>
               </div>
 
@@ -1263,7 +1264,7 @@ function Appointments() {
                     type="text"
                     readOnly
                     className="readonly-total"
-                    value={`$${balanceDue.toFixed(2)}`}
+                    value={formatCurrency(balanceDue, { decimals: 2 })}
                   />
                 </div>
                 <div className="crud-field">

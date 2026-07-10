@@ -10,6 +10,8 @@ use App\Models\PlanLimit;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Services\SubscriptionService;
+use App\Services\TaxSettingsService;
+use App\Support\TaxCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -49,10 +51,33 @@ class AdminPlanController extends Controller
         return response()->json(['plans' => $plans]);
     }
 
-    public function store(Request $request): JsonResponse
+    public function subscriptionTax(TaxSettingsService $taxSettings): JsonResponse
+    {
+        return response()->json($taxSettings->subscriptionTaxPayload());
+    }
+
+    public function updateSubscriptionTax(Request $request, TaxSettingsService $taxSettings): JsonResponse
+    {
+        $validated = $request->validate([
+            'enabled' => ['required', 'boolean'],
+            'mode' => ['required', Rule::in([TaxCalculator::MODE_CGST_SGST, TaxCalculator::MODE_IGST])],
+            'rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'inclusive' => ['required', 'boolean'],
+        ]);
+
+        $payload = $taxSettings->savePlatformSubscriptionTax($validated, $request->user()?->id);
+
+        return response()->json([
+            'message' => 'Platform subscription tax saved.',
+            'tax' => $payload,
+        ]);
+    }
+
+    public function store(Request $request, TaxSettingsService $taxSettings): JsonResponse
     {
         $data = $this->validatePlan($request);
         $data['code'] = $data['code'] ?? Str::slug($data['name'], '_');
+        $data = array_merge($taxSettings->defaultPlanTax(), $data);
 
         $plan = Plan::create($data);
         $this->syncFeatures($plan, $request->input('features', []));
@@ -183,6 +208,10 @@ class AdminPlanController extends Controller
             'trial_days' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in([Plan::STATUS_ACTIVE, Plan::STATUS_INACTIVE])],
             'display_order' => ['required', 'integer', 'min:0'],
+            'tax_enabled' => ['required', 'boolean'],
+            'tax_mode' => ['required', Rule::in([TaxCalculator::MODE_CGST_SGST, TaxCalculator::MODE_IGST])],
+            'tax_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'tax_inclusive' => ['required', 'boolean'],
             'features' => ['nullable', 'array'],
             'features.*' => ['integer', 'exists:features,id'],
             'limits' => ['nullable', 'array'],
@@ -233,6 +262,10 @@ class AdminPlanController extends Controller
             'monthly_price_final' => $plan->discountedAmount('monthly'),
             'yearly_price_final' => $plan->discountedAmount('yearly'),
             'currency' => $plan->currency,
+            'tax_enabled' => (bool) $plan->tax_enabled,
+            'tax_mode' => $plan->tax_mode,
+            'tax_rate' => (float) $plan->tax_rate,
+            'tax_inclusive' => (bool) $plan->tax_inclusive,
             'trial_days' => $plan->trial_days,
             'status' => $plan->status,
             'display_order' => $plan->display_order,

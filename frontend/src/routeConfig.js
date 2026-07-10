@@ -59,6 +59,11 @@ export const routeMeta = {
     breadcrumb: "Settings",
     description: "Manage organisation and account settings.",
   },
+  "/appearance": {
+    title: "Theme Settings",
+    breadcrumb: "Appearance",
+    description: "Customize the platform-wide color palette applied across the app.",
+  },
   "/subscription": {
     title: "Subscription",
     breadcrumb: "Subscription",

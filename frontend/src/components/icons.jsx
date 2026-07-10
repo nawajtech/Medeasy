@@ -257,3 +257,39 @@ export function IconPill({ size = 20 }) {
     </svg>
   );
 }
+
+export function IconReferral({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="6" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="18" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="18" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.75" />
+      <path d="M8.2 10.8l7.6-3.6M8.2 13.2l7.6 3.6" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+export function IconLayers({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 3l9 5-9 5-9-5 9-5Z" stroke="currentColor" strokeWidth="1.75" strokeLinejoin="round" />
+      <path d="M3 12l9 5 9-5M3 16l9 5 9-5" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+export function IconPalette({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M12 3a9 9 0 1 0 0 18c1.6 0 2.2-1.2 1.4-2.3-.7-1 .1-2.2 1.3-2.2H16a5 5 0 0 0 5-5c0-4.4-4-8.5-9-8.5Z"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <circle cx="7.5" cy="12" r="1.05" fill="currentColor" />
+      <circle cx="9.5" cy="8" r="1.05" fill="currentColor" />
+      <circle cx="14" cy="7.5" r="1.05" fill="currentColor" />
+    </svg>
+  );
+}

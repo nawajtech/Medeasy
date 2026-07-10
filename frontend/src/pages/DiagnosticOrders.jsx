@@ -17,6 +17,8 @@ import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { applyTax } from "../utils/tax";
+import { getTaxSettings } from "../api/tax";
 import "./DiagnosticOrders.css";
 import "./Referrals.css";
 
@@ -50,6 +52,15 @@ function money(n) {
 function PaymentBadge({ status }) {
   const meta = PAYMENT_STATUS_META[status] || { label: status || "—", color: "" };
   return <span className={`dgn-pay-badge ${meta.color}`}>{meta.label}</span>;
+}
+
+function orderPayable(order) {
+  return Number(order?.grand_total ?? order?.net_amount ?? order?.amount ?? 0);
+}
+
+function withTax(bill, taxSettings) {
+  const tax = applyTax(bill.net ?? 0, taxSettings);
+  return { ...bill, ...tax };
 }
 
 function extraCommissionAmount(gross, partner) {
@@ -152,6 +163,22 @@ function DiagnosticOrders() {
   const [refundOpen, setRefundOpen] = useState(false);
   const [refundPayment, setRefundPayment] = useState(null);
   const [refundForm, setRefundForm] = useState({ amount: "", refund_method: "wallet", reference: "", notes: "" });
+  const [taxSettings, setTaxSettings] = useState({
+    enabled: false,
+    mode: "cgst_sgst",
+    rate: 0,
+    inclusive: false,
+  });
+
+  const loadTaxSettings = useCallback(async (companyId = "") => {
+    try {
+      const params = companyId ? { company_id: companyId } : {};
+      const { data } = await getTaxSettings(params);
+      setTaxSettings(data);
+    } catch {
+      setTaxSettings({ enabled: false, mode: "cgst_sgst", rate: 0, inclusive: false });
+    }
+  }, []);
 
   const loadDoctors = useCallback(async (companyId = "") => {
     try {
@@ -185,29 +212,40 @@ function DiagnosticOrders() {
   );
 
   const billPreview = useMemo(() => {
+    let base;
     if (orderForm.booking_type === "package" && selectedPackage) {
-      return calcPackageBill(
+      base = calcPackageBill(
         packageTests,
         selectedPackage.offer_percentage,
         selectedPartner,
         orderForm.deduct_commission_from_bill
       );
+    } else {
+      base = calcReferralBill(
+        selectedTest?.price,
+        selectedTest?.referral_commission,
+        selectedPartner,
+        orderForm.deduct_commission_from_bill
+      );
     }
-    return calcReferralBill(
-      selectedTest?.price,
-      selectedTest?.referral_commission,
-      selectedPartner,
-      orderForm.deduct_commission_from_bill
-    );
-  }, [orderForm.booking_type, selectedPackage, packageTests, selectedTest, selectedPartner, orderForm.deduct_commission_from_bill]);
+    return withTax(base, taxSettings);
+  }, [
+    orderForm.booking_type,
+    selectedPackage,
+    packageTests,
+    selectedTest,
+    selectedPartner,
+    orderForm.deduct_commission_from_bill,
+    taxSettings,
+  ]);
 
   const billNet = billPreview.net ?? 0;
+  const billGrand = billPreview.grand_total ?? billNet;
 
   const createDuePreview = useMemo(() => {
-    const net = billNet;
-    const paid = Math.min(net, Math.max(0, Number(orderForm.paid_amount) || 0));
-    return Math.max(0, Math.round((net - paid) * 100) / 100);
-  }, [billNet, orderForm.paid_amount]);
+    const paid = Math.min(billGrand, Math.max(0, Number(orderForm.paid_amount) || 0));
+    return Math.max(0, Math.round((billGrand - paid) * 100) / 100);
+  }, [billGrand, orderForm.paid_amount]);
 
   const loadReferralPartners = useCallback(async (companyId = "") => {
     try {
@@ -315,7 +353,7 @@ function DiagnosticOrders() {
       paid_amount: "", payment_method: "cash",
     });
     setCreateOpen(true);
-    await Promise.allSettled([loadCreatePatients(""), loadCatalog(), loadDoctors(), loadReferralPartners()]);
+    await Promise.allSettled([loadCreatePatients(""), loadCatalog(), loadDoctors(), loadReferralPartners(), loadTaxSettings()]);
   };
 
   const handleOrderCompanyChange = async (e) => {
@@ -333,7 +371,13 @@ function DiagnosticOrders() {
       deduct_commission_from_bill: false,
     }));
     setPatients([]);
-    await Promise.allSettled([loadCreatePatients(cid), loadCatalog(cid), loadDoctors(cid), loadReferralPartners(cid)]);
+    await Promise.allSettled([
+      loadCreatePatients(cid),
+      loadCatalog(cid),
+      loadDoctors(cid),
+      loadReferralPartners(cid),
+      loadTaxSettings(cid),
+    ]);
   };
 
   const handleBookingTypeChange = (bookingType) => {
@@ -356,14 +400,15 @@ function DiagnosticOrders() {
       const doctorStillValid = mapped.length
         ? mapped.some((d) => String(d.id) === String(p.doctor_id))
         : doctors.some((d) => String(d.id) === String(p.doctor_id));
-      const net = test
-        ? calcReferralBill(test.price, test.referral_commission, partner, p.deduct_commission_from_bill).net
-        : 0;
+      const base = test
+        ? calcReferralBill(test.price, test.referral_commission, partner, p.deduct_commission_from_bill)
+        : { net: 0 };
+      const grand = withTax(base, taxSettings).grand_total;
       return {
         ...p,
         test_type_id: testTypeId,
         doctor_id: doctorStillValid ? p.doctor_id : "",
-        paid_amount: test ? String(net) : "",
+        paid_amount: test ? String(grand) : "",
       };
     });
   };
@@ -373,14 +418,15 @@ function DiagnosticOrders() {
     const pkg = packages.find((p) => p.id === Number(packageId));
     const tests = (pkg?.test_ids || []).map((id) => types.find((t) => t.id === Number(id))).filter(Boolean);
     const partner = referralPartners.find((r) => r.id === Number(orderForm.referral_partner_id));
-    const net = pkg
-      ? calcPackageBill(tests, pkg.offer_percentage, partner, orderForm.deduct_commission_from_bill).net
-      : 0;
+    const base = pkg
+      ? calcPackageBill(tests, pkg.offer_percentage, partner, orderForm.deduct_commission_from_bill)
+      : { net: 0 };
+    const grand = withTax(base, taxSettings).grand_total;
     setOrderForm((p) => ({
       ...p,
       package_id: packageId,
       doctor_id: "",
-      paid_amount: pkg ? String(net) : "",
+      paid_amount: pkg ? String(grand) : "",
     }));
   };
 
@@ -681,7 +727,7 @@ function DiagnosticOrders() {
                     <div className="company-modules-hint">Package: {order.package?.package_name || `#${order.package_id}`}</div>
                   )}
                 </td>
-                <td>{money(order.net_amount ?? order.amount)}</td>
+                <td>{money(orderPayable(order))}</td>
                 <td>{money(order.paid_amount)}</td>
                 <td className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(order.due_amount)}</td>
                 <td><PaymentBadge status={order.payment_status} /></td>
@@ -917,10 +963,36 @@ function DiagnosticOrders() {
                       Patient pays full amount — commission recorded for partner payout.
                     </p>
                   )}
+                  {billPreview.tax_enabled && (
+                    <>
+                      <div className="lo-bill-row">
+                        <span>Taxable amount</span>
+                        <span>₹{(billPreview.taxable_amount ?? billNet).toLocaleString("en-IN")}</span>
+                      </div>
+                      {billPreview.cgst_amount > 0 && (
+                        <div className="lo-bill-row">
+                          <span>CGST @ {billPreview.cgst_rate}%</span>
+                          <span>₹{billPreview.cgst_amount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                      {billPreview.sgst_amount > 0 && (
+                        <div className="lo-bill-row">
+                          <span>SGST @ {billPreview.sgst_rate}%</span>
+                          <span>₹{billPreview.sgst_amount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                      {billPreview.igst_amount > 0 && (
+                        <div className="lo-bill-row">
+                          <span>IGST @ {billPreview.igst_rate}%</span>
+                          <span>₹{billPreview.igst_amount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                    </>
+                  )}
                   <div className="lo-bill-divider" />
                   <div className="lo-bill-row lo-bill-net">
                     <span>Final payable</span>
-                    <span>₹{billNet.toLocaleString("en-IN")}</span>
+                    <span>₹{billGrand.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="lo-bill-divider" />
                   <div className="lo-bill-row">
@@ -948,7 +1020,7 @@ function DiagnosticOrders() {
                     type="number"
                     min="0"
                     step="0.01"
-                    max={billNet}
+                    max={billGrand}
                     value={orderForm.paid_amount}
                     onChange={(e) => setOrderForm((p) => ({ ...p, paid_amount: e.target.value }))}
                     placeholder="0 for full due later"
@@ -1044,7 +1116,24 @@ function DiagnosticOrders() {
               {Number(detailOrder.referral_commission_amount) > 0 && (
                 <div><dt>Total partner commission</dt><dd>₹{Number(detailOrder.referral_commission_amount).toLocaleString("en-IN")}</dd></div>
               )}
-              <div><dt>Final payable</dt><dd><strong>{money(detailOrder.net_amount ?? detailOrder.amount)}</strong></dd></div>
+              {detailOrder.tax_enabled && (
+                <>
+                  <div><dt>Taxable amount</dt><dd>{money(detailOrder.taxable_amount ?? detailOrder.net_amount)}</dd></div>
+                  {Number(detailOrder.cgst_amount) > 0 && (
+                    <div><dt>CGST @ {detailOrder.cgst_rate}%</dt><dd>{money(detailOrder.cgst_amount)}</dd></div>
+                  )}
+                  {Number(detailOrder.sgst_amount) > 0 && (
+                    <div><dt>SGST @ {detailOrder.sgst_rate}%</dt><dd>{money(detailOrder.sgst_amount)}</dd></div>
+                  )}
+                  {Number(detailOrder.igst_amount) > 0 && (
+                    <div><dt>IGST @ {detailOrder.igst_rate}%</dt><dd>{money(detailOrder.igst_amount)}</dd></div>
+                  )}
+                  {Number(detailOrder.tax_amount) > 0 && (
+                    <div><dt>Total tax</dt><dd>{money(detailOrder.tax_amount)}</dd></div>
+                  )}
+                </>
+              )}
+              <div><dt>Final payable</dt><dd><strong>{money(orderPayable(detailOrder))}</strong></dd></div>
               <div><dt>Paid</dt><dd>{money(detailOrder.paid_amount)}</dd></div>
               <div><dt>Due</dt><dd><strong className={Number(detailOrder.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(detailOrder.due_amount)}</strong></dd></div>
               <div><dt>Payment status</dt><dd><PaymentBadge status={detailOrder.payment_status} /></dd></div>
@@ -1131,7 +1220,7 @@ function DiagnosticOrders() {
         {paymentOrder && (
           <form onSubmit={handleRecordPayment}>
             <div className="dgn-payment-summary">
-              <span>Payable: <strong>{money(paymentOrder.net_amount ?? paymentOrder.amount)}</strong></span>
+              <span>Payable: <strong>{money(orderPayable(paymentOrder))}</strong></span>
               <span>Paid: <strong>{money(paymentOrder.paid_amount)}</strong></span>
               <span>Due: <strong className="dgn-due-cell">{money(paymentOrder.due_amount)}</strong></span>
               {walletBalance(paymentOrder) > 0 && (
