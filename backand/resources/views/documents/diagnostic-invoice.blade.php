@@ -275,6 +275,12 @@
                     <th>Total Amount</th>
                     <td class="num">{{ number_format($gross, 2) }}</td>
                 </tr>
+                @if(($packageAdjusted ?? 0) > 0)
+                    <tr>
+                        <th>Package discount{{ !empty($packageName) ? ' ('.$packageName.')' : '' }}</th>
+                        <td class="num">−{{ number_format($packageAdjusted, 2) }}</td>
+                    </tr>
+                @endif
                 @if($adjusted > 0)
                     <tr>
                         <th>Adjusted Amount</th>

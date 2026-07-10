@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
+use App\Models\Plan;
 use App\Services\CompanyProvisioningService;
 use App\Services\TenantRoleProvisioningService;
 use Illuminate\Http\JsonResponse;
@@ -30,12 +31,20 @@ class CompanyController extends Controller
         $data = $this->normalizeModulesPayload($data);
         $data = $this->handleLogo($request, $data, null);
 
+        $plan = null;
+        if ($request->filled('plan_id')) {
+            $plan = Plan::query()
+                ->where('id', $request->integer('plan_id'))
+                ->where('status', Plan::STATUS_ACTIVE)
+                ->firstOrFail();
+        }
+
         $company = $provisioning->provision($data, [
             'name' => $adminData['admin_name'],
             'email' => $adminData['admin_email'],
             'password' => $adminData['admin_password'],
             'phone' => $adminData['admin_phone'] ?? null,
-        ]);
+        ], $plan);
 
         return response()->json([
             'message' => 'Organization and primary administrator created successfully.',
@@ -167,6 +176,7 @@ class CompanyController extends Controller
             'currency'            => ['required', Rule::in(['INR', 'USD', 'EUR', 'GBP'])],
             'description'         => ['nullable', 'string', 'max:2000'],
             'is_active'           => ['boolean'],
+            'plan_id'             => ['nullable', 'integer', 'exists:plans,id'],
         ];
     }
 

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\SubscriptionService;
 use App\Services\UserRoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -120,7 +121,7 @@ class AuthController extends Controller
 
     private function userPayload(User $user): array
     {
-        return [
+        $payload = [
             'id' => $user->id,
             'name' => $user->name,
             'email' => $user->email,
@@ -134,5 +135,12 @@ class AuthController extends Controller
             'doctor_id' => $user->doctor?->id,
             'doctor' => $user->doctor,
         ];
+
+        if ($user->company) {
+            $payload['subscription'] = app(SubscriptionService::class)
+                ->subscriptionSummary($user->company);
+        }
+
+        return $payload;
     }
 }

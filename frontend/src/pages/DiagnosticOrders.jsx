@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getDiagnosticCategories,
-  getDiagnosticTypes, getDiagnosticOrders, getDiagnosticOrder,
+  getDiagnosticTypes, getDiagnosticPackages, getDiagnosticOrders, getDiagnosticOrder,
   createDiagnosticOrder, scheduleDiagnosticOrder, startDiagnosticOrder,
   approveDiagnosticReport, cancelDiagnosticOrder, openDiagnosticInvoice,
   saveDiagnosticPrescription, openDiagnosticPrescription, recordDiagnosticPayment, processDiagnosticRefund,
@@ -71,6 +71,30 @@ function calcReferralBill(gross, testCommission, partner, deductCommission) {
   return { grossAmount, normalCommission, extraCommission, totalCommission, discount, net };
 }
 
+function calcPackageTestBill(testPrice, testCommission, offerPercentage, partner, deductCommission) {
+  const gross = Math.max(0, Number(testPrice) || 0);
+  const packageDiscount = Math.round(gross * (Number(offerPercentage) || 0) / 100 * 100) / 100;
+  const discountedGross = Math.max(0, Math.round((gross - packageDiscount) * 100) / 100);
+  const referral = calcReferralBill(discountedGross, testCommission, partner, deductCommission);
+  return { gross, packageDiscount, ...referral };
+}
+
+function calcPackageBill(tests, offerPercentage, partner, deductCommission) {
+  const lines = (tests || []).map((test) => calcPackageTestBill(
+    test.price,
+    test.referral_commission,
+    offerPercentage,
+    partner,
+    deductCommission
+  ));
+  const grossAmount = lines.reduce((sum, line) => sum + line.gross, 0);
+  const packageDiscount = lines.reduce((sum, line) => sum + line.packageDiscount, 0);
+  const referralDiscount = lines.reduce((sum, line) => sum + line.discount, 0);
+  const totalCommission = lines.reduce((sum, line) => sum + line.totalCommission, 0);
+  const net = lines.reduce((sum, line) => sum + line.net, 0);
+  return { lines, grossAmount, packageDiscount, referralDiscount, totalCommission, net };
+}
+
 const STATUS_META = {
   booked:      { label: "Booked",      color: "dgn-booked" },
   scheduled:   { label: "Scheduled",   color: "dgn-scheduled" },
@@ -91,6 +115,7 @@ function DiagnosticOrders() {
   const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -104,7 +129,8 @@ function DiagnosticOrders() {
   const [createOpen, setCreateOpen] = useState(false);
   const [patients, setPatients] = useState([]);
   const [orderForm, setOrderForm] = useState({
-    company_id: "", patient_id: "", branch_id: "", test_type_id: "", doctor_id: "",
+    company_id: "", patient_id: "", branch_id: "", booking_type: "test",
+    test_type_id: "", package_id: "", doctor_id: "",
     referral_partner_id: "", deduct_commission_from_bill: false,
     priority: "routine", clinical_notes: "", notes: "",
     paid_amount: "", payment_method: "cash",
@@ -142,26 +168,46 @@ function DiagnosticOrders() {
     [types, orderForm.test_type_id]
   );
 
+  const selectedPackage = useMemo(
+    () => packages.find((p) => p.id === Number(orderForm.package_id)),
+    [packages, orderForm.package_id]
+  );
+
+  const packageTests = useMemo(() => {
+    if (!selectedPackage) return [];
+    const ids = selectedPackage.test_ids || [];
+    return ids.map((id) => types.find((t) => t.id === Number(id))).filter(Boolean);
+  }, [selectedPackage, types]);
+
   const selectedPartner = useMemo(
     () => referralPartners.find((p) => p.id === Number(orderForm.referral_partner_id)),
     [referralPartners, orderForm.referral_partner_id]
   );
 
-  const billPreview = useMemo(
-    () => calcReferralBill(
+  const billPreview = useMemo(() => {
+    if (orderForm.booking_type === "package" && selectedPackage) {
+      return calcPackageBill(
+        packageTests,
+        selectedPackage.offer_percentage,
+        selectedPartner,
+        orderForm.deduct_commission_from_bill
+      );
+    }
+    return calcReferralBill(
       selectedTest?.price,
       selectedTest?.referral_commission,
       selectedPartner,
       orderForm.deduct_commission_from_bill
-    ),
-    [selectedTest, selectedPartner, orderForm.deduct_commission_from_bill]
-  );
+    );
+  }, [orderForm.booking_type, selectedPackage, packageTests, selectedTest, selectedPartner, orderForm.deduct_commission_from_bill]);
+
+  const billNet = billPreview.net ?? 0;
 
   const createDuePreview = useMemo(() => {
-    const net = billPreview.net;
+    const net = billNet;
     const paid = Math.min(net, Math.max(0, Number(orderForm.paid_amount) || 0));
     return Math.max(0, Math.round((net - paid) * 100) / 100);
-  }, [billPreview.net, orderForm.paid_amount]);
+  }, [billNet, orderForm.paid_amount]);
 
   const loadReferralPartners = useCallback(async (companyId = "") => {
     try {
@@ -173,21 +219,35 @@ function DiagnosticOrders() {
     }
   }, []);
   const orderDoctorOptions = useMemo(() => {
+    if (orderForm.booking_type === "package") {
+      if (!packageTests.length) return doctors;
+      const sets = packageTests.map((test) => {
+        const mapped = test?.doctors || [];
+        return mapped.length ? mapped : doctors;
+      });
+      return sets.reduce(
+        (acc, set) => acc.filter((d) => set.some((x) => x.id === d.id)),
+        sets[0] || doctors
+      );
+    }
     if (!orderForm.test_type_id) return doctors;
     const test = types.find((t) => t.id === Number(orderForm.test_type_id));
     const mapped = test?.doctors || [];
     return mapped.length ? mapped : doctors;
-  }, [orderForm.test_type_id, types, doctors]);
+  }, [orderForm.booking_type, orderForm.test_type_id, packageTests, types, doctors]);
 
   const loadCatalog = useCallback(async (companyId) => {
     const params = companyId ? { company_id: companyId } : {};
-    const [catRes, typeRes] = await Promise.all([
+    const pkgParams = { active_only: true, ...(companyId ? { company_id: companyId } : {}) };
+    const [catRes, typeRes, pkgRes] = await Promise.all([
       getDiagnosticCategories(params),
       getDiagnosticTypes(params),
+      getDiagnosticPackages(pkgParams),
     ]);
     setCategories(catRes.data);
     setTypes(typeRes.data);
-    return { categories: catRes.data, types: typeRes.data };
+    setPackages(pkgRes.data || []);
+    return { categories: catRes.data, types: typeRes.data, packages: pkgRes.data };
   }, []);
 
   const loadOrders = useCallback(async () => {
@@ -248,7 +308,8 @@ function DiagnosticOrders() {
   const openCreate = async () => {
     setPatients([]);
     setOrderForm({
-      company_id: "", patient_id: "", branch_id: "", test_type_id: "", doctor_id: "",
+      company_id: "", patient_id: "", branch_id: "", booking_type: "test",
+      test_type_id: "", package_id: "", doctor_id: "",
       referral_partner_id: "", deduct_commission_from_bill: false,
       priority: "routine", clinical_notes: "", notes: "",
       paid_amount: "", payment_method: "cash",
@@ -264,13 +325,26 @@ function DiagnosticOrders() {
       company_id: cid,
       patient_id: "",
       branch_id: "",
+      booking_type: "test",
       test_type_id: "",
+      package_id: "",
       doctor_id: "",
       referral_partner_id: "",
       deduct_commission_from_bill: false,
     }));
     setPatients([]);
     await Promise.allSettled([loadCreatePatients(cid), loadCatalog(cid), loadDoctors(cid), loadReferralPartners(cid)]);
+  };
+
+  const handleBookingTypeChange = (bookingType) => {
+    setOrderForm((p) => ({
+      ...p,
+      booking_type: bookingType,
+      test_type_id: "",
+      package_id: "",
+      doctor_id: "",
+      paid_amount: "",
+    }));
   };
 
   const handleTestTypeChange = (e) => {
@@ -294,6 +368,22 @@ function DiagnosticOrders() {
     });
   };
 
+  const handlePackageChange = (e) => {
+    const packageId = e.target.value;
+    const pkg = packages.find((p) => p.id === Number(packageId));
+    const tests = (pkg?.test_ids || []).map((id) => types.find((t) => t.id === Number(id))).filter(Boolean);
+    const partner = referralPartners.find((r) => r.id === Number(orderForm.referral_partner_id));
+    const net = pkg
+      ? calcPackageBill(tests, pkg.offer_percentage, partner, orderForm.deduct_commission_from_bill).net
+      : 0;
+    setOrderForm((p) => ({
+      ...p,
+      package_id: packageId,
+      doctor_id: "",
+      paid_amount: pkg ? String(net) : "",
+    }));
+  };
+
   const handleOpenBill = async (order) => {
     setError("");
     try {
@@ -310,15 +400,24 @@ function DiagnosticOrders() {
     try {
       const payload = {
         ...orderForm,
+        test_type_id: orderForm.booking_type === "test" ? orderForm.test_type_id : undefined,
+        package_id: orderForm.booking_type === "package" ? orderForm.package_id : undefined,
         referral_partner_id: orderForm.referral_partner_id || undefined,
         deduct_commission_from_bill: Boolean(orderForm.referral_partner_id && orderForm.deduct_commission_from_bill),
         paid_amount: Number(orderForm.paid_amount) || 0,
         payment_method: Number(orderForm.paid_amount) > 0 ? orderForm.payment_method : undefined,
       };
+      delete payload.booking_type;
       const { data } = await createDiagnosticOrder(payload);
       setCreateOpen(false);
       await loadOrders();
-      await openDiagnosticInvoice(data.id);
+      if (data.orders?.length) {
+        for (const order of data.orders) {
+          await openDiagnosticInvoice(order.id);
+        }
+      } else {
+        await openDiagnosticInvoice(data.id);
+      }
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to create order."));
     } finally {
@@ -576,7 +675,12 @@ function DiagnosticOrders() {
               <tr key={order.id}>
                 <td><strong className="lab-order-num">{order.order_number}</strong></td>
                 <td>{order.patient?.name || "—"}</td>
-                <td><strong>{order.test_type?.name || "—"}</strong></td>
+                <td>
+                  <strong>{order.test_type?.name || "—"}</strong>
+                  {order.package_id && (
+                    <div className="company-modules-hint">Package: {order.package?.package_name || `#${order.package_id}`}</div>
+                  )}
+                </td>
                 <td>{money(order.net_amount ?? order.amount)}</td>
                 <td>{money(order.paid_amount)}</td>
                 <td className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(order.due_amount)}</td>
@@ -621,11 +725,51 @@ function DiagnosticOrders() {
               </select>
             </div>
             <div className="crud-field crud-field--full">
-              <label htmlFor="do_type">Test *</label>
-              <select id="do_type" value={orderForm.test_type_id} onChange={handleTestTypeChange} required>
-                {renderTestSelectOptions()}
-              </select>
+              <label>Booking type</label>
+              <div className="crud-inline-tabs">
+                <button
+                  type="button"
+                  className={`crud-btn crud-btn--sm ${orderForm.booking_type === "test" ? "crud-btn--primary" : "crud-btn--ghost"}`}
+                  onClick={() => handleBookingTypeChange("test")}
+                >
+                  Single test
+                </button>
+                <button
+                  type="button"
+                  className={`crud-btn crud-btn--sm ${orderForm.booking_type === "package" ? "crud-btn--primary" : "crud-btn--ghost"}`}
+                  onClick={() => handleBookingTypeChange("package")}
+                >
+                  Package
+                </button>
+              </div>
             </div>
+            {orderForm.booking_type === "test" ? (
+              <div className="crud-field crud-field--full">
+                <label htmlFor="do_type">Test *</label>
+                <select id="do_type" value={orderForm.test_type_id} onChange={handleTestTypeChange} required>
+                  {renderTestSelectOptions()}
+                </select>
+              </div>
+            ) : (
+              <div className="crud-field crud-field--full">
+                <label htmlFor="do_package">Package *</label>
+                <select id="do_package" value={orderForm.package_id} onChange={handlePackageChange} required>
+                  <option value="">Select package</option>
+                  {packages.filter((p) => p.is_active).map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.package_name}
+                      {Number(p.offer_percentage) > 0 ? ` — ${p.offer_percentage}% off` : ""}
+                      {p.list_price != null ? ` — ${money(p.package_price ?? p.list_price)}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {selectedPackage && packageTests.length > 0 && (
+                  <p className="company-modules-hint">
+                    Includes {packageTests.length} test{packageTests.length !== 1 ? "s" : ""}: {packageTests.map((t) => t.name).join(", ")}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="crud-field crud-field--full">
               <label htmlFor="do_doctor">Doctor</label>
               <select
@@ -641,13 +785,16 @@ function DiagnosticOrders() {
                   </option>
                 ))}
               </select>
-              {orderForm.test_type_id && (() => {
+              {orderForm.booking_type === "test" && orderForm.test_type_id && (() => {
                 const test = types.find((t) => t.id === Number(orderForm.test_type_id));
                 if ((test?.doctors || []).length) {
                   return <p className="company-modules-hint">Only doctors assigned to this test are listed.</p>;
                 }
                 return null;
               })()}
+              {orderForm.booking_type === "package" && packageTests.length > 0 && (
+                <p className="company-modules-hint">Doctor must be assigned to all tests in the package.</p>
+              )}
             </div>
             <div className="crud-field">
               <label>Branch</label>
@@ -695,8 +842,8 @@ function DiagnosticOrders() {
                   </label>
                   {billPreview.totalCommission > 0 && (
                     <p className="ref-bill-note">
-                      Partner commission: ₹{billPreview.normalCommission.toLocaleString("en-IN")} normal
-                      {billPreview.extraCommission > 0 && (
+                      Partner commission: ₹{(billPreview.normalCommission ?? billPreview.totalCommission).toLocaleString("en-IN")} normal
+                      {(billPreview.extraCommission ?? 0) > 0 && (
                         <> + ₹{billPreview.extraCommission.toLocaleString("en-IN")} extra</>
                       )}
                       {" "}= ₹{billPreview.totalCommission.toLocaleString("en-IN")}
@@ -706,23 +853,63 @@ function DiagnosticOrders() {
                 </div>
               </>
             )}
-            {selectedTest && (
+            {(selectedTest || selectedPackage) && (
               <div className="crud-field crud-field--full">
                 <div className="lo-bill-panel">
                   <div className="lo-bill-title">Invoice</div>
-                  <div className="lo-bill-row">
-                    <span>{selectedTest.category?.name} — {selectedTest.name}</span>
-                    <span>₹{billPreview.grossAmount.toLocaleString("en-IN")}</span>
-                  </div>
-                  <div className="lo-bill-divider" />
-                  <div className="lo-bill-row lo-bill-subtotal">
-                    <span>Original total</span>
-                    <span>₹{billPreview.grossAmount.toLocaleString("en-IN")}</span>
-                  </div>
+                  {orderForm.booking_type === "package" && packageTests.length > 0 ? (
+                    <>
+                      {packageTests.map((test, index) => {
+                        const line = billPreview.lines?.[index] || calcPackageTestBill(
+                          test.price,
+                          test.referral_commission,
+                          selectedPackage.offer_percentage,
+                          selectedPartner,
+                          orderForm.deduct_commission_from_bill
+                        );
+                        return (
+                          <div key={test.id} className="lo-bill-row">
+                            <span>
+                              {test.category?.name ? `${test.category.name} — ` : ""}{test.name}
+                              {line.packageDiscount > 0 && (
+                                <small style={{ color: "var(--me-success)", marginLeft: 6 }}>
+                                  −{selectedPackage.offer_percentage}% (−₹{line.packageDiscount.toLocaleString("en-IN")})
+                                </small>
+                              )}
+                            </span>
+                            <span>₹{line.net.toLocaleString("en-IN")}</span>
+                          </div>
+                        );
+                      })}
+                      <div className="lo-bill-divider" />
+                      <div className="lo-bill-row lo-bill-subtotal">
+                        <span>Original total</span>
+                        <span>₹{billPreview.grossAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                      {billPreview.packageDiscount > 0 && (
+                        <div className="lo-bill-row" style={{ color: "var(--me-success)" }}>
+                          <span>Package discount ({selectedPackage.package_name})</span>
+                          <span>−₹{billPreview.packageDiscount.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="lo-bill-row">
+                        <span>{selectedTest.category?.name} — {selectedTest.name}</span>
+                        <span>₹{billPreview.grossAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="lo-bill-divider" />
+                      <div className="lo-bill-row lo-bill-subtotal">
+                        <span>Original total</span>
+                        <span>₹{billPreview.grossAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                    </>
+                  )}
                   {billPreview.discount > 0 && (
                     <div className="lo-bill-row" style={{ color: "var(--me-success)" }}>
                       <span>Referral discount</span>
-                      <span>−₹{billPreview.discount.toLocaleString("en-IN")}</span>
+                      <span>−₹{(billPreview.referralDiscount ?? billPreview.discount).toLocaleString("en-IN")}</span>
                     </div>
                   )}
                   {!orderForm.deduct_commission_from_bill && billPreview.totalCommission > 0 && (
@@ -733,7 +920,7 @@ function DiagnosticOrders() {
                   <div className="lo-bill-divider" />
                   <div className="lo-bill-row lo-bill-net">
                     <span>Final payable</span>
-                    <span>₹{billPreview.net.toLocaleString("en-IN")}</span>
+                    <span>₹{billNet.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="lo-bill-divider" />
                   <div className="lo-bill-row">
@@ -744,10 +931,15 @@ function DiagnosticOrders() {
                     <span>Due after order</span>
                     <span>₹{createDuePreview.toLocaleString("en-IN")}</span>
                   </div>
+                  {orderForm.booking_type === "package" && packageTests.length > 1 && (
+                    <p className="company-modules-hint" style={{ marginTop: 8 }}>
+                      Creates {packageTests.length} separate orders (one per test), linked to this package.
+                    </p>
+                  )}
                 </div>
               </div>
             )}
-            {selectedTest && (
+            {(selectedTest || selectedPackage) && (
               <>
                 <div className="crud-field">
                   <label htmlFor="do_paid">Paid amount (₹)</label>
@@ -756,7 +948,7 @@ function DiagnosticOrders() {
                     type="number"
                     min="0"
                     step="0.01"
-                    max={billPreview.net}
+                    max={billNet}
                     value={orderForm.paid_amount}
                     onChange={(e) => setOrderForm((p) => ({ ...p, paid_amount: e.target.value }))}
                     placeholder="0 for full due later"
@@ -829,6 +1021,9 @@ function DiagnosticOrders() {
               <div><dt>Doctor</dt><dd>{detailOrder.doctor?.user?.name || "—"}</dd></div>
               <div><dt>Category</dt><dd>{detailOrder.test_type?.category?.name || "—"}</dd></div>
               <div><dt>Test</dt><dd>{detailOrder.test_type?.name || "—"}</dd></div>
+              {detailOrder.package_id && (
+                <div><dt>Package</dt><dd>{detailOrder.package?.package_name || `#${detailOrder.package_id}`}</dd></div>
+              )}
               <div><dt>Status</dt><dd><StatusBadge status={detailOrder.status} /></dd></div>
               {detailOrder.referral_partner_name && (
                 <>
@@ -837,6 +1032,9 @@ function DiagnosticOrders() {
                 </>
               )}
               <div><dt>Original total</dt><dd>₹{Number(detailOrder.gross_amount ?? detailOrder.amount ?? 0).toLocaleString("en-IN")}</dd></div>
+              {Number(detailOrder.package_discount) > 0 && (
+                <div><dt>Package discount</dt><dd>−₹{Number(detailOrder.package_discount).toLocaleString("en-IN")}</dd></div>
+              )}
               {Number(detailOrder.referral_discount) > 0 && (
                 <div><dt>Referral discount</dt><dd>−₹{Number(detailOrder.referral_discount).toLocaleString("en-IN")}</dd></div>
               )}

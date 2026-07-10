@@ -14,6 +14,16 @@ export const routeMeta = {
     breadcrumb: "Companies",
     description: "Manage clinic organizations and branches (Apollo, Riyaj, etc.).",
   },
+  "/plans": {
+    title: "Subscription Plans",
+    breadcrumb: "Plans",
+    description: "Create and manage master subscription plans, pricing, features, and limits.",
+  },
+  "/admin/subscriptions": {
+    title: "Company Subscriptions",
+    breadcrumb: "Subscriptions",
+    description: "View and assign subscription plans to organizations.",
+  },
   "/departments": {
     title: "Departments",
     breadcrumb: "Departments",
@@ -48,6 +58,11 @@ export const routeMeta = {
     title: "Settings",
     breadcrumb: "Settings",
     description: "Manage organisation and account settings.",
+  },
+  "/subscription": {
+    title: "Subscription",
+    breadcrumb: "Subscription",
+    description: "View your organization's plan, features, limits, and billing period.",
   },
   "/pharmacy/medicines": {
     title: "Medicine Master",

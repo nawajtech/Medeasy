@@ -2,29 +2,51 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   getDiagnosticCategories, createDiagnosticCategory, updateDiagnosticCategory, deleteDiagnosticCategory,
   getDiagnosticTypes, createDiagnosticType, updateDiagnosticType, deleteDiagnosticType,
+  getDiagnosticPackages, createDiagnosticPackage, updateDiagnosticPackage, deleteDiagnosticPackage,
 } from "../api/diagnostics";
 import { getDoctors } from "../api/doctors";
 import Modal from "../components/crud/Modal";
 import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
-import { getApiErrorMessage } from "../utils/apiError";
+import { getApiErrorMessage, getApiFieldErrors } from "../utils/apiError";
 import { withCompanyScope } from "../utils/tenantPayload";
 import "./DiagnosticOrders.css";
+import "./LabTests.css";
 
-const CATALOG_TABS = ["Categories", "Tests"];
+const CATALOG_TABS = ["Categories", "Test Master", "Packages"];
 
 const emptyCategory = { company_id: "", name: "", description: "", sort_order: 0, is_active: true };
 const emptyTest = {
   company_id: "", category_id: "", name: "", code: "", price: "", referral_commission: "", doctor_commission: "",
   description: "", preparation_instructions: "", is_active: true, doctor_ids: [],
 };
+const emptyPackage = {
+  company_id: "", package_name: "", description: "", offer_percentage: "", is_active: true, test_ids: [],
+};
+
+function formatCurrency(value) {
+  return `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+}
+
+function packagePricing(tests, offerPercentage) {
+  const listPrice = tests.reduce((sum, test) => sum + Number(test.price || 0), 0);
+  const discount = listPrice * (Number(offerPercentage || 0) / 100);
+  const packagePrice = Math.max(0, listPrice - discount);
+
+  return {
+    listPrice: Number(listPrice.toFixed(2)),
+    packagePrice: Number(packagePrice.toFixed(2)),
+    savings: Number(discount.toFixed(2)),
+  };
+}
 
 function DiagnosticCatalog() {
   const { isSuperAdmin } = useAuth();
   const [tab, setTab] = useState("Categories");
   const [categories, setCategories] = useState([]);
   const [types, setTypes] = useState([]);
+  const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
@@ -37,6 +59,12 @@ function DiagnosticCatalog() {
   const [editingTest, setEditingTest] = useState(null);
   const [testForm, setTestForm] = useState(emptyTest);
   const [doctors, setDoctors] = useState([]);
+
+  const [packageModalOpen, setPackageModalOpen] = useState(false);
+  const [editingPackage, setEditingPackage] = useState(null);
+  const [packageForm, setPackageForm] = useState(emptyPackage);
+  const [packageError, setPackageError] = useState("");
+  const [packageFieldErrors, setPackageFieldErrors] = useState({});
 
   const loadDoctors = useCallback(async (companyId = "") => {
     try {
@@ -52,12 +80,14 @@ function DiagnosticCatalog() {
     setLoading(true);
     setError("");
     try {
-      const [catRes, typeRes] = await Promise.all([
+      const [catRes, typeRes, pkgRes] = await Promise.all([
         getDiagnosticCategories(),
         getDiagnosticTypes(),
+        getDiagnosticPackages(),
       ]);
       setCategories(catRes.data);
       setTypes(typeRes.data);
+      setPackages(pkgRes.data);
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to load diagnostic catalog."));
     } finally {
@@ -95,6 +125,22 @@ function DiagnosticCatalog() {
     () => categories.filter((c) => c.is_active),
     [categories]
   );
+
+  const activeTests = useMemo(
+    () => types.filter((t) => t.is_active),
+    [types]
+  );
+
+  const packagePreview = useMemo(() => {
+    const selectedTests = activeTests.filter((test) => (packageForm.test_ids || []).includes(test.id));
+    return packagePricing(selectedTests, packageForm.offer_percentage);
+  }, [activeTests, packageForm.offer_percentage, packageForm.test_ids]);
+
+  const tabCount = (label) => {
+    if (label === "Categories") return categories.length;
+    if (label === "Test Master") return types.length;
+    return packages.length;
+  };
 
   const openCategoryCreate = () => {
     setEditingCategory(null);
@@ -216,11 +262,107 @@ function DiagnosticCatalog() {
     }
   };
 
+  const openPackageCreate = () => {
+    setEditingPackage(null);
+    setPackageForm(emptyPackage);
+    setPackageError("");
+    setPackageFieldErrors({});
+    setPackageModalOpen(true);
+  };
+
+  const openPackageEdit = (row) => {
+    setEditingPackage(row);
+    setPackageForm({
+      company_id: String(row.company_id || ""),
+      package_name: row.package_name || "",
+      description: row.description || "",
+      offer_percentage: row.offer_percentage ?? "",
+      is_active: Boolean(row.is_active),
+      test_ids: (row.tests || []).map((test) => test.id),
+    });
+    setPackageError("");
+    setPackageFieldErrors({});
+    setPackageModalOpen(true);
+  };
+
+  const togglePackageTest = (testId) => {
+    setPackageForm((prev) => {
+      const ids = prev.test_ids.includes(testId)
+        ? prev.test_ids.filter((id) => id !== testId)
+        : [...prev.test_ids, testId];
+      return { ...prev, test_ids: ids };
+    });
+  };
+
+  const validatePackageForm = () => {
+    const fieldErrors = {};
+
+    if (isSuperAdmin && !packageForm.company_id) {
+      fieldErrors.company_id = "Organization is required.";
+    }
+
+    if (!packageForm.package_name?.trim()) {
+      fieldErrors.package_name = "Package name is required.";
+    }
+
+    if ((packageForm.test_ids || []).length === 0) {
+      fieldErrors.test_ids = "Select at least one test for this package.";
+    }
+
+    if (packageForm.offer_percentage !== "" && packageForm.offer_percentage != null) {
+      const offer = Number(packageForm.offer_percentage);
+      if (Number.isNaN(offer) || offer < 0 || offer > 100) {
+        fieldErrors.offer_percentage = "Offer percentage must be between 0 and 100.";
+      }
+    }
+
+    return fieldErrors;
+  };
+
+  const handlePackageSave = async (e) => {
+    e.preventDefault();
+    const fieldErrors = validatePackageForm();
+    if (Object.keys(fieldErrors).length) {
+      setPackageFieldErrors(fieldErrors);
+      setPackageError("Please fix the highlighted fields.");
+      return;
+    }
+
+    setSaving(true);
+    setPackageError("");
+    setPackageFieldErrors({});
+    try {
+      const payload = withCompanyScope(packageForm, isSuperAdmin);
+      if (editingPackage) {
+        await updateDiagnosticPackage(editingPackage.id, payload);
+      } else {
+        await createDiagnosticPackage(payload);
+      }
+      setPackageModalOpen(false);
+      await loadCatalog();
+    } catch (err) {
+      setPackageFieldErrors(getApiFieldErrors(err));
+      setPackageError(getApiErrorMessage(err, "Failed to save package."));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePackageDelete = async (row) => {
+    if (!window.confirm(`Delete package "${row.package_name}"?`)) return;
+    try {
+      await deleteDiagnosticPackage(row.id);
+      await loadCatalog();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to delete package."));
+    }
+  };
+
   return (
     <section className="page-card dgn-page">
       <div className="page-card-header">
         <h2>Diagnostic Catalog</h2>
-        <p>Set up categories first (e.g. Homeopathy), then add tests under each category (e.g. Blood Test).</p>
+        <p>Set up categories first, add tests in Test Master, then bundle multiple tests into packages with offer pricing.</p>
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
@@ -229,9 +371,7 @@ function DiagnosticCatalog() {
         {CATALOG_TABS.map((t) => (
           <button key={t} type="button" className={`lab-tab ${tab === t ? "is-active" : ""}`} onClick={() => setTab(t)}>
             {t}
-            <span className="lab-tab-count">
-              {t === "Categories" ? categories.length : types.length}
-            </span>
+            <span className="lab-tab-count">{tabCount(t)}</span>
           </button>
         ))}
       </div>
@@ -269,7 +409,7 @@ function DiagnosticCatalog() {
         </>
       )}
 
-      {tab === "Tests" && (
+      {tab === "Test Master" && (
         <>
           <div className="crud-toolbar">
             <span>{loading ? "Loading…" : `${types.length} test(s)`}</span>
@@ -299,9 +439,9 @@ function DiagnosticCatalog() {
                               ? (t.doctors || []).map((d) => d.user?.name || `Doctor #${d.id}`).join(", ")
                               : "—"}
                           </td>
-                          <td>₹{Number(t.price).toLocaleString("en-IN")}</td>
-                          <td>{Number(t.referral_commission || 0) > 0 ? `₹${Number(t.referral_commission).toLocaleString("en-IN")}` : "—"}</td>
-                          <td>{Number(t.doctor_commission || 0) > 0 ? `₹${Number(t.doctor_commission).toLocaleString("en-IN")}` : "—"}</td>
+                          <td>{formatCurrency(t.price)}</td>
+                          <td>{Number(t.referral_commission || 0) > 0 ? formatCurrency(t.referral_commission) : "—"}</td>
+                          <td>{Number(t.doctor_commission || 0) > 0 ? formatCurrency(t.doctor_commission) : "—"}</td>
                           <td><span className={`crud-badge ${t.is_active ? "crud-badge--active" : "crud-badge--inactive"}`}>{t.is_active ? "Active" : "Inactive"}</span></td>
                           <td>
                             <div className="crud-actions">
@@ -317,6 +457,61 @@ function DiagnosticCatalog() {
               )}
             </div>
           ))}
+        </>
+      )}
+
+      {tab === "Packages" && (
+        <>
+          <div className="crud-toolbar">
+            <span>{loading ? "Loading…" : `${packages.length} package(s)`}</span>
+            <button type="button" className="crud-btn crud-btn--primary" onClick={openPackageCreate} disabled={!activeTests.length}>
+              Add package
+            </button>
+          </div>
+          {!activeTests.length && (
+            <div className="crud-alert">Create at least one active test in Test Master before adding packages.</div>
+          )}
+          <div className="crud-table-wrap">
+            <table className="crud-table">
+              <thead>
+                <tr>
+                  <th>Package name</th>
+                  <th>Tests included</th>
+                  <th>List price</th>
+                  <th>Offer</th>
+                  <th>Package price</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {!loading && packages.length === 0 && (
+                  <tr><td colSpan={7} className="crud-empty">No packages yet. Bundle CT Scan, MRI, X-ray, etc. into one offer.</td></tr>
+                )}
+                {packages.map((row) => (
+                  <tr key={row.id}>
+                    <td><strong>{row.package_name}</strong></td>
+                    <td>{row.tests?.map((test) => test.name).join(", ") || "—"}</td>
+                    <td>{formatCurrency(row.list_price)}</td>
+                    <td>{Number(row.offer_percentage || 0) > 0 ? `${Number(row.offer_percentage)}% off` : "—"}</td>
+                    <td>
+                      <strong>{formatCurrency(row.package_price)}</strong>
+                      {Number(row.savings || 0) > 0 && (
+                        <div className="dgn-cat-desc">Save {formatCurrency(row.savings)}</div>
+                      )}
+                    </td>
+                    <td><span className={`crud-badge ${row.is_active ? "crud-badge--active" : "crud-badge--inactive"}`}>{row.is_active ? "Active" : "Inactive"}</span></td>
+                    <td>
+                      <div className="crud-actions">
+                        <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => openPackageEdit(row)}>Edit</button>
+                        <button type="button" className="crud-btn crud-btn--danger crud-btn--sm" onClick={() => handlePackageDelete(row)}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
 
@@ -419,6 +614,117 @@ function DiagnosticCatalog() {
           <div className="crud-modal-actions">
             <button type="button" className="crud-btn crud-btn--ghost" onClick={() => setTestModalOpen(false)}>Cancel</button>
             <button type="submit" className="crud-btn crud-btn--primary" disabled={saving}>{saving ? "Saving…" : "Save"}</button>
+          </div>
+        </form>
+      </Modal>
+
+      <Modal title={editingPackage ? "Edit package" : "Add package"} open={packageModalOpen} onClose={() => setPackageModalOpen(false)}>
+        <form onSubmit={handlePackageSave}>
+          {packageError && <div className="crud-alert crud-alert--error">{packageError}</div>}
+          <div className="crud-form-grid">
+            {isSuperAdmin && (
+              <div className="crud-field crud-field--full">
+                <label>Organization *</label>
+                <CompanySelect
+                  name="company_id"
+                  value={packageForm.company_id}
+                  onChange={(e) => {
+                    setPackageForm((p) => ({ ...p, company_id: e.target.value, test_ids: [] }));
+                    setPackageFieldErrors((prev) => ({ ...prev, company_id: "" }));
+                  }}
+                  required
+                />
+                {packageFieldErrors.company_id && <div className="crud-field-error">{packageFieldErrors.company_id}</div>}
+              </div>
+            )}
+            <div className="crud-field">
+              <label>Package name *</label>
+              <input
+                name="package_name"
+                value={packageForm.package_name}
+                onChange={(e) => {
+                  setPackageForm((p) => ({ ...p, package_name: e.target.value }));
+                  setPackageFieldErrors((prev) => ({ ...prev, package_name: "" }));
+                }}
+                required
+                placeholder="e.g. Cardio Screening Package"
+              />
+              {packageFieldErrors.package_name && <div className="crud-field-error">{packageFieldErrors.package_name}</div>}
+            </div>
+            <div className="crud-field">
+              <label>Offer percentage (%)</label>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.01"
+                name="offer_percentage"
+                value={packageForm.offer_percentage}
+                onChange={(e) => {
+                  setPackageForm((p) => ({ ...p, offer_percentage: e.target.value }));
+                  setPackageFieldErrors((prev) => ({ ...prev, offer_percentage: "" }));
+                }}
+                placeholder="e.g. 10"
+              />
+              {packageFieldErrors.offer_percentage && <div className="crud-field-error">{packageFieldErrors.offer_percentage}</div>}
+            </div>
+            <div className="crud-field crud-field--full">
+              <label>Description</label>
+              <textarea
+                name="description"
+                value={packageForm.description}
+                onChange={(e) => setPackageForm((p) => ({ ...p, description: e.target.value }))}
+              />
+            </div>
+            <div className="crud-field crud-field--full">
+              <label>Include tests *</label>
+              <div className="lab-test-checklist">
+                {activeTests.map((test) => (
+                  <label key={test.id} className="lab-test-check-item">
+                    <input
+                      type="checkbox"
+                      checked={(packageForm.test_ids || []).includes(test.id)}
+                      onChange={() => {
+                        togglePackageTest(test.id);
+                        setPackageFieldErrors((prev) => ({ ...prev, test_ids: "" }));
+                      }}
+                    />
+                    <span>{test.name}</span>
+                    <span className="lab-code">{test.category?.name || "Uncategorized"}</span>
+                    <span className="lab-code">{formatCurrency(test.price)}</span>
+                  </label>
+                ))}
+              </div>
+              {packageFieldErrors.test_ids && <div className="crud-field-error">{packageFieldErrors.test_ids}</div>}
+            </div>
+            <div className="crud-field crud-field--full">
+              <div className="crud-alert">
+                List price: <strong>{formatCurrency(packagePreview.listPrice)}</strong>
+                {" · "}
+                Offer: <strong>{Number(packageForm.offer_percentage || 0)}%</strong>
+                {" · "}
+                Package price: <strong>{formatCurrency(packagePreview.packagePrice)}</strong>
+                {packagePreview.savings > 0 && (
+                  <>{" · "}You save: <strong>{formatCurrency(packagePreview.savings)}</strong></>
+                )}
+              </div>
+            </div>
+            <div className="crud-field">
+              <label className="crud-checkbox">
+                <input
+                  type="checkbox"
+                  checked={packageForm.is_active}
+                  onChange={(e) => setPackageForm((p) => ({ ...p, is_active: e.target.checked }))}
+                />
+                {" "}Active
+              </label>
+            </div>
+          </div>
+          <div className="crud-modal-actions">
+            <button type="button" className="crud-btn crud-btn--ghost" onClick={() => setPackageModalOpen(false)}>Cancel</button>
+            <button type="submit" className="crud-btn crud-btn--primary" disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </button>
           </div>
         </form>
       </Modal>

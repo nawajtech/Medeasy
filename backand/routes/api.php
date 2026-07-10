@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\DiagnosticCategoryController;
 use App\Http\Controllers\Api\DiagnosticOrderController;
+use App\Http\Controllers\Api\DiagnosticPackageController;
 use App\Http\Controllers\Api\DiagnosticTestTypeController;
 use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorController;
@@ -23,7 +24,8 @@ use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ReferralPartnerController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\RoleController;
-use App\Http\Controllers\Api\SettingController;
+use App\Http\Controllers\Api\AdminPlanController;
+use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +37,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('auth/password', [AuthController::class, 'changePassword']);
     Route::post('auth/logout', [AuthController::class, 'logout']);
 
+    // Outside the subscription gate so an expired company can still upgrade.
+    Route::get('subscription/plans', [SubscriptionController::class, 'plans']);
+    Route::get('subscription/payments', [SubscriptionController::class, 'payments']);
+    Route::middleware('role:company_admin')->post('subscription/checkout', [SubscriptionController::class, 'checkout']);
+    Route::middleware('role:company_admin')->post('subscription/payments/{paymentId}/confirm', [SubscriptionController::class, 'confirmPayment']);
+
+    // ── Subscription admin (platform super admin) ───────────────
+    Route::middleware('permission:company.view')->prefix('admin')->group(function () {
+        Route::get('plans', [AdminPlanController::class, 'index']);
+        Route::get('plans/features', [AdminPlanController::class, 'features']);
+        Route::middleware('permission:company.create')->post('plans', [AdminPlanController::class, 'store']);
+        Route::middleware('permission:company.edit')->put('plans/{plan}', [AdminPlanController::class, 'update']);
+        Route::middleware('permission:company.delete')->delete('plans/{plan}', [AdminPlanController::class, 'destroy']);
+        Route::get('subscriptions', [AdminPlanController::class, 'subscriptions']);
+        Route::middleware('permission:company.edit')->post('companies/{company}/subscription', [AdminPlanController::class, 'assignSubscription']);
+        Route::get('subscription-payments', [AdminPlanController::class, 'payments']);
+    });
+
+    Route::middleware('subscription.active')->group(function () {
     Route::post('notifications/token', [NotificationController::class, 'registerToken']);
     Route::delete('notifications/token', [NotificationController::class, 'removeToken']);
     Route::get('notifications', [NotificationController::class, 'index']);
@@ -201,6 +222,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.view')->group(function () {
         Route::get('diagnostics/categories', [DiagnosticCategoryController::class, 'index']);
         Route::get('diagnostics/types', [DiagnosticTestTypeController::class, 'index']);
+        Route::get('diagnostics/packages', [DiagnosticPackageController::class, 'index']);
         Route::get('diagnostics/referral-partners', [ReferralPartnerController::class, 'index']);
         Route::get('diagnostics/referral-partners/{referralPartner}/ledger', [ReferralPartnerController::class, 'ledger']);
         Route::get('diagnostics/orders', [DiagnosticOrderController::class, 'index']);
@@ -212,6 +234,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.create')->group(function () {
         Route::post('diagnostics/categories', [DiagnosticCategoryController::class, 'store']);
         Route::post('diagnostics/types', [DiagnosticTestTypeController::class, 'store']);
+        Route::post('diagnostics/packages', [DiagnosticPackageController::class, 'store']);
         Route::post('diagnostics/referral-partners', [ReferralPartnerController::class, 'store']);
         Route::post('diagnostics/orders', [DiagnosticOrderController::class, 'store']);
         Route::post('diagnostics/orders/{diagnosticOrder}/report', [DiagnosticOrderController::class, 'uploadReport']);
@@ -219,6 +242,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.edit')->group(function () {
         Route::put('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'update']);
         Route::put('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'update']);
+        Route::put('diagnostics/packages/{diagnosticPackage}', [DiagnosticPackageController::class, 'update']);
         Route::put('diagnostics/referral-partners/{referralPartner}', [ReferralPartnerController::class, 'update']);
         Route::post('diagnostics/referral-partners/{referralPartner}/payouts', [ReferralPartnerController::class, 'storePayout']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/schedule', [DiagnosticOrderController::class, 'schedule']);
@@ -231,6 +255,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.delete')->group(function () {
         Route::delete('diagnostics/categories/{diagnosticCategory}', [DiagnosticCategoryController::class, 'destroy']);
         Route::delete('diagnostics/types/{type}', [DiagnosticTestTypeController::class, 'destroy']);
+        Route::delete('diagnostics/packages/{diagnosticPackage}', [DiagnosticPackageController::class, 'destroy']);
         Route::delete('diagnostics/referral-partners/{referralPartner}', [ReferralPartnerController::class, 'destroy']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/cancel', [DiagnosticOrderController::class, 'cancel']);
     });
@@ -239,4 +264,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('companies-list', fn () => response()->json(
         \App\Models\Company::orderBy('name')->get(['id', 'name', 'code', 'type', 'is_active'])
     ))->middleware('permission:dashboard.view');
+    });
 });

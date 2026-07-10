@@ -16,6 +16,9 @@ import Branches from "./pages/Branches";
 import Departments from "./pages/Departments";
 import Appointments from "./pages/Appointments";
 import Reports from "./pages/Reports";
+import Plans from "./pages/Plans";
+import AdminSubscriptions from "./pages/AdminSubscriptions";
+import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
@@ -44,6 +47,8 @@ function App() {
               <Route element={<RoleRoute />}>
                 <Route index element={<Dashboard />} />
                 <Route path="companies" element={<Companies />} />
+                <Route path="plans" element={<Plans />} />
+                <Route path="admin/subscriptions" element={<AdminSubscriptions />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="patients" element={<Patients />} />
                 <Route path="patients/:patientId" element={<PatientChart />} />
@@ -57,6 +62,7 @@ function App() {
                 <Route path="users" element={<Users />} />
                 <Route path="roles" element={<Roles />} />
                 <Route path="roles/:roleId" element={<RolePermissions />} />
+                <Route path="subscription" element={<Subscription />} />
                 <Route path="settings" element={<Settings />} />
                 {/* Lab module */}
                 <Route path="lab/tests" element={<LabTests />} />

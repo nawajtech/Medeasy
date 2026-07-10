@@ -174,11 +174,13 @@ class Company extends Model
 
     public function subscriptions()
     {
-        return $this->hasMany(CompanySubscription::class);
+        return $this->hasMany(Subscription::class);
     }
 
     public function activeSubscription()
     {
-        return $this->hasOne(CompanySubscription::class)->where('status', 'active')->latest();
+        return $this->hasOne(Subscription::class)
+            ->whereIn('status', Subscription::USABLE_STATUSES)
+            ->latest();
     }
 }

@@ -23,6 +23,8 @@ import {
 const iconMap = {
   Overview: IconDashboard,
   Companies: IconBuilding,
+  Plans: IconDollar,
+  Subscriptions: IconDollar,
   Branches: IconBranch,
   Patients: IconPatient,
   Departments: IconChart,
@@ -41,6 +43,7 @@ const iconMap = {
   "Finance & P&L": IconDollar,
   Users: IconUsers,
   Roles: IconUsers,
+  Subscription: IconDollar,
   Settings: IconSettings,
 };
 

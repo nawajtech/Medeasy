@@ -4,11 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
+use App\Mail\Welcomemail;
 use App\Models\Role;
 use App\Models\User;
+use App\Models\PlanLimit;
+use App\Services\SubscriptionService;
 use App\Services\UserRoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class UserController extends Controller
@@ -58,6 +62,13 @@ class UserController extends Controller
 
         $validated = $request->validate($this->rules(null, $companyId));
 
+        $company = \App\Models\Company::findOrFail($companyId);
+        app(SubscriptionService::class)->assertUnderLimit(
+            $company,
+            PlanLimit::MAX_USERS,
+            User::where('company_id', $companyId)->count()
+        );
+
         $user = User::create([
             ...collect($validated)->except('role')->all(),
             'role' => $validated['role'],
@@ -68,7 +79,11 @@ class UserController extends Controller
 
         $this->userRoleService->assignRole($user, $validated['role']);
 
-        return response()->json($user->load(['company', 'roles']), 201);
+        $user->load(['company', 'roles']);
+
+        Mail::to($user->email)->send(new Welcomemail($user, $validated['password']));
+
+        return response()->json($user, 201);
     }
 
     public function show(string $id): JsonResponse

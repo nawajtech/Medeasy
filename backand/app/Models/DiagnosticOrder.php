@@ -20,6 +20,7 @@ class DiagnosticOrder extends Model
         'patient_id',
         'doctor_id',
         'test_type_id',
+        'package_id',
         'order_number',
         'status',
         'technician_id',
@@ -36,6 +37,7 @@ class DiagnosticOrder extends Model
         'referral_commission_amount',
         'doctor_commission_amount',
         'referral_discount',
+        'package_discount',
         'surcharge_amount',
         'net_amount',
         'paid_amount',
@@ -55,6 +57,7 @@ class DiagnosticOrder extends Model
             'referral_commission_amount' => 'decimal:2',
             'doctor_commission_amount' => 'decimal:2',
             'referral_discount' => 'decimal:2',
+            'package_discount' => 'decimal:2',
             'surcharge_amount' => 'decimal:2',
             'net_amount' => 'decimal:2',
             'paid_amount' => 'decimal:2',
@@ -82,6 +85,11 @@ class DiagnosticOrder extends Model
     public function testType()
     {
         return $this->belongsTo(DiagnosticTestType::class, 'test_type_id');
+    }
+
+    public function package()
+    {
+        return $this->belongsTo(DiagnosticPackage::class, 'package_id');
     }
 
     public function referralPartner()

@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\DiagnosticOrder;
 use App\Models\DiagnosticOrderPayment;
 use App\Models\DiagnosticOrderRefund;
+use App\Models\DiagnosticPackage;
 use App\Models\DiagnosticReport;
 use App\Models\DiagnosticTestType;
 use App\Models\ReferralPartner;
@@ -29,7 +30,7 @@ class DiagnosticOrderController extends Controller
     {
         $companyId = $this->optionalCompanyId($request);
 
-        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType.category', 'technician', 'report', 'branch', 'referralPartner'])
+        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType.category', 'technician', 'report', 'branch', 'referralPartner', 'package'])
             ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
             ->when($doctorId = $this->doctorIdForUser(), fn ($q) => $q->where('doctor_id', $doctorId))
             ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', (int) $request->branch_id))
@@ -60,7 +61,8 @@ class DiagnosticOrderController extends Controller
                 'nullable',
                 Rule::exists('doctors', 'id')->where(fn ($q) => $q->where('company_id', $this->resolveCompanyId($request))),
             ],
-            'test_type_id'      => ['required', 'exists:diagnostic_test_types,id'],
+            'test_type_id'      => ['required_without:package_id', 'nullable', 'exists:diagnostic_test_types,id'],
+            'package_id'        => ['required_without:test_type_id', 'nullable', 'exists:diago_package,id'],
             'priority'          => ['in:routine,urgent,emergency'],
             'clinical_notes'              => ['nullable', 'string'],
             'notes'                       => ['nullable', 'string'],
@@ -72,18 +74,22 @@ class DiagnosticOrderController extends Controller
             'payment_notes'               => ['nullable', 'string'],
         ]);
 
+        if (! empty($data['package_id'])) {
+            return $this->storePackageOrders($request, $data);
+        }
+
+        return $this->storeSingleOrder($request, $data);
+    }
+
+    private function storeSingleOrder(Request $request, array $data): JsonResponse
+    {
         $data['company_id'] = $this->resolveCompanyId($request);
         $data['order_number'] = $this->generateOrderNumber($data['company_id']);
 
         $testType = DiagnosticTestType::with('doctors')->findOrFail($data['test_type_id']);
         $this->assertDoctorMappedToTest($data['doctor_id'] ?? null, $testType);
 
-        $partner = null;
-        if (! empty($data['referral_partner_id'])) {
-            $partner = ReferralPartner::findOrFail($data['referral_partner_id']);
-            $this->assertTenantAccess($partner);
-        }
-
+        $partner = $this->resolveReferralPartner($data);
         $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
         $billing = app(ReferralBillingService::class)->calculate(
             (float) $testType->price,
@@ -92,17 +98,9 @@ class DiagnosticOrderController extends Controller
             $deductCommission
         );
 
-        if ($partner) {
-            $data['referral_partner_name'] = $partner->name;
-            $data['referral_partner_mobile'] = $partner->mobile;
-            $data['referral_partner_address'] = $partner->address;
-            $data['referral_partner_type'] = $partner->type;
-        } else {
-            unset($data['referral_partner_id']);
-            $data['deduct_commission_from_bill'] = false;
-        }
-
+        $data = $this->mergeReferralSnapshot($data, $partner);
         $data = array_merge($data, $billing);
+        $data['package_discount'] = 0;
         $data['amount'] = $billing['net_amount'];
         $data['doctor_commission_amount'] = round((float) ($testType->doctor_commission ?? 0), 2);
         $data['status'] = 'booked';
@@ -111,7 +109,7 @@ class DiagnosticOrderController extends Controller
         $paymentMethod = $data['payment_method'] ?? null;
         $paymentReference = $data['payment_reference'] ?? null;
         $paymentNotes = $data['payment_notes'] ?? null;
-        unset($data['paid_amount'], $data['payment_method'], $data['payment_reference'], $data['payment_notes']);
+        unset($data['paid_amount'], $data['payment_method'], $data['payment_reference'], $data['payment_notes'], $data['package_id']);
 
         $order = DiagnosticOrder::create($data);
 
@@ -123,7 +121,123 @@ class DiagnosticOrderController extends Controller
             $paymentNotes
         );
 
-        return response()->json($order->fresh()->load(['patient', 'doctor.user', 'testType', 'referralPartner', 'payments.recorder']), 201);
+        return response()->json($order->fresh()->load(['patient', 'doctor.user', 'testType', 'referralPartner', 'package', 'payments.recorder']), 201);
+    }
+
+    private function storePackageOrders(Request $request, array $data): JsonResponse
+    {
+        $companyId = $this->resolveCompanyId($request);
+        $package = DiagnosticPackage::findOrFail($data['package_id']);
+        $this->assertTenantAccess($package);
+
+        abort_unless($package->is_active, 422, 'This diagnostic package is not active.');
+
+        $tests = DiagnosticTestType::with('doctors')
+            ->whereIn('id', array_values(array_filter($package->test_ids ?? [])))
+            ->orderBy('name')
+            ->get();
+        abort_if($tests->isEmpty(), 422, 'Package has no tests configured.');
+
+        $partner = $this->resolveReferralPartner($data);
+        $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
+        $referralService = app(ReferralBillingService::class);
+        $paymentService = app(DiagnosticPaymentService::class);
+
+        $paidAmount = (float) ($data['paid_amount'] ?? 0);
+        $paymentMethod = $data['payment_method'] ?? null;
+        $paymentReference = $data['payment_reference'] ?? null;
+        $paymentNotes = $data['payment_notes'] ?? null;
+
+        $base = $this->mergeReferralSnapshot($data, $partner);
+        unset($base['paid_amount'], $base['payment_method'], $base['payment_reference'], $base['payment_notes'], $base['test_type_id']);
+
+        $prepared = [];
+        foreach ($tests as $testType) {
+            $this->assertDoctorMappedToTest($base['doctor_id'] ?? null, $testType);
+
+            $originalGross = (float) $testType->price;
+            $packageDiscount = $package->discountForTestPrice($originalGross);
+            $discountedGross = $package->discountedPriceForTest($originalGross);
+
+            $billing = $referralService->calculate(
+                $discountedGross,
+                (float) ($testType->referral_commission ?? 0),
+                $partner,
+                $deductCommission
+            );
+
+            $prepared[] = array_merge($base, $billing, [
+                'company_id' => $companyId,
+                'test_type_id' => $testType->id,
+                'package_id' => $package->id,
+                'package_discount' => $packageDiscount,
+                'gross_amount' => $originalGross,
+                'amount' => $billing['net_amount'],
+                'doctor_commission_amount' => round((float) ($testType->doctor_commission ?? 0), 2),
+                'status' => 'booked',
+            ]);
+        }
+
+        $totalNet = round(collect($prepared)->sum('net_amount'), 2);
+        $remainingPaid = $paidAmount;
+        $orders = [];
+
+        foreach ($prepared as $index => $orderData) {
+            $orderData['order_number'] = $this->generateOrderNumber($companyId);
+            $order = DiagnosticOrder::create($orderData);
+
+            $isLast = $index === count($prepared) - 1;
+            $orderPaid = $isLast
+                ? round($remainingPaid, 2)
+                : ($totalNet > 0
+                    ? round($paidAmount * ($orderData['net_amount'] / $totalNet), 2)
+                    : 0);
+            $remainingPaid = round($remainingPaid - $orderPaid, 2);
+
+            $paymentService->applyInitialPayment(
+                $order,
+                max(0, $orderPaid),
+                $orderPaid > 0 ? $paymentMethod : null,
+                $orderPaid > 0 ? $paymentReference : null,
+                $orderPaid > 0 ? $paymentNotes : null
+            );
+
+            $orders[] = $order->fresh()->load(['patient', 'doctor.user', 'testType.category', 'referralPartner', 'package', 'payments.recorder']);
+        }
+
+        return response()->json([
+            'package' => $package->only(['id', 'package_name', 'offer_percentage']),
+            'orders' => $orders,
+            'total_net' => $totalNet,
+            'total_package_discount' => round(collect($prepared)->sum('package_discount'), 2),
+        ], 201);
+    }
+
+    private function resolveReferralPartner(array $data): ?ReferralPartner
+    {
+        if (empty($data['referral_partner_id'])) {
+            return null;
+        }
+
+        $partner = ReferralPartner::findOrFail($data['referral_partner_id']);
+        $this->assertTenantAccess($partner);
+
+        return $partner;
+    }
+
+  private function mergeReferralSnapshot(array $data, ?ReferralPartner $partner): array
+    {
+        if ($partner) {
+            $data['referral_partner_name'] = $partner->name;
+            $data['referral_partner_mobile'] = $partner->mobile;
+            $data['referral_partner_address'] = $partner->address;
+            $data['referral_partner_type'] = $partner->type;
+        } else {
+            unset($data['referral_partner_id']);
+            $data['deduct_commission_from_bill'] = false;
+        }
+
+        return $data;
     }
 
     public function show(DiagnosticOrder $diagnosticOrder): JsonResponse
@@ -131,7 +245,7 @@ class DiagnosticOrderController extends Controller
         $this->assertTenantAccess($diagnosticOrder);
 
         return response()->json(
-            $diagnosticOrder->load(['patient.wallet', 'doctor.user', 'testType.category', 'technician', 'report.reporter', 'referralPartner', 'branch', 'payments.recorder', 'refunds.recorder'])
+            $diagnosticOrder->load(['patient.wallet', 'doctor.user', 'testType.category', 'technician', 'report.reporter', 'referralPartner', 'branch', 'package', 'payments.recorder', 'refunds.recorder'])
         );
     }
 
@@ -145,6 +259,7 @@ class DiagnosticOrderController extends Controller
             'referralPartner',
             'branch',
             'company',
+            'package',
         ]);
 
         $brandingService = app(ClinicBrandingService::class);
@@ -152,6 +267,7 @@ class DiagnosticOrderController extends Controller
         $currencySymbol = $brandingService->currencySymbol($branding['currency']);
 
         $gross = (float) ($order->gross_amount ?: $order->amount ?: 0);
+        $packageAdjusted = (float) ($order->package_discount ?: 0);
         $adjusted = (float) ($order->referral_discount ?: 0);
         $payable = (float) ($order->net_amount ?: $order->amount ?: 0);
         $paid = (float) ($order->paid_amount ?? 0);
@@ -185,6 +301,8 @@ class DiagnosticOrderController extends Controller
             'branding' => $branding,
             'currencySymbol' => $currencySymbol,
             'gross' => $gross,
+            'packageAdjusted' => $packageAdjusted,
+            'packageName' => $order->package?->package_name,
             'adjusted' => $adjusted,
             'payable' => $payable,
             'paid' => $paid,

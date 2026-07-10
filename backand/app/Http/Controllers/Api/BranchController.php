@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\PlanLimit;
+use App\Services\SubscriptionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -43,6 +45,14 @@ class BranchController extends Controller
         ]);
 
         $data['company_id'] = $this->resolveCompanyId($request);
+
+        $company = \App\Models\Company::findOrFail($data['company_id']);
+        app(SubscriptionService::class)->assertUnderLimit(
+            $company,
+            PlanLimit::MAX_BRANCHES,
+            Branch::where('company_id', $data['company_id'])->count()
+        );
+
         $branch = Branch::create($data);
 
         return response()->json($branch, 201);

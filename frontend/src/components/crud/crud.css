@@ -65,6 +65,12 @@
   border: 1px solid #fecaca;
 }
 
+.crud-field-error {
+  margin-top: 6px;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+}
+
 .crud-table-wrap {
   margin-top: 16px;
   overflow-x: auto;

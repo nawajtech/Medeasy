@@ -110,10 +110,14 @@ class PermissionRegistryService
     public function permissionNamesForCompany(Company $company): array
     {
         $guard = $this->guardName();
+        $companyModules = $this->permissionModuleKeysForCompany($company);
+        $subscriptionModules = app(SubscriptionService::class)
+            ->allowedPermissionModuleKeys($company);
+        $moduleKeys = array_values(array_intersect($companyModules, $subscriptionModules));
 
         return Permission::query()
             ->where('guard_name', $guard)
-            ->whereIn('module', $this->permissionModuleKeysForCompany($company))
+            ->whereIn('module', $moduleKeys)
             ->orderBy('name')
             ->pluck('name')
             ->all();

@@ -8,7 +8,9 @@ use App\Models\DiagnosticOrder;
 use App\Models\LabOrder;
 use App\Models\Patient;
 use App\Models\Appointment;
+use App\Models\PlanLimit;
 use App\Services\PatientWalletService;
+use App\Services\SubscriptionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +40,13 @@ class PatientController extends Controller
         $companyId = $this->resolveCompanyId($request);
         $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
         $validated = $request->validate($this->rules(null, $companyId));
+
+        $company = \App\Models\Company::findOrFail($companyId);
+        app(SubscriptionService::class)->assertUnderLimit(
+            $company,
+            PlanLimit::MAX_PATIENTS,
+            Patient::where('company_id', $companyId)->count()
+        );
 
         $patient = Patient::create([
             ...$validated,

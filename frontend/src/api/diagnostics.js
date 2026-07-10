@@ -13,6 +13,12 @@ export const createDiagnosticType = (data) => api.post("/diagnostics/types", dat
 export const updateDiagnosticType = (id, data) => api.put(`/diagnostics/types/${id}`, data);
 export const deleteDiagnosticType = (id) => api.delete(`/diagnostics/types/${id}`);
 
+// ── Packages ───────────────────────────────────────
+export const getDiagnosticPackages = (params) => api.get("/diagnostics/packages", { params });
+export const createDiagnosticPackage = (data) => api.post("/diagnostics/packages", data);
+export const updateDiagnosticPackage = (id, data) => api.put(`/diagnostics/packages/${id}`, data);
+export const deleteDiagnosticPackage = (id) => api.delete(`/diagnostics/packages/${id}`);
+
 // ── Orders ─────────────────────────────────────────
 export const getDiagnosticOrders = (params) => api.get("/diagnostics/orders", { params });
 export const getDiagnosticTodayQueue = (params) => api.get("/diagnostics/today-queue", { params });
