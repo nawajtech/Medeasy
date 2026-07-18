@@ -10,6 +10,8 @@ import Modal from "../components/crud/Modal";
 import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
+import AuditTimeline from "../components/audit/AuditTimeline";
+import { hasPermission } from "../config/permissions";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./LabOrders.css";
@@ -39,7 +41,8 @@ function StatusBadge({ status }) {
 }
 
 function LabOrders() {
-  const { isDoctor, isSuperAdmin } = useAuth();
+  const { isDoctor, isSuperAdmin, user } = useAuth();
+  const canViewAudit = hasPermission(user?.permissions, "audit.view");
   const [orders, setOrders] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -731,6 +734,12 @@ function LabOrders() {
                     ))}
                   </tbody>
                 </table>
+              </>
+            )}
+            {canViewAudit && detailOrder?.id && (
+              <>
+                <h4 className="lab-detail-heading">Activity log</h4>
+                <AuditTimeline labOrderId={detailOrder.id} compact />
               </>
             )}
           </div>

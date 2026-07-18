@@ -48,6 +48,7 @@ const iconMap = {
   Users: IconUsers,
   Roles: IconUsers,
   Subscription: IconDollar,
+  "Audit Trail": IconClipboard,
   Settings: IconSettings,
   Appearance: IconPalette,
 };

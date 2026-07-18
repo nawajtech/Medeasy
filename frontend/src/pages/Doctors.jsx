@@ -1,11 +1,14 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
 import { getDepartments } from "../api/departments";
 import {
   createDoctor,
   deleteDoctor,
+  downloadDoctorSample,
+  exportDoctors,
   getDoctors,
+  importDoctors,
   updateDoctor,
 } from "../api/doctors";
 import { useAuth } from "../auth/AuthContext";
@@ -46,12 +49,22 @@ function Doctors() {
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
+  const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [downloadingSample, setDownloadingSample] = useState(false);
+  const importInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
-      const [doctorRes, deptRes] = await Promise.all([getDoctors(), getDepartments()]);
+      const params = {};
+      if (isSuperAdmin && filterCompanyId) {
+        params.company_id = filterCompanyId;
+      }
+      const [doctorRes, deptRes] = await Promise.all([getDoctors(params), getDepartments()]);
       setItems(doctorRes.data);
       setDepartments(deptRes.data.filter((d) => d.is_active));
     } catch (err) {
@@ -59,7 +72,7 @@ function Doctors() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isSuperAdmin, filterCompanyId]);
 
   useEffect(() => {
     load();
@@ -151,6 +164,69 @@ function Doctors() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const params = {};
+      if (isSuperAdmin && filterCompanyId) {
+        params.company_id = filterCompanyId;
+      }
+      if (filterBranchId) {
+        params.branch_id = filterBranchId;
+      }
+      await exportDoctors(params);
+    } catch (err) {
+      setError(err.message || "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing doctors.");
+      return;
+    }
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing doctors.");
+      return;
+    }
+
+    setImporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const { data } = await importDoctors(file, isSuperAdmin ? filterCompanyId : undefined);
+      setImportResult(data);
+      await load();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Import failed."));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadSample = async () => {
+    setDownloadingSample(true);
+    setError("");
+    try {
+      await downloadDoctorSample();
+    } catch (err) {
+      setError(err.message || "Could not download sample file.");
+    } finally {
+      setDownloadingSample(false);
+    }
+  };
+
   return (
     <section className="page-card doctors-page">
       <div className="page-card-header">
@@ -161,6 +237,17 @@ function Doctors() {
       <div className="crud-toolbar">
         <div className="tenant-toolbar-left">
           <span>{loading ? "Loading…" : `${items.length} doctor(s)`}</span>
+          {isSuperAdmin && (
+            <CompanySelect
+              variant="inline"
+              allowAll
+              label="Filter clinic"
+              id="doctor_filter_company_id"
+              value={filterCompanyId}
+              onChange={(e) => setFilterCompanyId(e.target.value)}
+              required={false}
+            />
+          )}
           <BranchSelect
             value={filterBranchId}
             onChange={(e) => setFilterBranchId(e.target.value)}
@@ -170,13 +257,62 @@ function Doctors() {
           />
         </div>
         {!isDoctor && (
-          <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
-            Add doctor
-          </button>
+          <div className="crud-toolbar-actions">
+            <button
+              type="button"
+              className="crud-btn crud-btn--export"
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? "Exporting…" : "Export Excel"}
+            </button>
+            <div className="spreadsheet-import-compact">
+              <button
+                type="button"
+                className="crud-btn crud-btn--import"
+                onClick={handleImportClick}
+                disabled={importing}
+              >
+                {importing ? "Importing…" : "Import Excel"}
+              </button>
+              <button
+                type="button"
+                className="spreadsheet-sample-link"
+                onClick={handleDownloadSample}
+                disabled={downloadingSample}
+                title="Download .xls sample with required columns: name, email, department"
+              >
+                {downloadingSample ? "Downloading…" : "Sample template"}
+              </button>
+              <input
+                ref={importInputRef}
+                type="file"
+                accept=".csv,.xls,text/csv,application/vnd.ms-excel"
+                className="spreadsheet-import-input"
+                onChange={handleImportFile}
+              />
+            </div>
+            <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
+              Add doctor
+            </button>
+          </div>
         )}
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
+      {importResult && (
+        <div className="spreadsheet-import-result">
+          {importResult.message}
+          {importResult.skipped > 0 && ` Skipped ${importResult.skipped} row(s).`}
+          {importResult.errors?.length > 0 && (
+            <ul className="spreadsheet-import-errors">
+              {importResult.errors.map((msg) => (
+                <li key={msg}>{msg}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="crud-table-wrap">
         <table className="crud-table">
@@ -195,7 +331,7 @@ function Doctors() {
             {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={7} className="crud-empty">
-                  No doctors yet. Click &quot;Add doctor&quot; to create one.
+                  No doctors yet. Add one or import an Excel file.
                 </td>
               </tr>
             )}

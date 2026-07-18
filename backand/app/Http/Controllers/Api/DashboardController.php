@@ -8,7 +8,9 @@ use App\Models\Appointment;
 use App\Models\Billing;
 use App\Models\Company;
 use App\Models\Department;
+use App\Models\DiagnosticOrder;
 use App\Models\Doctor;
+use App\Models\LabOrder;
 use App\Models\Patient;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -40,6 +42,19 @@ class DashboardController extends Controller
         $canAppointments = $user->can('appointment.view');
         $canDepartments = $user->can('department.view');
         $canCompanies = $user->can('company.view');
+        $canDiagnostics = $user->can('diagnostic.view');
+        $canLab = $user->can('lab.view');
+
+        $accessFlags = compact(
+            'canPatients',
+            'canDoctors',
+            'canAppointments',
+            'canDepartments',
+            'canBilling',
+            'canCompanies',
+            'canDiagnostics',
+            'canLab',
+        );
 
         return response()->json([
             'scope_label' => $scopeLabel,
@@ -55,6 +70,12 @@ class DashboardController extends Controller
             'payment_overview' => $canBilling && ! $doctorId
                 ? $this->paymentOverview($companyId, $dateFrom, $dateTo)
                 : null,
+            'patient_collections' => ($canAppointments || ($canBilling && ! $doctorId) || ($canDiagnostics && ! $doctorId) || ($canLab && ! $doctorId))
+                ? $this->patientCollectionsOverview($companyId, $doctorId, $dateFrom, $dateTo, $accessFlags)
+                : null,
+            'appointment_collections_by_month' => $canAppointments
+                ? $this->appointmentCollectionsByMonth($companyId, $doctorId, $dateFrom, $dateTo, $canBilling && ! $doctorId)
+                : [],
             'companies_payment' => $canBilling && $user->isSuperAdmin() && ! $companyId && ! $doctorId
                 ? $this->companiesPaymentOverview($dateFrom, $dateTo)
                 : [],
@@ -64,7 +85,7 @@ class DashboardController extends Controller
                 $canCompanies && $user->isSuperAdmin() && ! $companyId,
                 $dateFrom,
                 $dateTo,
-                compact('canPatients', 'canDoctors', 'canAppointments', 'canDepartments', 'canBilling', 'canCompanies')
+                $accessFlags
             ),
             'appointments_by_status' => $canAppointments
                 ? $this->appointmentsByStatus($companyId, $doctorId, $dateFrom, $dateTo)
@@ -470,5 +491,309 @@ class DashboardController extends Controller
                 'company_name' => $a->company?->name,
             ])
             ->all();
+    }
+
+    private function patientCollectionsOverview(
+        ?int $companyId,
+        ?int $doctorId,
+        Carbon $from,
+        Carbon $to,
+        array $flags,
+    ): array {
+        $canAppointments = $flags['canAppointments'] ?? true;
+        $canBilling = ($flags['canBilling'] ?? true) && ! $doctorId;
+        $canDiagnostics = ($flags['canDiagnostics'] ?? false) && ! $doctorId;
+        $canLab = ($flags['canLab'] ?? false) && ! $doctorId;
+
+        $appointments = $canAppointments
+            ? $this->appointmentCollectionStats($companyId, $doctorId, $from, $to, $canBilling)
+            : null;
+
+        $diagnostics = $canDiagnostics && $companyId
+            ? $this->diagnosticCollectionStats($companyId, $from, $to)
+            : null;
+
+        $lab = $canLab && $companyId
+            ? $this->labCollectionStats($companyId, $from, $to)
+            : null;
+
+        $totals = $this->mergeCollectionTotals($appointments, $diagnostics, $lab);
+
+        [$prevFrom, $prevTo] = $this->previousPeriod($from, $to);
+
+        $prevAppointments = $canAppointments
+            ? $this->appointmentCollectionStats($companyId, $doctorId, $prevFrom, $prevTo, $canBilling)
+            : null;
+
+        $prevDiagnostics = $canDiagnostics && $companyId
+            ? $this->diagnosticCollectionStats($companyId, $prevFrom, $prevTo)
+            : null;
+
+        $prevLab = $canLab && $companyId
+            ? $this->labCollectionStats($companyId, $prevFrom, $prevTo)
+            : null;
+
+        $prevTotals = $this->mergeCollectionTotals($prevAppointments, $prevDiagnostics, $prevLab);
+
+        return [
+            'appointments' => $appointments,
+            'diagnostics' => $diagnostics,
+            'lab' => $lab,
+            'totals' => $totals,
+            'growth' => [
+                'previous_period' => [
+                    'from' => $prevFrom->format('Y-m-d'),
+                    'to' => $prevTo->format('Y-m-d'),
+                ],
+                'collected_percent' => $canBilling
+                    ? $this->growthPercent($totals['collected'] ?? 0, $prevTotals['collected'] ?? 0)
+                    : null,
+                'outstanding_percent' => $canBilling
+                    ? $this->growthPercent($totals['outstanding'] ?? 0, $prevTotals['outstanding'] ?? 0)
+                    : null,
+                'completed_percent' => $this->growthPercent(
+                    $totals['completed_count'] ?? 0,
+                    $prevTotals['completed_count'] ?? 0
+                ),
+                'pending_percent' => $this->growthPercent(
+                    $totals['pending_count'] ?? 0,
+                    $prevTotals['pending_count'] ?? 0
+                ),
+                'collection_rate_change' => $canBilling
+                    ? round(($totals['collection_rate'] ?? 0) - ($prevTotals['collection_rate'] ?? 0), 1)
+                    : null,
+            ],
+        ];
+    }
+
+    private function appointmentCollectionStats(
+        ?int $companyId,
+        ?int $doctorId,
+        Carbon $from,
+        Carbon $to,
+        bool $includeBilling,
+    ): array {
+        $pendingStatuses = ['booked', 'ongoing', 'scheduled', 'confirmed'];
+
+        $baseQuery = $this->appointmentQuery($companyId, $doctorId, $from, $to);
+
+        $completedCount = (clone $baseQuery)->where('status', 'completed')->count();
+        $pendingCount = (clone $baseQuery)->whereIn('status', $pendingStatuses)->count();
+        $cancelledCount = (clone $baseQuery)->where('status', 'cancelled')->count();
+
+        $stats = [
+            'completed_count' => $completedCount,
+            'pending_count' => $pendingCount,
+            'cancelled_count' => $cancelledCount,
+            'collected' => 0,
+            'outstanding' => 0,
+            'total_billed' => 0,
+            'collection_rate' => 0,
+            'completed_collected' => 0,
+            'completed_outstanding' => 0,
+        ];
+
+        if (! $includeBilling) {
+            return $stats;
+        }
+
+        $billingBase = Billing::query()
+            ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
+            ->whereBetween('appointments.appointment_date', [$from, $to])
+            ->where('billings.status', '!=', 'cancelled')
+            ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
+            ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId));
+
+        $completedBilling = (clone $billingBase)->where('appointments.status', 'completed');
+        $stats['completed_collected'] = round((float) (clone $completedBilling)->sum('billings.paid_amount'), 2);
+        $stats['completed_outstanding'] = round((float) (clone $completedBilling)->sum('billings.due_amount'), 2);
+
+        $stats['collected'] = round((float) (clone $billingBase)->sum('billings.paid_amount'), 2);
+        $stats['outstanding'] = round((float) (clone $billingBase)->sum('billings.due_amount'), 2);
+        $stats['total_billed'] = round((float) (clone $billingBase)->sum('billings.total_amount'), 2);
+        $stats['collection_rate'] = $stats['total_billed'] > 0
+            ? round(($stats['collected'] / $stats['total_billed']) * 100, 1)
+            : 0;
+
+        return $stats;
+    }
+
+    private function diagnosticCollectionStats(?int $companyId, Carbon $from, Carbon $to): array
+    {
+        $pendingStatuses = ['booked', 'scheduled', 'in_progress', 'not_present'];
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+
+        $base = DiagnosticOrder::query()
+            ->where('company_id', $companyId)
+            ->whereDate('created_at', '>=', $fromDate)
+            ->whereDate('created_at', '<=', $toDate);
+
+        $completedQuery = (clone $base)->where('status', 'completed');
+        $completedCount = (clone $completedQuery)->count();
+        $pendingCount = (clone $base)->whereIn('status', $pendingStatuses)->count();
+        $cancelledCount = (clone $base)->where('status', 'cancelled')->count();
+
+        $collected = round((float) (clone $completedQuery)->sum('paid_amount'), 2);
+        $outstanding = round((float) (clone $completedQuery)->sum('due_amount'), 2);
+        $totalBilled = round((float) (clone $completedQuery)->sum('grand_total'), 2);
+
+        return [
+            'completed_count' => $completedCount,
+            'pending_count' => $pendingCount,
+            'cancelled_count' => $cancelledCount,
+            'collected' => $collected,
+            'outstanding' => $outstanding,
+            'total_billed' => $totalBilled,
+            'collection_rate' => $totalBilled > 0
+                ? round(($collected / $totalBilled) * 100, 1)
+                : 0,
+        ];
+    }
+
+    private function labCollectionStats(?int $companyId, Carbon $from, Carbon $to): array
+    {
+        $pendingStatuses = ['pending', 'collected', 'processing', 'resulted'];
+        $completedStatuses = ['verified', 'approved'];
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+
+        $base = LabOrder::query()
+            ->where('company_id', $companyId)
+            ->whereDate('ordered_at', '>=', $fromDate)
+            ->whereDate('ordered_at', '<=', $toDate);
+
+        $completedQuery = (clone $base)->whereIn('status', $completedStatuses);
+        $completedCount = (clone $completedQuery)->count();
+        $pendingCount = (clone $base)->whereIn('status', $pendingStatuses)->count();
+        $cancelledCount = (clone $base)->where('status', 'cancelled')->count();
+        $collected = round((float) (clone $completedQuery)->sum('net_amount'), 2);
+
+        return [
+            'completed_count' => $completedCount,
+            'pending_count' => $pendingCount,
+            'cancelled_count' => $cancelledCount,
+            'collected' => $collected,
+            'outstanding' => 0,
+            'total_billed' => $collected,
+            'collection_rate' => $collected > 0 ? 100 : 0,
+        ];
+    }
+
+    /** @param  array<string, mixed>|null  ...$sources */
+    private function mergeCollectionTotals(?array ...$sources): array
+    {
+        $totals = [
+            'completed_count' => 0,
+            'pending_count' => 0,
+            'cancelled_count' => 0,
+            'collected' => 0,
+            'outstanding' => 0,
+            'total_billed' => 0,
+            'collection_rate' => 0,
+        ];
+
+        foreach ($sources as $source) {
+            if (! $source) {
+                continue;
+            }
+
+            $totals['completed_count'] += (int) ($source['completed_count'] ?? 0);
+            $totals['pending_count'] += (int) ($source['pending_count'] ?? 0);
+            $totals['cancelled_count'] += (int) ($source['cancelled_count'] ?? 0);
+            $totals['collected'] += (float) ($source['collected'] ?? 0);
+            $totals['outstanding'] += (float) ($source['outstanding'] ?? 0);
+            $totals['total_billed'] += (float) ($source['total_billed'] ?? 0);
+        }
+
+        $totals['collected'] = round($totals['collected'], 2);
+        $totals['outstanding'] = round($totals['outstanding'], 2);
+        $totals['total_billed'] = round($totals['total_billed'], 2);
+        $totals['collection_rate'] = $totals['total_billed'] > 0
+            ? round(($totals['collected'] / $totals['total_billed']) * 100, 1)
+            : 0;
+
+        return $totals;
+    }
+
+    private function appointmentCollectionsByMonth(
+        ?int $companyId,
+        ?int $doctorId,
+        Carbon $from,
+        Carbon $to,
+        bool $includeBilling,
+    ): array {
+        $driver = DB::connection()->getDriverName();
+        $monthExpr = $driver === 'pgsql'
+            ? "to_char(appointments.appointment_date, 'YYYY-MM')"
+            : "DATE_FORMAT(appointments.appointment_date, '%Y-%m')";
+
+        $countRows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
+            ->selectRaw("{$monthExpr} as month")
+            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count")
+            ->selectRaw("SUM(CASE WHEN status IN ('booked', 'ongoing', 'scheduled', 'confirmed') THEN 1 ELSE 0 END) as pending_count")
+            ->groupBy('month')
+            ->orderBy('month')
+            ->get()
+            ->keyBy('month');
+
+        $billingRows = collect();
+
+        if ($includeBilling) {
+            $billingRows = Billing::query()
+                ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
+                ->whereBetween('appointments.appointment_date', [$from, $to])
+                ->where('billings.status', '!=', 'cancelled')
+                ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
+                ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId))
+                ->selectRaw("{$monthExpr} as month")
+                ->selectRaw('COALESCE(SUM(billings.paid_amount), 0) as collected')
+                ->selectRaw('COALESCE(SUM(billings.due_amount), 0) as outstanding')
+                ->groupBy('month')
+                ->orderBy('month')
+                ->get()
+                ->keyBy('month');
+        }
+
+        $result = [];
+        $cursor = $from->copy()->startOfMonth();
+        $end = $to->copy()->startOfMonth();
+
+        while ($cursor->lte($end)) {
+            $key = $cursor->format('Y-m');
+            $counts = $countRows[$key] ?? null;
+            $billing = $billingRows[$key] ?? null;
+
+            $result[] = [
+                'month' => $key,
+                'label' => $cursor->format('M Y'),
+                'completed_count' => (int) ($counts->completed_count ?? 0),
+                'pending_count' => (int) ($counts->pending_count ?? 0),
+                'collected' => round((float) ($billing->collected ?? 0), 2),
+                'outstanding' => round((float) ($billing->outstanding ?? 0), 2),
+            ];
+
+            $cursor->addMonth();
+        }
+
+        return $result;
+    }
+
+    private function previousPeriod(Carbon $from, Carbon $to): array
+    {
+        $days = $from->diffInDays($to) + 1;
+        $prevTo = $from->copy()->subDay()->endOfDay();
+        $prevFrom = $prevTo->copy()->subDays($days - 1)->startOfDay();
+
+        return [$prevFrom, $prevTo];
+    }
+
+    private function growthPercent(float $current, float $previous): float
+    {
+        if ($previous == 0) {
+            return $current > 0 ? 100.0 : 0.0;
+        }
+
+        return round((($current - $previous) / $previous) * 100, 1);
     }
 }

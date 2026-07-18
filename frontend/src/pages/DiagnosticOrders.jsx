@@ -7,6 +7,7 @@ import {
   saveDiagnosticPrescription, openDiagnosticPrescription, recordDiagnosticPayment, processDiagnosticRefund,
 } from "../api/diagnostics";
 import DiagnosticPrescriptionModal from "../components/diagnostic/DiagnosticPrescriptionModal";
+import AuditTimeline from "../components/audit/AuditTimeline";
 import { getPatients } from "../api/patients";
 import { getDoctors } from "../api/doctors";
 import { getReferralPartners } from "../api/referrals";
@@ -15,6 +16,7 @@ import SearchableSelect from "../components/SearchableSelect";
 import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
+import { hasPermission } from "../config/permissions";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
 import { applyTax } from "../utils/tax";
@@ -121,7 +123,8 @@ function StatusBadge({ status }) {
 }
 
 function DiagnosticOrders() {
-  const { isDoctor, isSuperAdmin } = useAuth();
+  const { isDoctor, isSuperAdmin, user } = useAuth();
+  const canViewAudit = hasPermission(user?.permissions, "audit.view");
 
   const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -1197,6 +1200,12 @@ function DiagnosticOrders() {
               <p className="company-modules-hint">
                 Patient wallet balance: <strong>₹{Number(detailOrder.patient.wallet.balance || 0).toLocaleString("en-IN")}</strong>
               </p>
+            )}
+            {canViewAudit && detailOrder?.id && (
+              <div className="dgn-payment-history">
+                <h4>Activity log</h4>
+                <AuditTimeline diagnosticOrderId={detailOrder.id} compact />
+              </div>
             )}
           </div>
         )}

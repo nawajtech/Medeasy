@@ -19,7 +19,7 @@ return [
         'diagnostics' => ['diagnostics', 'doctors', 'departments'],
     ],
 
-    'tenant_core_modules' => ['dashboard', 'settings', 'users', 'roles', 'patients', 'finance'],
+    'tenant_core_modules' => ['dashboard', 'settings', 'users', 'roles', 'patients', 'finance', 'audit'],
 
     'modules' => [
         'dashboard' => [
@@ -172,6 +172,13 @@ return [
                 'role.assign_permissions' => 'Assign permissions to roles',
             ],
         ],
+        'audit' => [
+            'label' => 'Audit Trail',
+            'permissions' => [
+                'audit.view' => 'View audit trail',
+                'audit.export' => 'Export audit trail',
+            ],
+        ],
     ],
 
     /**
@@ -220,6 +227,7 @@ return [
                 'settings.*',
                 'users.*',
                 'role.*',
+                'audit.*',
             ],
         ],
         'doctor' => [

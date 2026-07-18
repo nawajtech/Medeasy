@@ -15,6 +15,7 @@ return [
         'settings',
         'users',
         'roles',
+        'audit',
     ],
 
     /** Minimal access when subscription is missing or expired. */

@@ -4,6 +4,8 @@ import { openPrescription } from "../api/appointments";
 import { getPatientHistory, getPatientWallet } from "../api/patients";
 import { useAuth } from "../auth/AuthContext";
 import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
+import { hasPermission } from "../config/permissions";
+import AuditTimeline from "../components/audit/AuditTimeline";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./PatientChart.css";
 
@@ -21,6 +23,7 @@ const ALL_TABS = [
   { id: "labs", label: "Lab Reports", icon: "🧪", module: "laboratory" },
   { id: "diagnostics", label: "Diagnostics", icon: "🩻", module: "diagnostics" },
   { id: "wallet", label: "Wallet", icon: "💳" },
+  { id: "activity", label: "Activity Log", icon: "📜", auditOnly: true },
   { id: "profile", label: "Patient Profile", icon: "👤" },
 ];
 
@@ -33,9 +36,12 @@ function resolveCompanyModules(patientCompany, userCompany) {
   return normalizeModules(modulesFromLegacyType(legacyType));
 }
 
-function getVisibleTabs(modules) {
+function getVisibleTabs(modules, permissions = []) {
   const enabled = new Set(modules);
-  return ALL_TABS.filter((t) => !t.module || enabled.has(t.module));
+  return ALL_TABS.filter((t) => {
+    if (t.auditOnly && !hasPermission(permissions, "audit.view")) return false;
+    return !t.module || enabled.has(t.module);
+  });
 }
 
 function getVisibleQuickStats(modules, summary) {
@@ -238,8 +244,8 @@ function PatientChart() {
   );
 
   const visibleTabs = useMemo(
-    () => getVisibleTabs(companyModules),
-    [companyModules]
+    () => getVisibleTabs(companyModules, user?.permissions),
+    [companyModules, user?.permissions]
   );
 
   useEffect(() => {
@@ -533,6 +539,16 @@ function PatientChart() {
                 )}
               </>
             )}
+          </section>
+        )}
+
+        {activeTab === "activity" && (
+          <section className="patient-chart-section">
+            <header className="patient-chart-section-header">
+              <h1>Activity log</h1>
+              <p>All changes and actions related to this patient and their orders.</p>
+            </header>
+            <AuditTimeline patientId={Number(patientId)} />
           </section>
         )}
 

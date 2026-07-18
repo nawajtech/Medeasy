@@ -186,7 +186,7 @@ function Medicines() {
         <div className="medicines-toolbar-actions">
           <button
             type="button"
-            className="crud-btn crud-btn--ghost"
+            className="crud-btn crud-btn--export"
             onClick={handleExport}
             disabled={exporting}
           >
@@ -194,7 +194,7 @@ function Medicines() {
           </button>
           <button
             type="button"
-            className="crud-btn crud-btn--ghost"
+            className="crud-btn crud-btn--import"
             onClick={handleImportClick}
             disabled={importing}
           >

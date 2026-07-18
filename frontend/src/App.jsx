@@ -34,6 +34,7 @@ import PatientChart from "./pages/PatientChart";
 import Roles from "./pages/Roles";
 import RolePermissions from "./pages/RolePermissions";
 import ThemeSettings from "./pages/ThemeSettings";
+import AuditTrail from "./pages/AuditTrail";
 import "./App.css";
 
 function App() {
@@ -66,6 +67,7 @@ function App() {
                 <Route path="roles" element={<Roles />} />
                 <Route path="roles/:roleId" element={<RolePermissions />} />
                 <Route path="subscription" element={<Subscription />} />
+                <Route path="audit-trail" element={<AuditTrail />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="appearance" element={<ThemeSettings />} />
                 {/* Lab module */}

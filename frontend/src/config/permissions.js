@@ -40,6 +40,8 @@ export const PERMISSIONS = {
   FINANCIAL_VIEW: "financial.view",
   FINANCIAL_CREATE: "financial.create",
   FINANCIAL_DELETE: "financial.delete",
+  AUDIT_VIEW: "audit.view",
+  AUDIT_EXPORT: "audit.export",
 };
 
 /** Sidebar sections — order defines display sequence. */
@@ -91,6 +93,7 @@ export const menuItems = [
   { to: "/users", label: "Users", permission: PERMISSIONS.USERS_VIEW, section: "admin" },
   { to: "/roles", label: "Roles", permission: PERMISSIONS.ROLE_VIEW, section: "admin" },
   { to: "/subscription", label: "Subscription", permission: PERMISSIONS.SETTINGS_VIEW, roleOnly: "company_admin", section: "admin" },
+  { to: "/audit-trail", label: "Audit Trail", permission: PERMISSIONS.AUDIT_VIEW, section: "admin" },
   { to: "/settings", label: "Settings", permission: PERMISSIONS.SETTINGS_VIEW, section: "admin" },
   { to: "/appearance", label: "Appearance", roleOnly: "super_admin", section: "admin" },
 ];
@@ -177,6 +180,7 @@ const routeRules = [
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
   { pattern: /^\/doctors\/\d+\/availability$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/roles\/\d+$/, permission: PERMISSIONS.ROLE_VIEW },
+  { pattern: /^\/audit-trail$/, permission: PERMISSIONS.AUDIT_VIEW },
   { pattern: /^\/appearance$/, roleOnly: "super_admin" },
 ];
 

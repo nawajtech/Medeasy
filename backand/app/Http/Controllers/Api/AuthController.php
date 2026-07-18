@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\User;
+use App\Services\AuditService;
 use App\Services\SubscriptionService;
+use App\Services\TenantRoleProvisioningService;
 use App\Services\UserRoleService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -38,6 +40,8 @@ class AuthController extends Controller
 
         $this->refreshTenantUserRole($user, $userRoles);
 
+        app(AuditService::class)->logAuth('login', $user);
+
         $user->update(['last_login_at' => now()]);
         $user->loadMissing('roles');
         $token = $user->createToken('medeasy-api')->plainTextToken;
@@ -61,7 +65,9 @@ class AuthController extends Controller
 
     public function logout(Request $request): JsonResponse
     {
-        $request->user()->currentAccessToken()?->delete();
+        $user = $request->user();
+        app(AuditService::class)->logAuth('logout', $user);
+        $user->currentAccessToken()?->delete();
 
         return response()->json(['message' => 'Logged out successfully']);
     }
@@ -108,6 +114,11 @@ class AuthController extends Controller
     {
         if (! $user->company_id || $user->isSuperAdmin() || ! $user->role) {
             return;
+        }
+
+        $company = $user->company;
+        if ($company && app(SubscriptionService::class)->getCurrentSubscription($company)) {
+            app(TenantRoleProvisioningService::class)->syncModuleAccess($company);
         }
 
         try {

@@ -7,6 +7,64 @@
   flex-wrap: wrap;
 }
 
+.crud-toolbar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.spreadsheet-import-compact {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.spreadsheet-import-input {
+  display: none;
+}
+
+.spreadsheet-import-result {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: var(--me-radius-md);
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #047857;
+  font-size: 0.875rem;
+}
+
+.spreadsheet-import-errors {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  color: #b45309;
+}
+
+.spreadsheet-sample-link {
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--me-accent, #4f46e5);
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  white-space: nowrap;
+}
+
+.spreadsheet-sample-link:hover:not(:disabled) {
+  color: var(--me-primary, #2563eb);
+}
+
+.spreadsheet-sample-link:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  text-decoration: none;
+}
+
 .tenant-toolbar-left {
   display: flex;
   flex-wrap: wrap;
@@ -187,6 +245,32 @@
   background: var(--me-surface-muted);
   color: var(--me-text);
   border-color: var(--me-border-strong);
+}
+
+.crud-btn--export {
+  background: var(--me-secondary-soft, rgba(20, 184, 166, 0.1));
+  color: var(--me-secondary, #0f766e);
+  border-color: rgba(20, 184, 166, 0.35);
+}
+
+.crud-btn--export:hover {
+  background: rgba(20, 184, 166, 0.16);
+  color: var(--me-secondary, #0f766e);
+  border-color: rgba(20, 184, 166, 0.5);
+  box-shadow: var(--me-shadow-xs);
+}
+
+.crud-btn--import {
+  background: var(--me-accent-soft, rgba(99, 102, 241, 0.1));
+  color: var(--me-accent, #4f46e5);
+  border-color: rgba(99, 102, 241, 0.35);
+}
+
+.crud-btn--import:hover {
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--me-accent, #4f46e5);
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: var(--me-shadow-xs);
 }
 
 .crud-btn--danger {

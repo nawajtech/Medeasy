@@ -25,8 +25,8 @@ class CompanyProvisioningService
         return DB::transaction(function () use ($companyData, $adminData, $plan) {
             $company = Company::create($companyData);
             $this->setup->bootstrap($company);
-            $this->tenantRoles->provisionForCompany($company);
             $this->subscriptions->ensureForCompany($company, $plan);
+            $this->tenantRoles->provisionForCompany($company);
 
             $mainBranchId = Branch::query()
                 ->where('company_id', $company->id)

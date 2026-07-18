@@ -193,7 +193,10 @@ class SubscriptionService
     ): Subscription {
         $this->closeOpenSubscriptions($company, Subscription::STATUS_CANCELLED);
 
-        return $this->create($company, $plan, $billingCycle, $startTrial);
+        $subscription = $this->create($company, $plan, $billingCycle, $startTrial);
+        $this->refreshTenantModuleAccess($company);
+
+        return $subscription;
     }
 
     /** Create a pending invoice — plan changes only after payment is confirmed. */
@@ -298,6 +301,8 @@ class SubscriptionService
                 ]),
             ]);
 
+            $this->refreshTenantModuleAccess($subscription->company);
+
             return $subscription->fresh(['plan.limits', 'plan.features']);
         });
     }
@@ -357,5 +362,10 @@ class SubscriptionService
     protected function generateInvoiceNumber(): string
     {
         return 'SUB-INV-'.now()->format('Ymd').'-'.strtoupper(Str::random(6));
+    }
+
+    protected function refreshTenantModuleAccess(Company $company): void
+    {
+        app(TenantRoleProvisioningService::class)->syncModuleAccess($company);
     }
 }

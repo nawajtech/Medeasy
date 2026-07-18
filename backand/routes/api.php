@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
 use App\Http\Controllers\Api\AdminPlanController;
+use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\ThemeController;
@@ -70,6 +71,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::middleware('subscription.active')->group(function () {
+    // ── Audit trail (company admin / super admin) ─────────────────
+    Route::middleware('permission:audit.view')->group(function () {
+        Route::get('audit-logs', [AuditLogController::class, 'index']);
+        Route::get('audit-logs/filters', [AuditLogController::class, 'modules']);
+        Route::get('audit-logs/actors', [AuditLogController::class, 'actors']);
+        Route::get('audit-logs/related', [AuditLogController::class, 'related']);
+        Route::middleware('permission:audit.export')->get('audit-logs/export', [AuditLogController::class, 'export']);
+        Route::get('audit-logs/{auditLog}', [AuditLogController::class, 'show']);
+    });
+
     Route::post('notifications/token', [NotificationController::class, 'registerToken']);
     Route::delete('notifications/token', [NotificationController::class, 'removeToken']);
     Route::get('notifications', [NotificationController::class, 'index']);
@@ -144,24 +155,34 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Patients ──────────────────────────────────────────────────
     Route::middleware('permission:patient.view')->group(function () {
+        Route::get('patients/export', [PatientController::class, 'export']);
         Route::get('patients', [PatientController::class, 'index']);
+        Route::middleware('permission:patient.create')->get('patients/import-template', [PatientController::class, 'importTemplate']);
         Route::get('patients/{patient}', [PatientController::class, 'show']);
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/wallet', [PatientController::class, 'wallet']);
         Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
     });
-    Route::middleware('permission:patient.create')->post('patients', [PatientController::class, 'store']);
+    Route::middleware('permission:patient.create')->group(function () {
+        Route::post('patients/import', [PatientController::class, 'import']);
+        Route::post('patients', [PatientController::class, 'store']);
+    });
     Route::middleware('permission:patient.edit')->put('patients/{patient}', [PatientController::class, 'update']);
     Route::middleware('permission:patient.delete')->delete('patients/{patient}', [PatientController::class, 'destroy']);
 
     // ── Doctors ─────────────────────────────────────────────────
     Route::middleware('permission:doctor.view')->group(function () {
+        Route::get('doctors/export', [DoctorController::class, 'export']);
         Route::get('doctors', [DoctorController::class, 'index']);
+        Route::middleware('permission:doctor.create')->get('doctors/import-template', [DoctorController::class, 'importTemplate']);
         Route::get('doctors/{doctor}', [DoctorController::class, 'show']);
         Route::get('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'index']);
         Route::post('doctors/{doctor}/availability/check', [DoctorAvailabilityController::class, 'check']);
     });
-    Route::middleware('permission:doctor.create')->post('doctors', [DoctorController::class, 'store']);
+    Route::middleware('permission:doctor.create')->group(function () {
+        Route::post('doctors/import', [DoctorController::class, 'import']);
+        Route::post('doctors', [DoctorController::class, 'store']);
+    });
     Route::middleware('permission:doctor.edit')->group(function () {
         Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
         Route::put('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'sync']);
@@ -181,14 +202,14 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:appointment.delete')->delete('appointments/{appointment}', [AppointmentController::class, 'destroy']);
 
-    Route::middleware('permission:prescription.view')->get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
+    Route::middleware(['permission:prescription.view', 'audit.document'])->get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
     Route::middleware('permission:prescription.create')->post('appointments/{appointment}/prescription/upload', [AppointmentController::class, 'uploadPrescription']);
 
     // ── Billing ───────────────────────────────────────────────────
     Route::middleware('permission:billing.view')->group(function () {
         Route::get('billings', [BillingController::class, 'index']);
         Route::get('billings/{billing}', [BillingController::class, 'show']);
-        Route::get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
+        Route::middleware('audit.document')->get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
     });
     Route::middleware('permission:billing.create')->post('billings', [BillingController::class, 'store']);
     Route::middleware('permission:billing.edit')->put('billings/{billing}', [BillingController::class, 'update']);
@@ -242,8 +263,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('diagnostics/orders', [DiagnosticOrderController::class, 'index']);
         Route::get('diagnostics/today-queue', [DiagnosticOrderController::class, 'todayQueue']);
         Route::get('diagnostics/orders/{diagnosticOrder}', [DiagnosticOrderController::class, 'show']);
-        Route::get('diagnostics/orders/{diagnosticOrder}/invoice', [DiagnosticOrderController::class, 'invoice']);
-        Route::get('diagnostics/orders/{diagnosticOrder}/prescription', [DiagnosticOrderController::class, 'prescription']);
+        Route::middleware('audit.document')->get('diagnostics/orders/{diagnosticOrder}/invoice', [DiagnosticOrderController::class, 'invoice']);
+        Route::middleware('audit.document')->get('diagnostics/orders/{diagnosticOrder}/prescription', [DiagnosticOrderController::class, 'prescription']);
     });
     Route::middleware('permission:diagnostic.create')->group(function () {
         Route::post('diagnostics/categories', [DiagnosticCategoryController::class, 'store']);

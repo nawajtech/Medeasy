@@ -69,6 +69,11 @@ export const routeMeta = {
     breadcrumb: "Subscription",
     description: "View your organization's plan, features, limits, and billing period.",
   },
+  "/audit-trail": {
+    title: "Audit Trail",
+    breadcrumb: "Audit Trail",
+    description: "View all system changes across your organization — who did what and when.",
+  },
   "/pharmacy/medicines": {
     title: "Medicine Master",
     breadcrumb: "Medicine Master",

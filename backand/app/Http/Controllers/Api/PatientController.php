@@ -11,10 +11,12 @@ use App\Models\Appointment;
 use App\Models\PlanLimit;
 use App\Services\PatientWalletService;
 use App\Services\SubscriptionService;
+use App\Support\SpreadsheetIO;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PatientController extends Controller
 {
@@ -248,6 +250,307 @@ class PatientController extends Controller
         $patient->delete();
 
         return response()->json(['message' => 'Patient deleted successfully']);
+    }
+
+    public function export(Request $request): StreamedResponse
+    {
+        if ($this->doctorIdForUser()) {
+            abort(403, 'Doctors cannot export patient records.');
+        }
+
+        $query = Patient::query()->orderBy('name');
+
+        if (auth()->user()->isSuperAdmin() && $request->filled('company_id')) {
+            $query->where('company_id', (int) $request->company_id);
+        } elseif (! auth()->user()->isSuperAdmin()) {
+            $query->where('company_id', auth()->user()->company_id);
+        }
+
+        $headers = [
+            'patient_code',
+            'name',
+            'email',
+            'phone',
+            'status',
+            'gender',
+            'date_of_birth',
+            'blood_group',
+            'height',
+            'weight',
+            'address',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'allergies',
+            'medical_history',
+        ];
+
+        $filename = 'patients-'.now()->format('Y-m-d');
+
+        return SpreadsheetIO::exportExcel($filename, $headers, function () use ($query) {
+            foreach ($query->cursor() as $patient) {
+                yield [
+                    $patient->patient_code,
+                    $patient->name,
+                    $patient->email,
+                    $patient->phone,
+                    $patient->status ? 'active' : 'inactive',
+                    $patient->gender,
+                    $patient->date_of_birth?->format('Y-m-d'),
+                    $patient->blood_group,
+                    $patient->height,
+                    $patient->weight,
+                    $patient->address,
+                    $patient->emergency_contact_name,
+                    $patient->emergency_contact_phone,
+                    $patient->allergies,
+                    $patient->medical_history,
+                ];
+            }
+        });
+    }
+
+    public function importTemplate(): StreamedResponse
+    {
+        if ($this->doctorIdForUser()) {
+            abort(403, 'Doctors cannot download patient import templates.');
+        }
+
+        $headers = [
+            'patient_code',
+            'name',
+            'email',
+            'phone',
+            'password',
+            'status',
+            'gender',
+            'date_of_birth',
+            'blood_group',
+            'height',
+            'weight',
+            'address',
+            'emergency_contact_name',
+            'emergency_contact_phone',
+            'allergies',
+            'medical_history',
+        ];
+
+        $sampleRows = [[
+            '',
+            'John Doe',
+            'john.doe@example.com',
+            '9876543210',
+            'Password@123',
+            'active',
+            'male',
+            '1990-05-15',
+            'B+',
+            '175',
+            '70',
+            '123 Main Street, City',
+            'Jane Doe',
+            '9876543211',
+            'Penicillin',
+            'Hypertension',
+        ]];
+
+        return SpreadsheetIO::exportTemplate('patient-import-sample', $headers, $sampleRows);
+    }
+
+    public function import(Request $request): JsonResponse
+    {
+        if ($this->doctorIdForUser()) {
+            abort(403, 'Doctors cannot import patient records.');
+        }
+
+        $request->validate([
+            'file' => ['required', 'file', 'mimes:csv,txt,xls', 'max:2048'],
+            'company_id' => $this->companyIdRules(),
+        ]);
+
+        $companyId = $this->resolveCompanyId($request);
+        $company = \App\Models\Company::findOrFail($companyId);
+
+        try {
+            $sheet = SpreadsheetIO::readUploadedFile($request->file('file'));
+        } catch (\Throwable $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $columnMap = SpreadsheetIO::mapHeaders($sheet['headers'], [
+            'name' => ['name', 'patient_name', 'full_name'],
+            'email' => ['email', 'email_address'],
+            'phone' => ['phone', 'mobile', 'phone_number', 'contact'],
+            'password' => ['password', 'pass'],
+            'patient_code' => ['patient_code', 'code', 'patient_id'],
+            'status' => ['status', 'active'],
+            'gender' => ['gender', 'sex'],
+            'date_of_birth' => ['date_of_birth', 'dob', 'birth_date'],
+            'blood_group' => ['blood_group', 'blood'],
+            'height' => ['height'],
+            'weight' => ['weight'],
+            'address' => ['address'],
+            'emergency_contact_name' => ['emergency_contact_name', 'emergency_name'],
+            'emergency_contact_phone' => ['emergency_contact_phone', 'emergency_phone'],
+            'allergies' => ['allergies'],
+            'medical_history' => ['medical_history', 'history'],
+        ]);
+
+        if (! isset($columnMap['name'], $columnMap['email'], $columnMap['phone'])) {
+            return response()->json(['message' => 'Spreadsheet must include name, email, and phone columns.'], 422);
+        }
+
+        $imported = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+        $line = 1;
+        $walletService = app(PatientWalletService::class);
+        $subscriptionService = app(SubscriptionService::class);
+
+        foreach ($sheet['rows'] as $row) {
+            $line++;
+
+            if (SpreadsheetIO::isEmptyRow($row)) {
+                continue;
+            }
+
+            $name = SpreadsheetIO::cell($row, $columnMap, 'name');
+            $email = SpreadsheetIO::cell($row, $columnMap, 'email');
+            $phone = SpreadsheetIO::cell($row, $columnMap, 'phone');
+
+            if ($name === '' || $email === '' || $phone === '') {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: name, email, and phone are required.";
+                }
+                continue;
+            }
+
+            $existing = Patient::where('company_id', $companyId)->where('email', $email)->first();
+            $password = SpreadsheetIO::cell($row, $columnMap, 'password');
+
+            if (! $existing) {
+                $subscriptionService->assertUnderLimit(
+                    $company,
+                    PlanLimit::MAX_PATIENTS,
+                    Patient::where('company_id', $companyId)->count()
+                );
+
+                if ($password === '') {
+                    $password = 'Password@123';
+                }
+            } elseif ($password === '') {
+                $password = null;
+            }
+
+            $payload = [
+                'name' => $name,
+                'email' => $email,
+                'phone' => $phone,
+                'status' => $this->parseStatus(SpreadsheetIO::cell($row, $columnMap, 'status'), true),
+                'gender' => $this->nullableValue(SpreadsheetIO::cell($row, $columnMap, 'gender'), ['male', 'female', 'other']),
+                'date_of_birth' => $this->nullableDate(SpreadsheetIO::cell($row, $columnMap, 'date_of_birth')),
+                'blood_group' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'blood_group')),
+                'height' => $this->nullableNumber(SpreadsheetIO::cell($row, $columnMap, 'height')),
+                'weight' => $this->nullableNumber(SpreadsheetIO::cell($row, $columnMap, 'weight')),
+                'address' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'address')),
+                'emergency_contact_name' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'emergency_contact_name')),
+                'emergency_contact_phone' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'emergency_contact_phone')),
+                'allergies' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'allergies')),
+                'medical_history' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'medical_history')),
+            ];
+
+            if ($password !== null) {
+                $payload['password'] = $password;
+            }
+
+            $patientCode = SpreadsheetIO::cell($row, $columnMap, 'patient_code');
+
+            try {
+                if ($existing) {
+                    if ($patientCode !== '') {
+                        $payload['patient_code'] = $patientCode;
+                    }
+                    $existing->update($payload);
+                    $updated++;
+                } else {
+                    $patient = Patient::create([
+                        ...$payload,
+                        'company_id' => $companyId,
+                        'patient_code' => $patientCode !== '' ? $patientCode : $this->nextPatientCode($companyId),
+                    ]);
+                    $walletService->ensureWallet($patient);
+                    $imported++;
+                }
+            } catch (\Throwable $e) {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: ".$e->getMessage();
+                }
+            }
+        }
+
+        $message = "Import complete. {$imported} patient(s) created";
+        if ($updated > 0) {
+            $message .= ", {$updated} updated";
+        }
+        $message .= '.';
+
+        return response()->json([
+            'message' => $message,
+            'imported' => $imported,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ]);
+    }
+
+    private function parseStatus(string $value, bool $default): bool
+    {
+        if ($value === '') {
+            return $default;
+        }
+
+        return in_array(strtolower($value), ['1', 'true', 'yes', 'active', 'y'], true);
+    }
+
+    private function nullableString(string $value): ?string
+    {
+        return $value !== '' ? $value : null;
+    }
+
+    private function nullableNumber(string $value): ?float
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        return is_numeric($value) ? (float) $value : null;
+    }
+
+    private function nullableDate(string $value): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** @param  array<int, string>  $allowed */
+    private function nullableValue(string $value, array $allowed): ?string
+    {
+        if ($value === '') {
+            return null;
+        }
+
+        $normalized = strtolower($value);
+
+        return in_array($normalized, $allowed, true) ? $normalized : null;
     }
 
     private function rules(?Patient $patient = null, ?int $companyId = null): array

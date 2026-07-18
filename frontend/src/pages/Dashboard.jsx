@@ -30,6 +30,7 @@ import {
   IconDollar,
   IconPatient,
   IconStethoscope,
+  IconTrendDown,
   IconTrendUp,
 } from "../components/icons";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -108,6 +109,62 @@ function formatRupee(value) {
 
 function formatPercent(value) {
   return `${Number(value || 0).toFixed(1)}%`;
+}
+
+function formatGrowthPercent(value) {
+  if (value == null || Number.isNaN(Number(value))) return null;
+  const num = Number(value);
+  const prefix = num > 0 ? "+" : "";
+  return `${prefix}${num.toFixed(1)}%`;
+}
+
+function GrowthBadge({ value, invert = false }) {
+  const formatted = formatGrowthPercent(value);
+  if (!formatted) return null;
+
+  const num = Number(value);
+  const isUp = invert ? num < 0 : num > 0;
+  const isDown = invert ? num > 0 : num < 0;
+  const tone = isUp ? "is-up" : isDown ? "is-down" : "is-flat";
+
+  return (
+    <span className={`dashboard-growth-badge ${tone}`}>
+      {isUp ? <IconTrendUp size={12} /> : null}
+      {isDown ? <IconTrendDown size={12} /> : null}
+      {formatted}
+    </span>
+  );
+}
+
+function CollectionSourceRow({ label, stats, showMoney }) {
+  if (!stats) return null;
+
+  return (
+    <div className="dashboard-collection-source">
+      <div className="dashboard-collection-source-head">
+        <span className="dashboard-collection-source-label">{label}</span>
+        <span className="dashboard-collection-source-counts">
+          {stats.completed_count} completed · {stats.pending_count} pending
+        </span>
+      </div>
+      {showMoney && (
+        <dl className="dashboard-collection-source-stats">
+          <div>
+            <dt>Collected</dt>
+            <dd>{formatMoney(stats.collected)}</dd>
+          </div>
+          <div>
+            <dt>Outstanding</dt>
+            <dd className={stats.outstanding > 0 ? "is-warn" : ""}>{formatMoney(stats.outstanding)}</dd>
+          </div>
+          <div>
+            <dt>Collection rate</dt>
+            <dd>{formatPercent(stats.collection_rate)}</dd>
+          </div>
+        </dl>
+      )}
+    </div>
+  );
 }
 
 function formatDateTime(iso) {
@@ -235,7 +292,7 @@ function Dashboard() {
 
   if (!data) return null;
 
-  const { summary, appointments_by_status, appointments_by_month, billing_by_month, payment_overview } =
+  const { summary, appointments_by_status, appointments_by_month, billing_by_month, payment_overview, patient_collections } =
     data;
   const statusData = appointments_by_status.map((row) => ({
     name: row.status.charAt(0).toUpperCase() + row.status.slice(1),
@@ -350,6 +407,64 @@ function Dashboard() {
           hint: `Of ${formatMoney(payment_overview.period_total_billed)} billed`,
           hintClass: payment_overview.collection_rate >= 80 ? "is-success" : "",
         },
+      ]
+    : [];
+
+  const collections = patient_collections;
+  const collectionTotals = collections?.totals;
+  const collectionGrowth = collections?.growth;
+  const showCollectionMoney = !isDoctor && can(PERMISSIONS.BILLING_VIEW);
+  const showPatientCollections = Boolean(collections && collectionTotals);
+  const appointmentCollectionsChart = data.appointment_collections_by_month ?? [];
+  const showAppointmentCollectionsChart = appointmentCollectionsChart.some(
+    (row) => row.completed_count > 0 || row.pending_count > 0 || row.collected > 0 || row.outstanding > 0,
+  );
+
+  const patientCollectionCards = showPatientCollections
+    ? [
+        {
+          key: "completed",
+          label: "Completed visits",
+          value: collectionTotals.completed_count,
+          hint: showCollectionMoney && collections?.appointments
+            ? `${formatMoney(collections.appointments.completed_collected)} collected`
+            : "Successfully finished in range",
+          accent: true,
+          growth: collectionGrowth?.completed_percent,
+        },
+        {
+          key: "pending",
+          label: "Pending visits",
+          value: collectionTotals.pending_count,
+          hint: "Booked or in progress",
+          warn: collectionTotals.pending_count > 0,
+          growth: collectionGrowth?.pending_percent,
+          growthInvert: true,
+        },
+        ...(showCollectionMoney
+          ? [
+              {
+                key: "collected",
+                label: "Total collected",
+                value: formatMoney(collectionTotals.collected),
+                hint: `Of ${formatMoney(collectionTotals.total_billed)} billed`,
+                hintClass: "is-success",
+                growth: collectionGrowth?.collected_percent,
+              },
+              {
+                key: "outstanding",
+                label: "Outstanding",
+                value: formatMoney(collectionTotals.outstanding),
+                hint: collectionGrowth?.collection_rate_change != null
+                  ? `Collection rate ${formatPercent(collectionTotals.collection_rate)} (${collectionGrowth.collection_rate_change >= 0 ? "+" : ""}${collectionGrowth.collection_rate_change.toFixed(1)} pts vs prior period)`
+                  : `Collection rate ${formatPercent(collectionTotals.collection_rate)}`,
+                warn: collectionTotals.outstanding > 0,
+                hintClass: collectionTotals.outstanding > 0 ? "is-warn" : "",
+                growth: collectionGrowth?.outstanding_percent,
+                growthInvert: true,
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -478,6 +593,65 @@ function Dashboard() {
               </article>
             ))}
           </div>
+        </section>
+      )}
+
+      {showPatientCollections && patientCollectionCards.length > 0 && (
+        <section className="dashboard-payments-section dashboard-collections-section">
+          <div className="dashboard-section-head">
+            <h2>Patient collections</h2>
+            <p>
+              Completed vs pending visits and amounts collected
+              {collectionGrowth?.previous_period
+                ? ` · compared to ${formatRangeLabel(collectionGrowth.previous_period.from, collectionGrowth.previous_period.to)}`
+                : ""}
+            </p>
+          </div>
+          <div className={`dashboard-payments-grid dashboard-collections-grid${showCollectionMoney ? "" : " dashboard-collections-grid--counts"}`}>
+            {patientCollectionCards.map((card) => (
+              <article
+                key={card.key}
+                className={`dashboard-payment-card ${card.accent ? "is-accent" : ""} ${card.warn ? "is-warn" : ""}`}
+              >
+                <div className="dashboard-payment-card-header">
+                  <span className="dashboard-payment-label">{card.label}</span>
+                  <span className="dashboard-payment-icon" aria-hidden="true">
+                    {card.key === "completed" || card.key === "pending" ? (
+                      <IconCalendarDays size={18} />
+                    ) : (
+                      <IconDollar size={18} />
+                    )}
+                  </span>
+                </div>
+                <span className="dashboard-payment-value">{card.value}</span>
+                <span className={`dashboard-payment-hint ${card.hintClass || ""}`}>{card.hint}</span>
+                {card.growth != null && (
+                  <GrowthBadge value={card.growth} invert={card.growthInvert} />
+                )}
+              </article>
+            ))}
+          </div>
+
+          {(collections?.diagnostics || collections?.lab) && (
+            <div className="dashboard-collection-breakdown">
+              <h3>By service</h3>
+              <CollectionSourceRow
+                label="Appointments"
+                stats={collections.appointments}
+                showMoney={showCollectionMoney}
+              />
+              <CollectionSourceRow
+                label="Diagnostics"
+                stats={collections.diagnostics}
+                showMoney={showCollectionMoney}
+              />
+              <CollectionSourceRow
+                label="Lab"
+                stats={collections.lab}
+                showMoney={showCollectionMoney}
+              />
+            </div>
+          )}
         </section>
       )}
 
@@ -684,6 +858,69 @@ function Dashboard() {
             </ResponsiveContainer>
           </div>
         </div>
+
+        {showAppointmentCollectionsChart && (
+          <div className="dashboard-chart-card dashboard-chart-card--wide">
+            <h3>Appointment collections</h3>
+            <p className="chart-subtitle">Completed visits and amounts by month</p>
+            <div className="dashboard-chart-body">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={appointmentCollectionsChart} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
+                  <defs>
+                    <linearGradient id="completedCountGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#4ade80" />
+                      <stop offset="100%" stopColor="#16a34a" />
+                    </linearGradient>
+                    <linearGradient id="pendingCountGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#93c5fd" />
+                      <stop offset="100%" stopColor={CHART_BLUE} />
+                    </linearGradient>
+                    <linearGradient id="apptCollectedGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
+                      <stop offset="100%" stopColor={CHART_TEAL} />
+                    </linearGradient>
+                    <linearGradient id="apptOutstandingGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#fbbf24" />
+                      <stop offset="100%" stopColor={CHART_AMBER} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  <YAxis yAxisId="count" allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
+                  {showCollectionMoney && (
+                    <YAxis
+                      yAxisId="money"
+                      orientation="right"
+                      tick={{ fontSize: 12, fill: "#64748b" }}
+                      tickFormatter={(v) => `${currencySymbol()}${v}`}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                  )}
+                  <Tooltip
+                    content={
+                      <ChartTooltipContent
+                        valueFormatter={(v, name) => {
+                          if (["Collected", "Outstanding"].includes(name)) return formatMoney(v);
+                          return v;
+                        }}
+                      />
+                    }
+                  />
+                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
+                  <Bar yAxisId="count" dataKey="completed_count" name="Completed" fill="url(#completedCountGrad)" radius={[8, 8, 0, 0]} />
+                  <Bar yAxisId="count" dataKey="pending_count" name="Pending" fill="url(#pendingCountGrad)" radius={[8, 8, 0, 0]} />
+                  {showCollectionMoney && (
+                    <>
+                      <Bar yAxisId="money" dataKey="collected" name="Collected" fill="url(#apptCollectedGrad)" radius={[8, 8, 0, 0]} />
+                      <Bar yAxisId="money" dataKey="outstanding" name="Outstanding" fill="url(#apptOutstandingGrad)" radius={[8, 8, 0, 0]} />
+                    </>
+                  )}
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
 
         {showBillingChart && (
           <div className="dashboard-chart-card dashboard-chart-card--wide">

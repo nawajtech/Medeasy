@@ -1,10 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import "../App.css";
 import {
   createPatient,
   deletePatient,
+  downloadPatientSample,
+  exportPatients,
   getPatients,
+  importPatients,
   updatePatient,
 } from "../api/patients";
 import { useAuth } from "../auth/AuthContext";
@@ -58,6 +61,11 @@ function Patients() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [downloadingSample, setDownloadingSample] = useState(false);
+  const importInputRef = useRef(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,6 +176,66 @@ function Patients() {
     }
   };
 
+  const handleExport = async () => {
+    setExporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const params = {};
+      if (isSuperAdmin && filterCompanyId) {
+        params.company_id = filterCompanyId;
+      }
+      await exportPatients(params);
+    } catch (err) {
+      setError(err.message || "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleImportClick = () => {
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing patients.");
+      return;
+    }
+    importInputRef.current?.click();
+  };
+
+  const handleImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing patients.");
+      return;
+    }
+
+    setImporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const { data } = await importPatients(file, isSuperAdmin ? filterCompanyId : undefined);
+      setImportResult(data);
+      await load();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Import failed."));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleDownloadSample = async () => {
+    setDownloadingSample(true);
+    setError("");
+    try {
+      await downloadPatientSample();
+    } catch (err) {
+      setError(err.message || "Could not download sample file.");
+    } finally {
+      setDownloadingSample(false);
+    }
+  };
+
   return (
     <section className="page-card patients-page">
       <div className="page-card-header">
@@ -194,14 +262,71 @@ function Patients() {
             />
           )}
         </div>
-        <Can permission="patient.create">
-          <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
-            Add patient
-          </button>
-        </Can>
+        <div className="crud-toolbar-actions">
+          {!isDoctor && (
+            <>
+              <Can permission="patient.view">
+                <button
+                  type="button"
+                  className="crud-btn crud-btn--export"
+                  onClick={handleExport}
+                  disabled={exporting}
+                >
+                  {exporting ? "Exporting…" : "Export Excel"}
+                </button>
+              </Can>
+              <Can permission="patient.create">
+                <div className="spreadsheet-import-compact">
+                  <button
+                    type="button"
+                    className="crud-btn crud-btn--import"
+                    onClick={handleImportClick}
+                    disabled={importing}
+                  >
+                    {importing ? "Importing…" : "Import Excel"}
+                  </button>
+                  <button
+                    type="button"
+                    className="spreadsheet-sample-link"
+                    onClick={handleDownloadSample}
+                    disabled={downloadingSample}
+                    title="Download .xls sample with required columns: name, email, phone"
+                  >
+                    {downloadingSample ? "Downloading…" : "Sample template"}
+                  </button>
+                  <input
+                    ref={importInputRef}
+                    type="file"
+                    accept=".csv,.xls,text/csv,application/vnd.ms-excel"
+                    className="spreadsheet-import-input"
+                    onChange={handleImportFile}
+                  />
+                </div>
+              </Can>
+            </>
+          )}
+          <Can permission="patient.create">
+            <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>
+              Add patient
+            </button>
+          </Can>
+        </div>
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
+      {importResult && (
+        <div className="spreadsheet-import-result">
+          {importResult.message}
+          {importResult.skipped > 0 && ` Skipped ${importResult.skipped} row(s).`}
+          {importResult.errors?.length > 0 && (
+            <ul className="spreadsheet-import-errors">
+              {importResult.errors.map((msg) => (
+                <li key={msg}>{msg}</li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="crud-table-wrap patients-table-wrap">
         <table className="crud-table patients-table">
@@ -223,7 +348,7 @@ function Patients() {
             {!loading && items.length === 0 && (
               <tr>
                 <td colSpan={isSuperAdmin ? 10 : 9} className="crud-empty">
-                  No patients yet. Click &quot;Add patient&quot; to create one.
+                  No patients yet. Add one or import an Excel file.
                 </td>
               </tr>
             )}

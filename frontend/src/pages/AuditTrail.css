@@ -1,0 +1,54 @@
+.audit-trail-page .audit-trail-toolbar {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.audit-trail-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+}
+
+.audit-trail-search {
+  min-width: 180px;
+  padding: 8px 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  font-size: 0.875rem;
+}
+
+.audit-trail-date {
+  white-space: nowrap;
+  font-size: 0.8125rem;
+}
+
+.audit-trail-email {
+  font-size: 0.75rem;
+}
+
+.audit-trail-meta {
+  font-size: 0.8125rem;
+  max-width: 160px;
+}
+
+.audit-pill {
+  display: inline-flex;
+  padding: 2px 8px;
+  border-radius: var(--me-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.audit-pill--create { background: var(--me-success-soft); color: var(--me-success); }
+.audit-pill--update { background: #dbeafe; color: #1d4ed8; }
+.audit-pill--delete { background: var(--me-danger-soft); color: var(--me-danger); }
+.audit-pill--login,
+.audit-pill--logout { background: #f3e8ff; color: #7c3aed; }
+.audit-pill--print { background: #fef3c7; color: #b45309; }
+
+.audit-trail-table td {
+  vertical-align: top;
+}
