@@ -1,0 +1,36 @@
+name: Sync Nawaj to Dev Staging
+
+on:
+  push:
+    branches:
+      - nawaj
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Fetch all branches
+        run: git fetch origin
+
+      - name: Checkout dev_staging
+        run: git checkout dev_staging
+
+      - name: Merge nawaj into dev_staging
+        run: git merge origin/nawaj --no-edit
+
+      - name: Push dev_staging
+        run: git push origin dev_staging
