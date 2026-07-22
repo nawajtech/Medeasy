@@ -1,36 +1,54 @@
+# Workflow Name
 name: Sync Nawaj to Dev Staging
 
+# When should this workflow run?
 on:
   push:
     branches:
-      - nawaj
+      - nawaj          # Runs only when code is pushed to the nawaj branch
 
+# Allow GitHub Actions to push code back to the repository
 permissions:
   contents: write
 
+# Create a job called "sync"
 jobs:
   sync:
+
+    # GitHub creates a temporary Ubuntu machine
     runs-on: ubuntu-latest
 
+    # Steps to execute
     steps:
-      - name: Checkout repository
+
+      # Step 1: Download the repository to the GitHub runner
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      # Step 2: Configure Git identity
       - name: Configure Git
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Fetch all branches
-        run: git fetch origin
+      # Step 3: Download the latest branches from GitHub
+      - name: Fetch All Branches
+        run: |
+          git fetch origin
 
+      # Step 4: Switch to dev_staging branch
       - name: Checkout dev_staging
-        run: git checkout dev_staging
+        run: |
+          git checkout dev_staging
 
+      # Step 5: Merge nawaj into dev_staging
       - name: Merge nawaj into dev_staging
-        run: git merge origin/nawaj --no-edit
+        run: |
+          git merge origin/nawaj --no-edit
 
+      # Step 6: Push the updated dev_staging branch
       - name: Push dev_staging
-        run: git push origin dev_staging
+        run: |
+          git push origin dev_staging
