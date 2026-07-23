@@ -1,0 +1,90 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - staging
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+
+      - name: Fetch Branches
+        run: git fetch origin
+
+      - name: Checkout Main
+        run: git checkout main
+
+      - name: Merge Staging into Main
+        run: git merge origin/staging --no-edit
+
+      - name: Push Main
+        run: git push origin main
+
+      - name: Deploy to AWS EC2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USERNAME }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          port: ${{ secrets.EC2_PORT }}
+          script: |
+            cd /var/www/Medeasy
+
+            echo "Pull Latest Code"
+            git fetch origin
+            git checkout main
+            git reset --hard origin/main
+
+            echo "Laravel"
+
+            cd backand
+
+            composer install --no-interaction --prefer-dist --optimize-autoloader
+
+            php artisan migrate --force
+
+            php artisan config:cache
+
+            php artisan route:cache
+
+            php artisan view:cache
+
+            php artisan optimize
+
+            echo "React"
+
+            cd ../frontend
+
+            npm install
+
+            npm run build
+
+            echo "Restart PHP"
+
+            sudo systemctl reload php8.5-fpm
+
+            echo "Deployment Completed Successfully"
+
+
+
+
+
+
+
+
