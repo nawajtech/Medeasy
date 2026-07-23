@@ -130,6 +130,7 @@ export default function ThemeSettings() {
                       value={value}
                       spellCheck={false}
                       maxLength={7}
+                      placeholder="#000000"
                       onChange={(e) => setColor(field.key, normalizeHex(e.target.value))}
                       onBlur={(e) => setColor(field.key, normalizeHex(e.target.value).toUpperCase())}
                     />

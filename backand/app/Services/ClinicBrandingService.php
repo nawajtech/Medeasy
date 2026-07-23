@@ -11,6 +11,7 @@ class ClinicBrandingService
     private const KEYS = [
         'organisation_name',
         'company_logo',
+        'favicon',
         'organisation_email',
         'organisation_phone',
         'organisation_address',
@@ -47,6 +48,9 @@ class ClinicBrandingService
             'division' => $this->setting($settings, 'organisation_division') ?? '',
             'logo' => PublicStorageUrl::toUrl($settings->get('company_logo'))
                 ?: PublicStorageUrl::toUrl($company?->logo_url),
+            'favicon' => PublicStorageUrl::toUrl($settings->get('favicon'))
+                ?: PublicStorageUrl::toUrl($settings->get('company_logo'))
+                ?: PublicStorageUrl::toUrl($company?->logo_url),
             'email' => $this->setting($settings, 'organisation_email') ?: $company?->email,
             'phone' => $this->setting($settings, 'organisation_phone') ?: $company?->phone,
             'address' => $this->setting($settings, 'organisation_address') ?: $company?->address,
@@ -55,6 +59,30 @@ class ClinicBrandingService
             'footer_content' => $settings->get('footer_content') ?? '',
             'invoice_footer' => $settings->get('invoice_footer') ?? '',
             'currency' => $settings->get('currency') ?: ($company?->currency ?? 'INR'),
+        ];
+    }
+
+    /** Compact branding for the authenticated app chrome (sidebar, favicon). */
+    public function appChrome(?int $companyId): array
+    {
+        if (! $companyId) {
+            $platform = app(PlatformBrandingService::class)->chrome();
+
+            return [
+                'name' => $platform['name'] ?: 'ApnaMedi',
+                'logo' => $platform['logo'],
+                'favicon' => $platform['favicon'],
+                'tagline' => $platform['tagline'] ?? 'Healthcare SaaS',
+            ];
+        }
+
+        $branding = $this->forCompany($companyId);
+
+        return [
+            'name' => $branding['name'] ?: 'ApnaMedi',
+            'logo' => $branding['logo'],
+            'favicon' => $branding['favicon'],
+            'tagline' => $branding['division'] ?: 'Healthcare SaaS',
         ];
     }
 

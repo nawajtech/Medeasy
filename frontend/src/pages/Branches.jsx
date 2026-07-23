@@ -191,19 +191,19 @@ function Branches() {
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="branch_address">Address</label>
-              <input id="branch_address" name="address" value={form.address} onChange={handleChange} />
+              <input id="branch_address" name="address" value={form.address} onChange={handleChange} placeholder="Enter address" />
             </div>
             <div className="crud-field">
               <label htmlFor="branch_city">City</label>
-              <input id="branch_city" name="city" value={form.city} onChange={handleChange} />
+              <input id="branch_city" name="city" value={form.city} onChange={handleChange} placeholder="Enter city" />
             </div>
             <div className="crud-field">
               <label htmlFor="branch_phone">Phone</label>
-              <input id="branch_phone" name="phone" value={form.phone} onChange={handleChange} />
+              <input id="branch_phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone number" />
             </div>
             <div className="crud-field">
               <label htmlFor="branch_email">Email</label>
-              <input id="branch_email" name="email" type="email" value={form.email} onChange={handleChange} />
+              <input id="branch_email" name="email" type="email" value={form.email} onChange={handleChange} placeholder="Enter email" />
             </div>
             <div className="crud-field">
               <label className="crud-checkbox">

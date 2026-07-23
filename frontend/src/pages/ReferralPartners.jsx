@@ -284,7 +284,7 @@ function ReferralPartners() {
             )}
             <div className="crud-field">
               <label>Name *</label>
-              <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
+              <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Partner name" />
             </div>
             <div className="crud-field">
               <label>Mobile</label>
@@ -292,7 +292,7 @@ function ReferralPartners() {
             </div>
             <div className="crud-field crud-field--full">
               <label>Address</label>
-              <textarea rows={2} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} />
+              <textarea rows={2} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} placeholder="Address" />
             </div>
             <div className="crud-field">
               <label>Type *</label>
@@ -317,6 +317,7 @@ function ReferralPartners() {
                 value={form.surcharge_value}
                 onChange={(e) => setForm((p) => ({ ...p, surcharge_value: e.target.value }))}
                 disabled={!form.surcharge_type}
+                placeholder="Extra commission value"
               />
             </div>
             <div className="crud-field">
@@ -416,6 +417,7 @@ function ReferralPartners() {
                       required
                       value={payoutForm.amount}
                       onChange={(e) => setPayoutForm((p) => ({ ...p, amount: e.target.value }))}
+                      placeholder="Amount (₹)"
                     />
                   </div>
                   <div className="crud-field">
@@ -425,6 +427,7 @@ function ReferralPartners() {
                       required
                       value={payoutForm.paid_at}
                       onChange={(e) => setPayoutForm((p) => ({ ...p, paid_at: e.target.value }))}
+                      placeholder="Paid on"
                     />
                   </div>
                   <div className="crud-field">
@@ -439,7 +442,7 @@ function ReferralPartners() {
                   </div>
                   <div className="crud-field crud-field--full">
                     <label>Notes</label>
-                    <input value={payoutForm.notes} onChange={(e) => setPayoutForm((p) => ({ ...p, notes: e.target.value }))} />
+                    <input value={payoutForm.notes} onChange={(e) => setPayoutForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Notes" />
                   </div>
                 </div>
                 <div className="crud-modal-actions">

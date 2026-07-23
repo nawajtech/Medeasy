@@ -263,11 +263,11 @@ function FinancialReport() {
 
         <label className="fin-filter-field">
           <span>From</span>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} placeholder="From date" />
         </label>
         <label className="fin-filter-field">
           <span>To</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} placeholder="To date" />
         </label>
 
         <div className="fin-presets">
@@ -481,6 +481,7 @@ function FinancialReport() {
                 value={expenseForm.expense_date}
                 onChange={(e) => setExpenseForm((p) => ({ ...p, expense_date: e.target.value }))}
                 required
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field">
@@ -492,6 +493,7 @@ function FinancialReport() {
                 value={expenseForm.amount}
                 onChange={(e) => setExpenseForm((p) => ({ ...p, amount: e.target.value }))}
                 required
+                placeholder="Amount (₹)"
               />
             </div>
             <div className="crud-field">
@@ -516,6 +518,7 @@ function FinancialReport() {
                 value={expenseForm.notes}
                 onChange={(e) => setExpenseForm((p) => ({ ...p, notes: e.target.value }))}
                 rows={2}
+                placeholder="Notes"
               />
             </div>
           </div>

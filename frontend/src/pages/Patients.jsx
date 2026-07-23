@@ -451,7 +451,7 @@ function Patients() {
             )}
             <div className="crud-field">
               <label htmlFor="name">Full name</label>
-              <input id="name" name="name" value={form.name} onChange={handleChange} required />
+              <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter full name" />
             </div>
             <div className="crud-field">
               <label htmlFor="email">Email</label>
@@ -462,6 +462,7 @@ function Patients() {
                 value={form.email}
                 onChange={handleChange}
                 required
+                placeholder="Enter email"
               />
             </div>
             <div className="crud-field">
@@ -474,11 +475,12 @@ function Patients() {
                 value={form.patient_code}
                 onChange={handleChange}
                 required={Boolean(editing)}
+                placeholder="Enter patient code"
               />
             </div>
             <div className="crud-field">
               <label htmlFor="phone">Mobile number *</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required />
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="Enter phone number" />
             </div>
             <div className="crud-field">
               <label htmlFor="password">
@@ -492,6 +494,7 @@ function Patients() {
                 onChange={handleChange}
                 required={!editing}
                 minLength={8}
+                placeholder="Enter password"
               />
             </div>
             <div className="crud-field">
@@ -511,6 +514,7 @@ function Patients() {
                 type="date"
                 value={form.date_of_birth}
                 onChange={handleChange}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field">
@@ -520,6 +524,7 @@ function Patients() {
                 name="blood_group"
                 value={form.blood_group}
                 onChange={handleChange}
+                placeholder="e.g. A+"
               />
             </div>
             <div className="crud-field">
@@ -531,6 +536,7 @@ function Patients() {
                 step="0.01"
                 value={form.height}
                 onChange={handleChange}
+                placeholder="Height in cm"
               />
             </div>
             <div className="crud-field">
@@ -542,11 +548,12 @@ function Patients() {
                 step="0.01"
                 value={form.weight}
                 onChange={handleChange}
+                placeholder="Weight in kg"
               />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="address">Address</label>
-              <textarea id="address" name="address" value={form.address} onChange={handleChange} />
+              <textarea id="address" name="address" value={form.address} onChange={handleChange} placeholder="Enter address" />
             </div>
             <div className="crud-field">
               <label htmlFor="emergency_contact_name">Emergency contact</label>
@@ -555,6 +562,7 @@ function Patients() {
                 name="emergency_contact_name"
                 value={form.emergency_contact_name}
                 onChange={handleChange}
+                placeholder="Enter emergency contact name"
               />
             </div>
             <div className="crud-field">
@@ -564,6 +572,7 @@ function Patients() {
                 name="emergency_contact_phone"
                 value={form.emergency_contact_phone}
                 onChange={handleChange}
+                placeholder="Enter emergency phone"
               />
             </div>
             <div className="crud-field crud-field--full">
@@ -573,6 +582,7 @@ function Patients() {
                 name="allergies"
                 value={form.allergies}
                 onChange={handleChange}
+                placeholder="Enter allergies (optional)"
               />
             </div>
             <div className="crud-field crud-field--full">
@@ -582,6 +592,7 @@ function Patients() {
                 name="medical_history"
                 value={form.medical_history}
                 onChange={handleChange}
+                placeholder="Enter medical history (optional)"
               />
             </div>
             <div className="crud-field crud-checkbox">
