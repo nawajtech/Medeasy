@@ -177,11 +177,9 @@ class PlatformSettingController extends Controller
 
         $ext = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
         $raw = base64_decode(substr($base64, strpos($base64, ',') + 1));
-        $disk = Storage::disk('public');
-        $disk->makeDirectory('platform');
         $filename = 'platform/'.Str::uuid().'.'.$ext;
 
-        $disk->put($filename, $raw);
+        Storage::disk('public')->put($filename, $raw);
 
         return $filename;
     }

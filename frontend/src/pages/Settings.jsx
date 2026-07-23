@@ -11,7 +11,6 @@ import { useAuth } from "../auth/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
-import { resolveMediaUrl } from "../utils/mediaUrl";
 import "./Settings.css";
 
 const GROUP_LABELS = {
@@ -69,15 +68,8 @@ function ImageUploadCard({ field, value, preview, fileName, uploading, onSelect,
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
   const [fileError, setFileError] = useState("");
-  const [imgFailed, setImgFailed] = useState(false);
-  const rawSrc = preview || value;
-  const displaySrc = rawSrc?.startsWith?.("data:") ? rawSrc : resolveMediaUrl(rawSrc);
+  const displaySrc = preview || value;
   const isFavicon = field.key === "favicon";
-  const showPreview = Boolean(displaySrc) && !imgFailed;
-
-  useEffect(() => {
-    setImgFailed(false);
-  }, [displaySrc]);
 
   const processFile = async (file) => {
     setFileError("");
@@ -121,7 +113,6 @@ function ImageUploadCard({ field, value, preview, fileName, uploading, onSelect,
 
   const handleClear = () => {
     setFileError("");
-    setImgFailed(false);
     onClear();
   };
 
@@ -132,7 +123,7 @@ function ImageUploadCard({ field, value, preview, fileName, uploading, onSelect,
           <span className="settings-upload-card__title">{field.label}</span>
           <code className="settings-key">{field.key}</code>
         </label>
-        {showPreview && (
+        {displaySrc && (
           <button type="button" className="settings-upload-remove" onClick={handleClear}>
             Remove
           </button>
@@ -140,28 +131,23 @@ function ImageUploadCard({ field, value, preview, fileName, uploading, onSelect,
       </div>
 
       <div
-        className={`settings-upload-dropzone${dragging ? " is-dragging" : ""}${showPreview ? " has-image" : ""}`}
+        className={`settings-upload-dropzone${dragging ? " is-dragging" : ""}${displaySrc ? " has-image" : ""}`}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
-        onClick={!showPreview ? openPicker : undefined}
+        onClick={!displaySrc ? openPicker : undefined}
         onKeyDown={(e) => {
-          if (!showPreview && (e.key === "Enter" || e.key === " ")) {
+          if (!displaySrc && (e.key === "Enter" || e.key === " ")) {
             e.preventDefault();
             openPicker();
           }
         }}
-        role={showPreview ? undefined : "button"}
-        tabIndex={showPreview ? undefined : 0}
+        role={displaySrc ? undefined : "button"}
+        tabIndex={displaySrc ? undefined : 0}
       >
-        {showPreview ? (
+        {displaySrc ? (
           <div className="settings-upload-preview">
-            <img
-              src={displaySrc}
-              alt={field.label}
-              className="settings-upload-preview__img"
-              onError={() => setImgFailed(true)}
-            />
+            <img src={displaySrc} alt={field.label} className="settings-upload-preview__img" />
             <div className="settings-upload-preview__overlay">
               <button
                 type="button"
@@ -184,11 +170,7 @@ function ImageUploadCard({ field, value, preview, fileName, uploading, onSelect,
               Drag & drop or <span>browse</span>
             </p>
             <p className="settings-upload-empty__hint">
-              {imgFailed
-                ? "Previous image could not be loaded — upload again"
-                : isFavicon
-                  ? "Square icon · 32×32 or 64×64 recommended"
-                  : "PNG or SVG recommended · Max 2 MB"}
+              {isFavicon ? "Square icon · 32×32 or 64×64 recommended" : "PNG or SVG recommended · Max 2 MB"}
             </p>
           </div>
         )}

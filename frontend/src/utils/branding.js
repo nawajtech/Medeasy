@@ -1,5 +1,3 @@
-import { resolveMediaUrl } from "./mediaUrl";
-
 const DEFAULT_FAVICON = "/favicon.svg";
 const DEFAULT_BRAND_NAME = "ApnaMedi";
 const DEFAULT_TAGLINE = "Healthcare SaaS";
@@ -7,22 +5,17 @@ const FAVICON_LINK_ID = "app-dynamic-favicon";
 
 export function getBranding(user) {
   const branding = user?.branding;
-  const logo = resolveMediaUrl(branding?.logo || user?.company?.logo_url || null);
-  const favicon = resolveMediaUrl(
-    branding?.favicon || branding?.logo || user?.company?.logo_url || null
-  );
-
   return {
     name: branding?.name || user?.company?.name || DEFAULT_BRAND_NAME,
-    logo,
-    favicon,
+    logo: branding?.logo || user?.company?.logo_url || null,
+    favicon: branding?.favicon || branding?.logo || user?.company?.logo_url || null,
     tagline: branding?.tagline || DEFAULT_TAGLINE,
   };
 }
 
 export function applyDocumentBranding(branding) {
   const name = branding?.name || DEFAULT_BRAND_NAME;
-  const faviconHref = resolveMediaUrl(branding?.favicon) || DEFAULT_FAVICON;
+  const faviconHref = branding?.favicon || DEFAULT_FAVICON;
 
   if (typeof document === "undefined") return;
 
