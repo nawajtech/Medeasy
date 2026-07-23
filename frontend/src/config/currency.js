@@ -18,7 +18,7 @@ let activeCurrency = DEFAULT_CURRENCY;
 
 // Hydrate synchronously from the persisted user so the very first render is correct.
 try {
-  const stored = JSON.parse(localStorage.getItem("medeasy_user") || "null");
+  const stored = JSON.parse(localStorage.getItem("apna_medi_user") || "null");
   if (stored?.currency && CURRENCIES[stored.currency]) {
     activeCurrency = stored.currency;
   }

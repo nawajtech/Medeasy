@@ -7,7 +7,7 @@ use Illuminate\Console\Command;
 
 class SyncUserRoles extends Command
 {
-    protected $signature = 'medeasy:sync-user-roles';
+    protected $signature = 'apnamedi:sync-user-roles';
 
     protected $description = 'Sync users.role column to Spatie role assignments';
 

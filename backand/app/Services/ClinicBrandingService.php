@@ -43,7 +43,7 @@ class ClinicBrandingService
             ->pluck('value', 'key');
 
         return [
-            'name' => $this->setting($settings, 'organisation_name') ?: $company?->name ?? 'MedEasy Organisation',
+            'name' => $this->setting($settings, 'organisation_name') ?: $company?->name ?? 'ApnaMedi Organisation',
             'division' => $this->setting($settings, 'organisation_division') ?? '',
             'logo' => PublicStorageUrl::toUrl($settings->get('company_logo'))
                 ?: PublicStorageUrl::toUrl($company?->logo_url),

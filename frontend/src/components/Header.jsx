@@ -66,7 +66,7 @@ function Header() {
     <header className="top-header">
       <div className="header-left">
         <nav className="breadcrumb" aria-label="Breadcrumb">
-          <span>MedEasy</span>
+          <span>ApnaMedi</span>
           <IconChevronRight />
           <span className="breadcrumb-current">{meta.breadcrumb}</span>
         </nav>

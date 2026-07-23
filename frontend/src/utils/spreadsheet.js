@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config/env";
 
 export async function downloadSpreadsheetExport(path, params = {}, filename = null) {
-  const token = localStorage.getItem("medeasy_token");
+  const token = localStorage.getItem("apna_medi_token");
   const query = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {

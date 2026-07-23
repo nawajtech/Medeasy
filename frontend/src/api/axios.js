@@ -10,7 +10,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("medeasy_token");
+  const token = localStorage.getItem("apna_medi_token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -25,8 +25,8 @@ api.interceptors.response.use(
       error.config?.url?.includes("/auth/me");
 
     if (error.response?.status === 401 && !isAuthRequest) {
-      localStorage.removeItem("medeasy_token");
-      localStorage.removeItem("medeasy_user");
+      localStorage.removeItem("apna_medi_token");
+      localStorage.removeItem("apna_medi_user");
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }

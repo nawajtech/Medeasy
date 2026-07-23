@@ -15,7 +15,7 @@ export const importMedicines = (file) => {
 };
 
 export async function exportMedicines() {
-  const token = localStorage.getItem("medeasy_token");
+  const token = localStorage.getItem("apna_medi_token");
   const response = await fetch(`${API_BASE_URL}/pharmacy/medicines/export`, {
     headers: {
       Authorization: `Bearer ${token}`,

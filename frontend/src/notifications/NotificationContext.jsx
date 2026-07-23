@@ -25,7 +25,7 @@ export function NotificationProvider({ children }) {
   }, []);
 
   const handleIncoming = useCallback((payload) => {
-    const title = payload.notification?.title ?? "MedEasy";
+    const title = payload.notification?.title ?? "ApnaMedi";
     const body = payload.notification?.body ?? "";
     const item = {
       id: payload.data?.notification_id ?? crypto.randomUUID(),

@@ -9,7 +9,7 @@ use Illuminate\Console\Command;
 
 class ProvisionTenantRoles extends Command
 {
-    protected $signature = 'medeasy:provision-tenant-roles {--migrate : Migrate legacy global roles to per-company roles}';
+    protected $signature = 'apnamedi:provision-tenant-roles {--migrate : Migrate legacy global roles to per-company roles}';
 
     protected $description = 'Provision company-wise roles and sync user assignments';
 

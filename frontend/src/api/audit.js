@@ -9,7 +9,7 @@ export const getRelatedAuditLogs = (params) => api.get("/audit-logs/related", { 
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 export async function exportAuditLogs(params = {}) {
-  const token = localStorage.getItem("medeasy_token");
+  const token = localStorage.getItem("apna_medi_token");
   const qs = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v != null && v !== "")
   ).toString();

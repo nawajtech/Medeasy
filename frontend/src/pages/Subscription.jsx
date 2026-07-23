@@ -386,7 +386,7 @@ function Subscription() {
       <div className="crud-page">
         <div className="subscription-empty">
           <h2>No active subscription</h2>
-          <p>Your organization does not have a subscription assigned yet. Please contact the MedEasy platform administrator.</p>
+          <p>Your organization does not have a subscription assigned yet. Please contact the ApnaMedi platform administrator.</p>
         </div>
       </div>
     );

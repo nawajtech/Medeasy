@@ -44,7 +44,7 @@ class AuthController extends Controller
 
         $user->update(['last_login_at' => now()]);
         $user->loadMissing('roles');
-        $token = $user->createToken('medeasy-api')->plainTextToken;
+        $token = $user->createToken('apna-medi-api')->plainTextToken;
 
         return response()->json([
             'token' => $token,

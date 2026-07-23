@@ -32,7 +32,7 @@ class TaxSettingsService
         ];
     }
 
-    /** Platform default subscription tax (MedEasy → hospital). */
+    /** Platform default subscription tax (ApnaMedi → hospital). */
     public function platformSubscriptionTax(): array
     {
         $saved = SubscriptionTaxSetting::query()->first();

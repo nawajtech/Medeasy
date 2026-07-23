@@ -1,7 +1,7 @@
 import { API_BASE_URL } from "../config/env";
 
 export async function openAuthenticatedDocument(path) {
-  const token = localStorage.getItem("medeasy_token");
+  const token = localStorage.getItem("apna_medi_token");
   if (!token) {
     window.location.href = "/login";
     return;
@@ -17,8 +17,8 @@ export async function openAuthenticatedDocument(path) {
   });
 
   if (response.status === 401) {
-    localStorage.removeItem("medeasy_token");
-    localStorage.removeItem("medeasy_user");
+    localStorage.removeItem("apna_medi_token");
+    localStorage.removeItem("apna_medi_user");
     window.location.href = "/login";
     return;
   }

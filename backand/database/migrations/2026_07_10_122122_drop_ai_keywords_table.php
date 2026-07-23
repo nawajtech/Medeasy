@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Remove orphan ai_keywords table (not used by MedEasy application code).
+     * Remove orphan ai_keywords table (not used by ApnaMedi application code).
      */
     public function up(): void
     {

@@ -145,7 +145,7 @@ export default function ThemeSettings() {
 
           <div className="tp-shell">
             <aside className="tp-sidebar">
-              <div className="tp-brand">MedEasy</div>
+              <div className="tp-brand">ApnaMedi</div>
               <nav>
                 <span className="tp-nav is-active">Dashboard</span>
                 <span className="tp-nav">Patients</span>
