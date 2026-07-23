@@ -3,6 +3,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { getPlatformBranding } from "../../api/platformSettings";
 import { applyDocumentBranding } from "../../utils/branding";
+import { resolveMediaUrl } from "../../utils/mediaUrl";
 import { getApiErrorMessage } from "../../utils/apiError";
 import "./Login.css";
 
@@ -26,13 +27,16 @@ function Login() {
         if (!active || !data) return;
         const next = {
           name: data.name || "ApnaMedi",
-          logo: data.logo || null,
+          logo: resolveMediaUrl(data.logo) || null,
           tagline: data.tagline
             ? `${data.tagline} — sign in to your account`
             : "Healthcare SaaS — sign in to your account",
         };
         setBrand(next);
-        applyDocumentBranding({ name: next.name, favicon: data.favicon || data.logo });
+        applyDocumentBranding({
+          name: next.name,
+          favicon: resolveMediaUrl(data.favicon || data.logo),
+        });
       })
       .catch(() => {});
     return () => {
