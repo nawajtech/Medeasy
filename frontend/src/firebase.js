@@ -78,7 +78,7 @@ export async function initFirebaseMessaging(onNotification, userId) {
       throw new Error("Service workers are not supported in this browser.");
     }
 
-    const authToken = localStorage.getItem("medeasy_token");
+    const authToken = localStorage.getItem("apna_medi_token");
     if (!authToken) {
       throw new Error("Login is required before registering for notifications.");
     }

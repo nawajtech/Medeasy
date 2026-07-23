@@ -76,7 +76,7 @@ function Sidebar() {
             <IconHeartPulse size={22} />
           </div>
           <div className="brand-text">
-            <span className="brand-name">MedEasy</span>
+            <span className="brand-name">ApnaMedi</span>
             <span className="brand-tagline">
               {user?.company?.name || "Healthcare SaaS"}
             </span>

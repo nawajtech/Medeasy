@@ -7,9 +7,9 @@ function Footer() {
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <span className="footer-logo">MedEasy</span>
+          <span className="footer-logo">ApnaMedi</span>
           <p className="footer-copy">
-            © {year} MedEasy. Laravel + React healthcare platform.
+            © {year} ApnaMedi. Laravel + React healthcare platform.
           </p>
         </div>
 

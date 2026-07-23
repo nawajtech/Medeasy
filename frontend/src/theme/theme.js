@@ -26,7 +26,7 @@ export const THEME_FIELDS = [
   { key: "text", label: "Text", hint: "Primary body text" },
 ];
 
-const STORAGE_KEY = "medeasy.theme";
+const STORAGE_KEY = "apna_medi.theme";
 
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));

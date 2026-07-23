@@ -106,7 +106,7 @@ class NotificationController extends Controller
         try {
             $notification = $this->notifications->notifyUser(
                 $request->user(),
-                'MedEasy Test',
+                'ApnaMedi Test',
                 'Push notifications are working!'
             );
         } catch (RuntimeException $e) {

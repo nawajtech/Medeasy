@@ -1,4 +1,4 @@
-# MedEasy — Project Documentation
+# ApnaMedi — Project Documentation
 
 **Version:** 2.0  
 **Date:** July 2026  
@@ -9,9 +9,9 @@
 
 ## 1. Executive Summary
 
-**MedEasy** is a cloud-ready **Healthcare Management SaaS Platform** designed for clinics, hospitals, pathology labs, diagnostic centers, and pharmacies. It provides a single web application where healthcare organizations can manage patients, doctors, appointments, billing, laboratory workflows, diagnostic imaging orders, staff, branches, subscriptions, and organization-specific settings — all from one secure dashboard.
+**ApnaMedi** is a cloud-ready **Healthcare Management SaaS Platform** designed for clinics, hospitals, pathology labs, diagnostic centers, and pharmacies. It provides a single web application where healthcare organizations can manage patients, doctors, appointments, billing, laboratory workflows, diagnostic imaging orders, staff, branches, subscriptions, and organization-specific settings — all from one secure dashboard.
 
-The platform is built as a **multi-tenant SaaS system**: one MedEasy installation can serve **many independent healthcare organizations** (companies), each with its own data, branding, staff, subscription plan, and configuration. A platform **Super Admin** manages all organizations and master subscription plans; each clinic has its own **Company Admin** and role-based staff users.
+The platform is built as a **multi-tenant SaaS system**: one ApnaMedi installation can serve **many independent healthcare organizations** (companies), each with its own data, branding, staff, subscription plan, and configuration. A platform **Super Admin** manages all organizations and master subscription plans; each clinic has its own **Company Admin** and role-based staff users.
 
 **Key capabilities in the current release:**
 
@@ -25,11 +25,11 @@ The platform is built as a **multi-tenant SaaS system**: one MedEasy installatio
 - **Push notifications** (Firebase) and in-app notification inbox
 - **Platform theme** customization (Super Admin)
 
-This document describes what MedEasy provides today, how it is structured, who can use which features, and what has been implemented in the current release.
+This document describes what ApnaMedi provides today, how it is structured, who can use which features, and what has been implemented in the current release.
 
 ---
 
-## 2. What Problem MedEasy Solves
+## 2. What Problem ApnaMedi Solves
 
 Healthcare organizations often rely on spreadsheets, paper records, or disconnected tools for:
 
@@ -43,7 +43,7 @@ Healthcare organizations often rely on spreadsheets, paper records, or disconnec
 - Staff access control  
 - SaaS subscription and plan limits  
 
-MedEasy centralizes these workflows into one modern web application with role-based access, subscription-based feature gating, and per-organization data isolation — so each team member sees only what they need.
+ApnaMedi centralizes these workflows into one modern web application with role-based access, subscription-based feature gating, and per-organization data isolation — so each team member sees only what they need.
 
 ---
 
@@ -77,7 +77,7 @@ MedEasy centralizes these workflows into one modern web application with role-ba
 
 ## 4. Supported Organization Types & Modules
 
-Each organization (tenant) in MedEasy can be classified as one of the following:
+Each organization (tenant) in ApnaMedi can be classified as one of the following:
 
 | Type | Description |
 |------|-------------|
@@ -111,7 +111,7 @@ When a new organization is created, the system automatically provisions:
 
 ## 5. User Roles & Access Control
 
-MedEasy uses **role-based access control (RBAC)** with **Spatie permissions**. Each user is assigned one role that determines which menus and API actions they can access. Organizations can also create **custom roles** and assign specific permissions.
+ApnaMedi uses **role-based access control (RBAC)** with **Spatie permissions**. Each user is assigned one role that determines which menus and API actions they can access. Organizations can also create **custom roles** and assign specific permissions.
 
 ### 5.1 System Roles
 
@@ -653,7 +653,7 @@ Settings are **company-specific** — each organization has its own values.
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
-│                       MedEasy Platform                            │
+│                       ApnaMedi Platform                            │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐           │
 │  │ Apollo       │  │ Riyaj        │  │  Future      │           │
 │  │ Clinic       │  │ Clinic       │  │  Clinics…    │           │
@@ -671,7 +671,7 @@ Settings are **company-specific** — each organization has its own values.
 **Key principles:**
 
 1. **One platform, many tenants** — each company is fully isolated  
-2. **Shared application** — all organizations use the same MedEasy software  
+2. **Shared application** — all organizations use the same ApnaMedi software  
 3. **Separate data** — patients, orders, and settings belong to one company only  
 4. **Separate branding** — logo, favicon, and contact info per organization  
 5. **Subscription gating** — plan features and limits control what each tenant can use  
@@ -753,7 +753,7 @@ The following demo accounts are available after running the database seeder:
 
 | Role | Email | Password | Organization |
 |------|-------|----------|--------------|
-| Super Admin | `super@medeasy.com` | `password` | Platform (all companies) |
+| Super Admin | `super@apnamedi.com` | `password` | Platform (all companies) |
 | Company Admin | `admin@apollo.com` | `password` | Apollo Clinic |
 | Doctor | `doctor@apollo.com` | `password` | Apollo Clinic |
 | Company Admin | `admin@riyaj.com` | `password` | Riyaj Clinic |
@@ -858,7 +858,7 @@ The following demo accounts are available after running the database seeder:
 
 ## 14. Support & Maintenance Scope
 
-This documentation covers the **MedEasy healthcare management platform** as implemented in the current codebase. Ongoing services typically include:
+This documentation covers the **ApnaMedi healthcare management platform** as implemented in the current codebase. Ongoing services typically include:
 
 - Bug fixes and stability improvements  
 - Security updates for framework dependencies  
@@ -900,6 +900,6 @@ This documentation covers the **MedEasy healthcare management platform** as impl
 
 ---
 
-**MedEasy** — *Healthcare Management, Made Easy.*
+**ApnaMedi** — *Healthcare Management, Made Easy.*
 
 For technical setup instructions or deployment assistance, contact your development team.

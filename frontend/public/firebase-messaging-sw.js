@@ -18,7 +18,7 @@ firebase.initializeApp({
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
-  const title = payload.notification?.title ?? "MedEasy";
+  const title = payload.notification?.title ?? "ApnaMedi";
   const body = payload.notification?.body ?? "";
 
   self.registration.showNotification(title, {

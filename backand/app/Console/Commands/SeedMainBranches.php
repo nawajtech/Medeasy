@@ -8,7 +8,7 @@ use Illuminate\Console\Command;
 
 class SeedMainBranches extends Command
 {
-    protected $signature   = 'medeasy:seed-main-branches';
+    protected $signature   = 'apnamedi:seed-main-branches';
     protected $description = 'Create a default Main Branch for every company that does not already have one';
 
     public function handle(): int

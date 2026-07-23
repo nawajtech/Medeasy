@@ -7,8 +7,8 @@ import "./Login.css";
 function Login() {
   const { login, isAuthenticated, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("super@medeasy.com");
-  const [password, setPassword] = useState("password");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -43,7 +43,7 @@ function Login() {
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1>MedEasy</h1>
+        <h1>ApnaMedi</h1>
         <p>Healthcare SaaS — sign in to your account</p>
         {error && <div className="login-error">{error}</div>}
         <form onSubmit={handleSubmit}>
@@ -71,17 +71,7 @@ function Login() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-        <div className="login-hints">
-          <p>
-            <strong>Super Admin:</strong> super@medeasy.com / password
-          </p>
-          <p>
-            <strong>Apollo Admin:</strong> admin@apollo.com / password
-          </p>
-          <p>
-            <strong>Apollo Doctor:</strong> doctor@apollo.com / password
-          </p>
-        </div>
+        
       </div>
     </div>
   );

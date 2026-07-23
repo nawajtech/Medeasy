@@ -6,8 +6,8 @@ import { ROLES } from "../config/roles";
 
 const AuthContext = createContext(null);
 
-const TOKEN_KEY = "medeasy_token";
-const USER_KEY = "medeasy_user";
+const TOKEN_KEY = "apna_medi_token";
+const USER_KEY = "apna_medi_user";
 
 function readStoredUser() {
   try {

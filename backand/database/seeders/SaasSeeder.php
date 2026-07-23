@@ -21,7 +21,7 @@ class SaasSeeder extends Seeder
         $tenantRoles = app(TenantRoleProvisioningService::class);
 
         $superAdmin = User::updateOrCreate(
-            ['email' => 'super@medeasy.com'],
+            ['email' => 'super@apnamedi.com'],
             [
                 'name' => 'Super Admin',
                 'password' => Hash::make('password'),
