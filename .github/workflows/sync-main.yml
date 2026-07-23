@@ -14,7 +14,6 @@ jobs:
     environment: EC2_HOST
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
@@ -45,14 +44,24 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           port: ${{ secrets.EC2_PORT }}
           script: |
+            set -e
+
+            echo "=============================="
+            echo "Starting Deployment"
+            echo "=============================="
+
             cd /var/www/Medeasy
 
-            echo "Pull Latest Code"
+            echo "Fetching latest code..."
             git fetch origin
             git checkout main
             git reset --hard origin/main
 
-            echo "Laravel"
+            ##############################
+            # Laravel Backend
+            ##############################
+
+            echo "Deploying Laravel..."
 
             cd backand
 
@@ -60,32 +69,39 @@ jobs:
 
             php artisan migrate --force
 
+            php artisan storage:link || true
+
+            php artisan optimize:clear
+
             php artisan config:cache
-
             php artisan route:cache
-
             php artisan view:cache
 
-            php artisan optimize
+            ##############################
+            # React Frontend
+            ##############################
 
-            echo "React"
+            echo "Deploying React..."
 
             cd ../frontend
 
-            npm install
+            if [ -f package-lock.json ]; then
+              npm ci
+            else
+              npm install
+            fi
 
             npm run build
 
-            echo "Restart PHP"
+            ##############################
+            # Restart Services
+            ##############################
+
+            echo "Reloading Services..."
 
             sudo systemctl reload php8.5-fpm
+            sudo systemctl reload nginx
 
+            echo "=============================="
             echo "Deployment Completed Successfully"
-
-
-
-
-
-
-
-
+            echo "=============================="
