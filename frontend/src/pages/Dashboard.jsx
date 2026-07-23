@@ -532,6 +532,7 @@ function Dashboard() {
               max={dateTo}
               onChange={(e) => setDateFrom(e.target.value)}
               aria-label="From date"
+              placeholder="From date"
             />
             <span className="dashboard-date-sep">to</span>
             <input
@@ -540,6 +541,7 @@ function Dashboard() {
               min={dateFrom}
               onChange={(e) => setDateTo(e.target.value)}
               aria-label="To date"
+              placeholder="To date"
             />
           </div>
         </div>

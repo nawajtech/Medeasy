@@ -296,11 +296,11 @@ function LabTests() {
                 </div>
                 <div className="crud-field crud-field--full">
                   <label htmlFor="cat_desc">Description</label>
-                  <textarea id="cat_desc" name="description" value={form.description} onChange={handleChange} />
+                  <textarea id="cat_desc" name="description" value={form.description} onChange={handleChange} placeholder="Category description" />
                 </div>
                 <div className="crud-field">
                   <label htmlFor="cat_sort">Sort order</label>
-                  <input id="cat_sort" name="sort_order" type="number" value={form.sort_order} onChange={handleChange} />
+                  <input id="cat_sort" name="sort_order" type="number" value={form.sort_order} onChange={handleChange} placeholder="Sort order" />
                 </div>
                 <div className="crud-field">
                   <label className="crud-checkbox"><input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} /> Active</label>
@@ -340,11 +340,11 @@ function LabTests() {
                 </div>
                 <div className="crud-field">
                   <label htmlFor="test_price">Price (₹) *</label>
-                  <input id="test_price" name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} required />
+                  <input id="test_price" name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} required placeholder="Price (₹)" />
                 </div>
                 <div className="crud-field">
                   <label htmlFor="test_tat">Turnaround (hours)</label>
-                  <input id="test_tat" name="turnaround_hours" type="number" min="1" value={form.turnaround_hours} onChange={handleChange} />
+                  <input id="test_tat" name="turnaround_hours" type="number" min="1" value={form.turnaround_hours} onChange={handleChange} placeholder="Turnaround (hours)" />
                 </div>
                 <div className="crud-field">
                   <label htmlFor="test_unit">Unit</label>
@@ -364,14 +364,14 @@ function LabTests() {
                 </div>
                 <div className="crud-field">
                   <label htmlFor="test_ref_c">Ref range (Child)</label>
-                  <input id="test_ref_c" name="ref_range_child" value={form.ref_range_child} onChange={handleChange} />
+                  <input id="test_ref_c" name="ref_range_child" value={form.ref_range_child} onChange={handleChange} placeholder="e.g. 4.0-5.0" />
                 </div>
                 <div className="crud-field">
                   <label className="crud-checkbox"><input type="checkbox" name="is_active" checked={form.is_active} onChange={handleChange} /> Active</label>
                 </div>
                 <div className="crud-field crud-field--full">
                   <label htmlFor="test_desc">Description</label>
-                  <textarea id="test_desc" name="description" value={form.description} onChange={handleChange} />
+                  <textarea id="test_desc" name="description" value={form.description} onChange={handleChange} placeholder="Test description" />
                 </div>
               </>
             )}
@@ -391,19 +391,19 @@ function LabTests() {
                 </div>
                 <div className="crud-field">
                   <label htmlFor="pkg_code">Code</label>
-                  <input id="pkg_code" name="code" value={form.code} onChange={handleChange} />
+                  <input id="pkg_code" name="code" value={form.code} onChange={handleChange} placeholder="e.g. FBC" />
                 </div>
                 <div className="crud-field">
                   <label htmlFor="pkg_price">Price (₹) *</label>
-                  <input id="pkg_price" name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} required />
+                  <input id="pkg_price" name="price" type="number" min="0" step="0.01" value={form.price} onChange={handleChange} required placeholder="Price (₹)" />
                 </div>
                 <div className="crud-field">
                   <label htmlFor="pkg_tat">Turnaround (hours)</label>
-                  <input id="pkg_tat" name="turnaround_hours" type="number" min="1" value={form.turnaround_hours} onChange={handleChange} />
+                  <input id="pkg_tat" name="turnaround_hours" type="number" min="1" value={form.turnaround_hours} onChange={handleChange} placeholder="Turnaround (hours)" />
                 </div>
                 <div className="crud-field crud-field--full">
                   <label htmlFor="pkg_desc">Description</label>
-                  <textarea id="pkg_desc" name="description" value={form.description} onChange={handleChange} />
+                  <textarea id="pkg_desc" name="description" value={form.description} onChange={handleChange} placeholder="Package description" />
                 </div>
                 <div className="crud-field crud-field--full">
                   <label>Include tests</label>

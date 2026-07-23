@@ -82,6 +82,7 @@ export default function DiagnosticPrescriptionModal({
           rows={3}
           value={form.impression}
           onChange={(e) => setForm((p) => ({ ...p, impression: e.target.value }))}
+          placeholder="Enter impression…"
         />
       </div>
       <div className="crud-field crud-field--full">
@@ -90,6 +91,7 @@ export default function DiagnosticPrescriptionModal({
           rows={3}
           value={form.recommendations}
           onChange={(e) => setForm((p) => ({ ...p, recommendations: e.target.value }))}
+          placeholder="Enter recommendations…"
         />
       </div>
 

@@ -225,11 +225,11 @@ function Departments() {
             )}
             <div className="crud-field">
               <label htmlFor="name">Department / speciality name</label>
-              <input id="name" name="name" value={form.name} onChange={handleChange} required />
+              <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter department name" />
             </div>
             <div className="crud-field">
               <label htmlFor="code">Code (optional)</label>
-              <input id="code" name="code" value={form.code} onChange={handleChange} />
+              <input id="code" name="code" value={form.code} onChange={handleChange} placeholder="Enter code (optional)" />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="description">Description</label>
@@ -238,6 +238,7 @@ function Departments() {
                 name="description"
                 value={form.description}
                 onChange={handleChange}
+                placeholder="Enter description (optional)"
               />
             </div>
             <div className="crud-field crud-checkbox">

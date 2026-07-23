@@ -187,6 +187,7 @@ function ProfileMenu() {
               onChange={(e) => setProfileForm((f) => ({ ...f, name: e.target.value }))}
               required
               autoComplete="name"
+              placeholder="Enter full name"
             />
           </div>
           <div className="crud-field">
@@ -199,6 +200,7 @@ function ProfileMenu() {
               onChange={(e) => setProfileForm((f) => ({ ...f, email: e.target.value }))}
               required
               autoComplete="email"
+              placeholder="Enter email"
             />
           </div>
           <div className="crud-field">
@@ -238,6 +240,7 @@ function ProfileMenu() {
               onChange={(e) => setPasswordForm((f) => ({ ...f, current_password: e.target.value }))}
               required
               autoComplete="current-password"
+              placeholder="Enter current password"
             />
           </div>
           <div className="crud-field">
@@ -251,6 +254,7 @@ function ProfileMenu() {
               required
               minLength={8}
               autoComplete="new-password"
+              placeholder="Enter new password"
             />
           </div>
           <div className="crud-field">
@@ -264,6 +268,7 @@ function ProfileMenu() {
               required
               minLength={8}
               autoComplete="new-password"
+              placeholder="Confirm new password"
             />
           </div>
           <div className="crud-modal-actions">

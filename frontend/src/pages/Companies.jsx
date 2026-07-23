@@ -491,7 +491,7 @@ function Companies() {
             {/* State */}
             <div className="crud-field">
               <label htmlFor="co_state">State / Province</label>
-              <input id="co_state" name="state" value={form.state} onChange={handleChange} />
+              <input id="co_state" name="state" value={form.state} onChange={handleChange} placeholder="State / Province" />
             </div>
 
             {/* Country */}
@@ -523,13 +523,13 @@ function Companies() {
             {/* Registration */}
             <div className="crud-field">
               <label htmlFor="co_reg">Registration no.</label>
-              <input id="co_reg" name="registration_number" value={form.registration_number} onChange={handleChange} />
+              <input id="co_reg" name="registration_number" value={form.registration_number} onChange={handleChange} placeholder="Registration no." />
             </div>
 
             {/* Description */}
             <div className="crud-field crud-field--full">
               <label htmlFor="co_desc">Description</label>
-              <textarea id="co_desc" name="description" value={form.description} onChange={handleChange} rows={3} />
+              <textarea id="co_desc" name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Enter description…" />
             </div>
 
             {/* Active */}

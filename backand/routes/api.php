@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\AuditLogController;
 use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\ThemeController;
+use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -38,6 +39,7 @@ Route::post('auth/login', [AuthController::class, 'login']);
 
 // Public — the active theme is applied on the login screen and for every user.
 Route::get('theme', [ThemeController::class, 'show']);
+Route::get('platform-branding', [PlatformSettingController::class, 'show']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
@@ -47,6 +49,13 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Appearance — only the Platform Admin can change the global theme.
     Route::middleware('role:super_admin')->put('theme', [ThemeController::class, 'update']);
+
+    // Platform branding settings (Super Admin only).
+    Route::middleware('role:super_admin')->group(function () {
+        Route::get('platform-settings/form', [PlatformSettingController::class, 'form']);
+        Route::post('platform-settings/upload-image', [PlatformSettingController::class, 'uploadImage']);
+        Route::put('platform-settings', [PlatformSettingController::class, 'update']);
+    });
 
     // Outside the subscription gate so an expired company can still upgrade.
     Route::get('subscription/plans', [SubscriptionController::class, 'plans']);

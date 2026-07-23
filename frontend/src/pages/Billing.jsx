@@ -273,6 +273,7 @@ function Billing() {
                 value={form.invoice_number}
                 onChange={handleChange}
                 required={Boolean(editing)}
+                placeholder="Auto if empty"
               />
             </div>
             <div className="crud-field">
@@ -286,6 +287,7 @@ function Billing() {
                 value={form.amount}
                 onChange={handleChange}
                 required
+                placeholder="0.00"
               />
             </div>
             <div className="crud-field">
@@ -322,6 +324,7 @@ function Billing() {
                 value={form.billed_at}
                 onChange={handleChange}
                 required
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field">
@@ -332,11 +335,12 @@ function Billing() {
                 type="date"
                 value={form.paid_at}
                 onChange={handleChange}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="notes">Notes</label>
-              <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} />
+              <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} placeholder="Enter notes…" />
             </div>
           </div>
           <div className="crud-modal-actions">

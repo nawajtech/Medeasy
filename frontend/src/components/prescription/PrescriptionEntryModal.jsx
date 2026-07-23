@@ -103,6 +103,7 @@ function MedicineCard({ item, index, onChange, onRemove }) {
               min="1"
               value={item.duration_value}
               onChange={(e) => updateField("duration_value", e.target.value)}
+              placeholder="7"
             />
             <select
               value={item.duration_unit}
@@ -497,6 +498,7 @@ export default function PrescriptionEntryModal({
                       follow_up_days: "",
                     }))
                   }
+                  placeholder="YYYY-MM-DD"
                 />
               )}
             </fieldset>

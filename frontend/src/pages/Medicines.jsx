@@ -305,7 +305,7 @@ function Medicines() {
           <div className="crud-form-grid">
             <div className="crud-field crud-field--full">
               <label htmlFor="name">Medicine name</label>
-              <input id="name" name="name" value={form.name} onChange={handleChange} required />
+              <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter medicine name" />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="manufacturer_name">Manufacturer name</label>
@@ -314,6 +314,7 @@ function Medicines() {
                 name="manufacturer_name"
                 value={form.manufacturer_name}
                 onChange={handleChange}
+                placeholder="Enter manufacturer name"
               />
             </div>
             <div className="crud-field crud-field--full">

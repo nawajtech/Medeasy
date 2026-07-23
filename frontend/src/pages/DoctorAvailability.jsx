@@ -149,6 +149,7 @@ function DoctorAvailability() {
                   value={day.start_time}
                   disabled={!canManage || !day.is_active}
                   onChange={(e) => updateDay(day.day_of_week, "start_time", e.target.value)}
+                  placeholder="Start time"
                 />
               </div>
               <div className="crud-field">
@@ -158,6 +159,7 @@ function DoctorAvailability() {
                   value={day.end_time}
                   disabled={!canManage || !day.is_active}
                   onChange={(e) => updateDay(day.day_of_week, "end_time", e.target.value)}
+                  placeholder="End time"
                 />
               </div>
               <div className="crud-field">
@@ -185,6 +187,7 @@ function DoctorAvailability() {
                   value={day.max_patients}
                   disabled={!canManage || !day.is_active}
                   onChange={(e) => updateDay(day.day_of_week, "max_patients", e.target.value)}
+                  placeholder="Max patients"
                 />
               </div>
             </div>

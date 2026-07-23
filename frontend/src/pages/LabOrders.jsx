@@ -338,9 +338,9 @@ function LabOrders() {
               <option key={v} value={v}>{m.label}</option>
             ))}
           </select>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" placeholder="From date" />
           <span>–</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" placeholder="To date" />
           <BranchSelect
             value={branchFilter}
             onChange={(e) => setBranchFilter(e.target.value)}
@@ -633,7 +633,7 @@ function LabOrders() {
             <div className="crud-field crud-field--full">
               <label htmlFor="col_notes">Notes</label>
               <input id="col_notes" value={collectForm.notes}
-                onChange={(e) => setCollectForm((p) => ({ ...p, notes: e.target.value }))} />
+                onChange={(e) => setCollectForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Collection notes" />
             </div>
           </div>
           <div className="crud-modal-actions">

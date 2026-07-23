@@ -274,7 +274,7 @@ function Users() {
             </div>
             <div className="crud-field">
               <label htmlFor="name">Name</label>
-              <input id="name" name="name" value={form.name} onChange={handleChange} required />
+              <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter full name" />
             </div>
             <div className="crud-field">
               <label htmlFor="email">Email</label>
@@ -285,11 +285,12 @@ function Users() {
                 value={form.email}
                 onChange={handleChange}
                 required
+                placeholder="Enter email"
               />
             </div>
             <div className="crud-field">
               <label htmlFor="phone">Phone</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} />
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone number" />
             </div>
             <div className="crud-field">
               <label htmlFor="role">Role</label>
@@ -317,6 +318,7 @@ function Users() {
                 onChange={handleChange}
                 required={!editing}
                 minLength={8}
+                placeholder="Enter password"
               />
             </div>
             <div className="crud-field crud-checkbox">

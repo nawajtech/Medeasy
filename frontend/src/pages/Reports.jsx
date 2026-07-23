@@ -254,7 +254,7 @@ function Reports() {
             )}
             <div className="crud-field crud-field--full">
               <label htmlFor="title">Title</label>
-              <input id="title" name="title" value={form.title} onChange={handleChange} required />
+              <input id="title" name="title" value={form.title} onChange={handleChange} required placeholder="Report title" />
             </div>
             <div className="crud-field">
               <label htmlFor="report_type">Report type</label>
@@ -289,6 +289,7 @@ function Reports() {
                 type="date"
                 value={form.period_start}
                 onChange={handleChange}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field">
@@ -299,11 +300,12 @@ function Reports() {
                 type="date"
                 value={form.period_end}
                 onChange={handleChange}
+                placeholder="YYYY-MM-DD"
               />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="summary">Summary</label>
-              <textarea id="summary" name="summary" value={form.summary} onChange={handleChange} />
+              <textarea id="summary" name="summary" value={form.summary} onChange={handleChange} placeholder="Enter summary…" />
             </div>
             <div className="crud-field crud-checkbox">
               <label>

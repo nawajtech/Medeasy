@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Setting;
 use App\Models\User;
 use App\Services\AuditService;
+use App\Services\ClinicBrandingService;
 use App\Services\SubscriptionService;
 use App\Services\TenantRoleProvisioningService;
 use App\Services\UserRoleService;
@@ -145,6 +146,7 @@ class AuthController extends Controller
             'company_id' => $user->company_id,
             'company' => $user->company,
             'currency' => $this->resolveCurrency($user),
+            'branding' => app(ClinicBrandingService::class)->appChrome($user->company_id),
             'doctor_id' => $user->doctor?->id,
             'doctor' => $user->doctor,
         ];
