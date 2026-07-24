@@ -11,37 +11,26 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: EC2_HOST
 
     steps:
-      # Checkout Repository
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Configure Git
       - name: Configure Git
         run: |
-          git config user.name "github-actions"
-          git config user.email "github-actions@github.com"
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
 
-      # Merge staging into main
-      - name: Merge Staging into Main
+      - name: Merge staging into main
         run: |
           git fetch origin
           git checkout main
           git merge origin/staging --no-edit
           git push origin main
 
-      # Verify Secrets
-      - name: Verify Secrets
-        run: |
-          [ -n "${{ secrets.EC2_HOST }}" ] || (echo "EC2_HOST missing" && exit 1)
-          [ -n "${{ secrets.EC2_USERNAME }}" ] || (echo "EC2_USERNAME missing" && exit 1)
-          [ -n "${{ secrets.EC2_PORT }}" ] || (echo "EC2_PORT missing" && exit 1)
-          [ -n "${{ secrets.EC2_SSH_KEY }}" ] || (echo "EC2_SSH_KEY missing" && exit 1)
-
-      # Deploy to EC2
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -52,9 +41,9 @@ jobs:
           script: |
             set -e
 
-            echo "=================================="
+            echo "================================"
             echo "Starting Deployment"
-            echo "=================================="
+            echo "================================"
 
             whoami
             pwd
@@ -71,46 +60,45 @@ jobs:
             git status
             git log --oneline -1
 
-            ###################################
+            #################################
             # Laravel Backend
-            ###################################
-
-            echo "Deploying Laravel..."
+            #################################
 
             cd backand
 
+            echo "Fixing Laravel permissions..."
+
             sudo chown -R ubuntu:www-data storage bootstrap/cache
-
             sudo chmod -R 775 storage bootstrap/cache
-
             sudo find storage -type f -exec chmod 664 {} \;
             sudo find bootstrap/cache -type f -exec chmod 664 {} \;
 
+            echo "Installing Composer dependencies..."
+
             composer install \
               --no-dev \
-              --no-interaction \
               --prefer-dist \
-              --optimize-autoloader
+              --optimize-autoloader \
+              --no-interaction
 
             php artisan storage:link || true
 
             php artisan migrate --force
 
             php artisan optimize:clear
-
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
             sudo chown -R www-data:www-data storage bootstrap/cache
 
-            ###################################
+            #################################
             # React Frontend
-            ###################################
-
-            echo "Deploying React..."
+            #################################
 
             cd ../frontend
+
+            echo "Installing Node packages..."
 
             if [ -f package-lock.json ]; then
               npm ci
@@ -118,17 +106,19 @@ jobs:
               npm install
             fi
 
+            echo "Building React..."
+
             npm run build
 
-            ###################################
+            #################################
             # Restart Services
-            ###################################
+            #################################
 
-            echo "Restarting Services..."
+            echo "Reloading Services..."
 
             sudo systemctl reload php8.5-fpm
             sudo systemctl reload nginx
 
-            echo "=================================="
+            echo "================================"
             echo "Deployment Completed Successfully"
-            echo "=================================="
+            echo "================================"
