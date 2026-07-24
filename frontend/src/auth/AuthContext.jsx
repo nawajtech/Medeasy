@@ -3,6 +3,7 @@ import { getMe, login as apiLogin, logout as apiLogout } from "../api/auth";
 import { hasPermission } from "../config/permissions";
 import { setActiveCurrency } from "../config/currency";
 import { ROLES } from "../config/roles";
+import { applyDocumentBranding, getBranding, resetDocumentBranding } from "../utils/branding";
 
 const AuthContext = createContext(null);
 
@@ -33,9 +34,11 @@ export function AuthProvider({ children }) {
     if (nextToken && nextUser) {
       localStorage.setItem(TOKEN_KEY, nextToken);
       localStorage.setItem(USER_KEY, JSON.stringify(nextUser));
+      applyDocumentBranding(getBranding(nextUser));
     } else {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);
+      resetDocumentBranding();
     }
   }, []);
 
@@ -71,8 +74,15 @@ export function AuthProvider({ children }) {
       refreshMe();
     } else {
       setLoading(false);
+      resetDocumentBranding();
     }
   }, [refreshMe]);
+
+  useEffect(() => {
+    if (user) {
+      applyDocumentBranding(getBranding(user));
+    }
+  }, [user]);
 
   const login = async (email, password) => {
     const { data } = await apiLogin({ email, password });
@@ -104,6 +114,8 @@ export function AuthProvider({ children }) {
     [user?.permissions]
   );
 
+  const branding = useMemo(() => getBranding(user), [user]);
+
   const value = useMemo(
     () => ({
       user,
@@ -114,6 +126,7 @@ export function AuthProvider({ children }) {
       refreshMe,
       updateUser,
       can,
+      branding,
       isAuthenticated: Boolean(token && user),
       isSuperAdmin:    user?.role === ROLES.SUPER_ADMIN,
       isCompanyAdmin:  user?.role === ROLES.COMPANY_ADMIN,
@@ -124,7 +137,7 @@ export function AuthProvider({ children }) {
       isReceptionist:  user?.role === ROLES.RECEPTIONIST,
       companyId: user?.company_id ?? null,
     }),
-    [user, token, loading, refreshMe, updateUser, can]
+    [user, token, loading, refreshMe, updateUser, can, branding]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

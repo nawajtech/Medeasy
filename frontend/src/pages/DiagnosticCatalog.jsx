@@ -530,11 +530,11 @@ function DiagnosticCatalog() {
             </div>
             <div className="crud-field">
               <label>Sort order</label>
-              <input type="number" name="sort_order" value={categoryForm.sort_order} onChange={(e) => setCategoryForm((p) => ({ ...p, sort_order: Number(e.target.value) }))} />
+              <input type="number" name="sort_order" value={categoryForm.sort_order} onChange={(e) => setCategoryForm((p) => ({ ...p, sort_order: Number(e.target.value) }))} placeholder="Sort order" />
             </div>
             <div className="crud-field crud-field--full">
               <label>Description</label>
-              <textarea name="description" value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} />
+              <textarea name="description" value={categoryForm.description} onChange={(e) => setCategoryForm((p) => ({ ...p, description: e.target.value }))} placeholder="Description" />
             </div>
             <div className="crud-field">
               <label className="crud-checkbox"><input type="checkbox" checked={categoryForm.is_active} onChange={(e) => setCategoryForm((p) => ({ ...p, is_active: e.target.checked }))} /> Active</label>
@@ -593,7 +593,7 @@ function DiagnosticCatalog() {
             </div>
             <div className="crud-field">
               <label>Price (₹) *</label>
-              <input type="number" min="0" step="0.01" name="price" value={testForm.price} onChange={(e) => setTestForm((p) => ({ ...p, price: e.target.value }))} required />
+              <input type="number" min="0" step="0.01" name="price" value={testForm.price} onChange={(e) => setTestForm((p) => ({ ...p, price: e.target.value }))} required placeholder="Price (₹)" />
             </div>
             <div className="crud-field">
               <label>Referral commission (₹)</label>
@@ -605,7 +605,7 @@ function DiagnosticCatalog() {
             </div>
             <div className="crud-field crud-field--full">
               <label>Preparation instructions</label>
-              <textarea value={testForm.preparation_instructions} onChange={(e) => setTestForm((p) => ({ ...p, preparation_instructions: e.target.value }))} />
+              <textarea value={testForm.preparation_instructions} onChange={(e) => setTestForm((p) => ({ ...p, preparation_instructions: e.target.value }))} placeholder="Preparation instructions" />
             </div>
             <div className="crud-field">
               <label className="crud-checkbox"><input type="checkbox" checked={testForm.is_active} onChange={(e) => setTestForm((p) => ({ ...p, is_active: e.target.checked }))} /> Active</label>
@@ -674,6 +674,7 @@ function DiagnosticCatalog() {
                 name="description"
                 value={packageForm.description}
                 onChange={(e) => setPackageForm((p) => ({ ...p, description: e.target.value }))}
+                placeholder="Description"
               />
             </div>
             <div className="crud-field crud-field--full">

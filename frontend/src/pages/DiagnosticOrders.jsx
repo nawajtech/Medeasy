@@ -701,9 +701,9 @@ function DiagnosticOrders() {
             <option value="">All categories</option>
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
-          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" />
+          <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="From" placeholder="From date" />
           <span>–</span>
-          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" />
+          <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="To" placeholder="To date" />
           <BranchSelect value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} allLabel="All branches" id="dgn_branch_filter" name="dgn_branch_filter" />
         </div>
         {!isDoctor && (
@@ -1046,11 +1046,11 @@ function DiagnosticOrders() {
             )}
             <div className="crud-field">
               <label htmlFor="do_clinical">Clinical notes</label>
-              <input id="do_clinical" value={orderForm.clinical_notes} onChange={(e) => setOrderForm((p) => ({ ...p, clinical_notes: e.target.value }))} />
+              <input id="do_clinical" value={orderForm.clinical_notes} onChange={(e) => setOrderForm((p) => ({ ...p, clinical_notes: e.target.value }))} placeholder="Clinical notes" />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="do_notes">Notes</label>
-              <textarea id="do_notes" rows={2} value={orderForm.notes} onChange={(e) => setOrderForm((p) => ({ ...p, notes: e.target.value }))} />
+              <textarea id="do_notes" rows={2} value={orderForm.notes} onChange={(e) => setOrderForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Order notes" />
             </div>
           </div>
           <div className="crud-modal-actions">
@@ -1064,7 +1064,7 @@ function DiagnosticOrders() {
         <form onSubmit={handleSchedule}>
           <div className="crud-field crud-field--full">
             <label htmlFor="sch_at">Scheduled date & time *</label>
-            <input id="sch_at" type="datetime-local" required value={scheduleForm.scheduled_at} onChange={(e) => setScheduleForm({ scheduled_at: e.target.value })} />
+            <input id="sch_at" type="datetime-local" required value={scheduleForm.scheduled_at} onChange={(e) => setScheduleForm({ scheduled_at: e.target.value })} placeholder="Scheduled date & time" />
           </div>
           <div className="crud-modal-actions">
             <button type="button" className="crud-btn crud-btn--ghost" onClick={() => setScheduleOpen(false)}>Cancel</button>
@@ -1248,6 +1248,7 @@ function DiagnosticOrders() {
                   value={paymentForm.amount}
                   onChange={(e) => setPaymentForm((p) => ({ ...p, amount: e.target.value }))}
                   required
+                  placeholder="Amount (₹)"
                 />
               </div>
               <div className="crud-field">
@@ -1269,11 +1270,11 @@ function DiagnosticOrders() {
               </div>
               <div className="crud-field crud-field--full">
                 <label htmlFor="pay_ref">Reference / UTR</label>
-                <input id="pay_ref" value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} />
+                <input id="pay_ref" value={paymentForm.reference} onChange={(e) => setPaymentForm((p) => ({ ...p, reference: e.target.value }))} placeholder="Enter UTR / reference" />
               </div>
               <div className="crud-field crud-field--full">
                 <label htmlFor="pay_notes">Notes</label>
-                <textarea id="pay_notes" rows={2} value={paymentForm.notes} onChange={(e) => setPaymentForm((p) => ({ ...p, notes: e.target.value }))} />
+                <textarea id="pay_notes" rows={2} value={paymentForm.notes} onChange={(e) => setPaymentForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Payment notes" />
               </div>
             </div>
             <div className="crud-modal-actions">
@@ -1303,6 +1304,7 @@ function DiagnosticOrders() {
                   value={refundForm.amount}
                   onChange={(e) => setRefundForm((p) => ({ ...p, amount: e.target.value }))}
                   required
+                  placeholder="Refund amount (₹)"
                 />
               </div>
               <div className="crud-field">
@@ -1326,11 +1328,12 @@ function DiagnosticOrders() {
                   value={refundForm.reference}
                   onChange={(e) => setRefundForm((p) => ({ ...p, reference: e.target.value }))}
                   required={refundForm.refund_method === "online"}
+                  placeholder="Enter UTR / reference"
                 />
               </div>
               <div className="crud-field crud-field--full">
                 <label htmlFor="refund_notes">Notes</label>
-                <textarea id="refund_notes" rows={2} value={refundForm.notes} onChange={(e) => setRefundForm((p) => ({ ...p, notes: e.target.value }))} />
+                <textarea id="refund_notes" rows={2} value={refundForm.notes} onChange={(e) => setRefundForm((p) => ({ ...p, notes: e.target.value }))} placeholder="Refund notes" />
               </div>
             </div>
             <div className="crud-modal-actions">

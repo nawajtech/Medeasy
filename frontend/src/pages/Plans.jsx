@@ -271,6 +271,7 @@ function Plans() {
               step="0.01"
               value={platformTax.rate}
               onChange={(e) => setPlatformTax((p) => ({ ...p, rate: e.target.value }))}
+              placeholder="18"
             />
           </label>
           <label className="crud-field">
@@ -360,7 +361,7 @@ function Plans() {
           <div className="crud-form-grid">
             <label className="crud-field">
               <span>Plan name</span>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required placeholder="Plan name" />
             </label>
             <label className="crud-field">
               <span>Code</span>
@@ -368,15 +369,15 @@ function Plans() {
             </label>
             <label className="crud-field crud-field--full">
               <span>Description</span>
-              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} />
+              <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows={2} placeholder="Enter description…" />
             </label>
             <label className="crud-field">
               <span>Monthly price</span>
-              <input type="number" min="0" step="0.01" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} required />
+              <input type="number" min="0" step="0.01" value={form.monthly_price} onChange={(e) => setForm({ ...form, monthly_price: e.target.value })} required placeholder="0.00" />
             </label>
             <label className="crud-field">
               <span>Yearly price</span>
-              <input type="number" min="0" step="0.01" value={form.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} required />
+              <input type="number" min="0" step="0.01" value={form.yearly_price} onChange={(e) => setForm({ ...form, yearly_price: e.target.value })} required placeholder="0.00" />
             </label>
             <label className="crud-field">
               <span>Discount (%)</span>
@@ -387,6 +388,7 @@ function Plans() {
                 value={form.discount_percent}
                 onChange={(e) => setForm({ ...form, discount_percent: e.target.value })}
                 required
+                placeholder="0"
               />
             </label>
             {Number(form.discount_percent) > 0 ? (
@@ -405,11 +407,11 @@ function Plans() {
             </label>
             <label className="crud-field">
               <span>Trial days</span>
-              <input type="number" min="0" value={form.trial_days} onChange={(e) => setForm({ ...form, trial_days: e.target.value })} required />
+              <input type="number" min="0" value={form.trial_days} onChange={(e) => setForm({ ...form, trial_days: e.target.value })} required placeholder="14" />
             </label>
             <label className="crud-field">
               <span>Display order</span>
-              <input type="number" min="0" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} required />
+              <input type="number" min="0" value={form.display_order} onChange={(e) => setForm({ ...form, display_order: e.target.value })} required placeholder="0" />
             </label>
             <label className="crud-field">
               <span>Status</span>
@@ -446,6 +448,7 @@ function Plans() {
                 step="0.01"
                 value={form.tax_rate}
                 onChange={(e) => setForm({ ...form, tax_rate: e.target.value })}
+                placeholder="18"
               />
             </label>
             <label className="crud-field">

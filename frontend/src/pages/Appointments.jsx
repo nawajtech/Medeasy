@@ -923,6 +923,7 @@ function Appointments() {
                 min="0"
                 value={payForm.previous_due}
                 onChange={handlePayChange}
+                placeholder="0.00"
               />
             </div>
             <div className="crud-field">
@@ -936,6 +937,7 @@ function Appointments() {
                 value={payForm.charge_amount}
                 onChange={handlePayChange}
                 required
+                placeholder="0.00"
               />
             </div>
             <div className="crud-field">
@@ -949,6 +951,7 @@ function Appointments() {
                 value={payForm.paid_amount}
                 onChange={handlePayChange}
                 required
+                placeholder="0.00"
               />
             </div>
             <div className="crud-field">
@@ -982,6 +985,7 @@ function Appointments() {
                 type="date"
                 value={payForm.billed_at}
                 onChange={handlePayChange}
+                placeholder="YYYY-MM-DD"
               />
             </div>
           </div>
@@ -1082,6 +1086,7 @@ function Appointments() {
                 value={form.appointment_date}
                 onChange={handleChange}
                 required
+                placeholder="Select date and time"
               />
             </div>
             <div className="crud-field">
@@ -1095,6 +1100,7 @@ function Appointments() {
                 value={form.duration_minutes}
                 onChange={handleChange}
                 required
+                placeholder="30"
               />
             </div>
             {(checkingAvailability || availabilityMsg) && (
@@ -1129,7 +1135,7 @@ function Appointments() {
             </div>
             <div className="crud-field">
               <label htmlFor="reason">Reason</label>
-              <input id="reason" name="reason" value={form.reason} onChange={handleChange} />
+              <input id="reason" name="reason" value={form.reason} onChange={handleChange} placeholder="Enter reason" />
             </div>
             <div className="crud-field crud-field--full">
               <span className="crud-field-label">Prescription type</span>
@@ -1188,7 +1194,7 @@ function Appointments() {
             )}
             <div className="crud-field crud-field--full">
               <label htmlFor="notes">Notes</label>
-              <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} />
+              <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} placeholder="Enter notes…" />
             </div>
           </div>
 
@@ -1243,6 +1249,7 @@ function Appointments() {
                     value={form.charge_amount}
                     onChange={handleChange}
                     required
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="crud-field">
@@ -1256,6 +1263,7 @@ function Appointments() {
                     value={form.paid_amount}
                     onChange={handleChange}
                     required
+                    placeholder="0.00"
                   />
                 </div>
                 <div className="crud-field">
@@ -1289,6 +1297,7 @@ function Appointments() {
                     type="date"
                     value={form.billed_at}
                     onChange={handleChange}
+                    placeholder="YYYY-MM-DD"
                   />
                 </div>
               </div>

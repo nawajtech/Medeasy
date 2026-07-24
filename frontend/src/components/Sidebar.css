@@ -42,6 +42,19 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px var(--me-primary-ring);
+  overflow: hidden;
+}
+
+.brand-icon--image {
+  background: var(--me-surface);
+  box-shadow: 0 0 0 1px var(--me-border);
+}
+
+.brand-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .brand-text {

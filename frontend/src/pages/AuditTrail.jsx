@@ -218,6 +218,7 @@ function AuditTrail() {
             value={filters.date_from}
             onChange={(e) => setFilter("date_from", e.target.value)}
             aria-label="From date"
+            placeholder="From date"
           />
           <span>–</span>
           <input
@@ -225,6 +226,7 @@ function AuditTrail() {
             value={filters.date_to}
             onChange={(e) => setFilter("date_to", e.target.value)}
             aria-label="To date"
+            placeholder="To date"
           />
           <input
             type="search"

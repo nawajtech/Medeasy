@@ -168,7 +168,7 @@ function Roles() {
           </label>
           <label>
             Description
-            <textarea name="description" value={form.description} onChange={handleChange} rows={3} />
+            <textarea name="description" value={form.description} onChange={handleChange} rows={3} placeholder="Enter description (optional)" />
           </label>
           <div className="crud-form-actions">
             <button type="button" className="crud-btn" onClick={closeModal}>Cancel</button>

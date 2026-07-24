@@ -1,9 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import "../App.css";
 import { bulkUpdateSettings, getSettingsForm, uploadSettingImage } from "../api/settings";
+import {
+  getPlatformSettingsForm,
+  updatePlatformSettings,
+  uploadPlatformSettingImage,
+} from "../api/platformSettings";
 import { getCompaniesList } from "../api/companiesList";
 import { useAuth } from "../auth/AuthContext";
-import CompanySelect from "../components/CompanySelect";
 import RichTextEditor from "../components/RichTextEditor";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -23,6 +27,7 @@ const IMAGE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,image/svg+xml";
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const BRANDING_KEYS = new Set(["company_logo", "favicon"]);
+const PLATFORM_SCOPE = "platform";
 
 function readFileAsDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -260,10 +265,11 @@ function SettingField({ field, formValues, editorRef, onChange, onImageUpload })
 }
 
 function Settings() {
-  const { isSuperAdmin, companyId: authCompanyId } = useAuth();
+  const { isSuperAdmin, companyId: authCompanyId, refreshMe } = useAuth();
   const [selectedCompanyId, setSelectedCompanyId] = useState(
-    isSuperAdmin ? "" : String(authCompanyId || "")
+    isSuperAdmin ? PLATFORM_SCOPE : String(authCompanyId || "")
   );
+  const [companies, setCompanies] = useState([]);
   const [groups, setGroups] = useState(null);
   const [formValues, setFormValues] = useState({});
   const [loading, setLoading] = useState(false);
@@ -272,20 +278,27 @@ function Settings() {
   const [success, setSuccess] = useState("");
   const editorRefs = useRef({});
 
+  const isPlatformScope = isSuperAdmin && selectedCompanyId === PLATFORM_SCOPE;
+
+  const refreshOwnBranding = useCallback(async () => {
+    if (isPlatformScope || !isSuperAdmin || Number(selectedCompanyId) === Number(authCompanyId)) {
+      await refreshMe();
+    }
+  }, [authCompanyId, isPlatformScope, isSuperAdmin, refreshMe, selectedCompanyId]);
+
   useEffect(() => {
     if (!isSuperAdmin) return;
     getCompaniesList()
-      .then((res) => {
-        if (res.data.length > 0) {
-          setSelectedCompanyId((current) => current || String(res.data[0].id));
-        }
-      })
-      .catch(() => {});
+      .then((res) => setCompanies(res.data || []))
+      .catch(() => setCompanies([]));
   }, [isSuperAdmin]);
 
   const load = useCallback(async () => {
-    const companyId = isSuperAdmin ? selectedCompanyId : String(authCompanyId || "");
-    if (!companyId) {
+    if (isSuperAdmin && !selectedCompanyId) {
+      setGroups(null);
+      return;
+    }
+    if (!isSuperAdmin && !authCompanyId) {
       setGroups(null);
       return;
     }
@@ -294,8 +307,13 @@ function Settings() {
     setError("");
     setSuccess("");
     try {
-      const params = isSuperAdmin ? { company_id: companyId } : {};
-      const { data } = await getSettingsForm(params);
+      let data;
+      if (isSuperAdmin && selectedCompanyId === PLATFORM_SCOPE) {
+        ({ data } = await getPlatformSettingsForm());
+      } else {
+        const params = isSuperAdmin ? { company_id: selectedCompanyId } : {};
+        ({ data } = await getSettingsForm(params));
+      }
       setGroups(data.groups);
 
       const nextValues = {};
@@ -331,8 +349,8 @@ function Settings() {
   };
 
   const handleImageUpload = async (field, { image_base64, fileName }) => {
-    const companyId = isSuperAdmin ? selectedCompanyId : String(authCompanyId || "");
-    if (!companyId) return;
+    if (isSuperAdmin && !selectedCompanyId) return;
+    if (!isSuperAdmin && !authCompanyId) return;
 
     handleFieldChange(field.key, {
       image_base64,
@@ -342,21 +360,32 @@ function Settings() {
     setError("");
 
     try {
-      const payload = {
-        key: field.key,
-        image_base64,
-      };
-      if (isSuperAdmin) {
-        payload.company_id = Number(companyId);
+      let data;
+      if (isPlatformScope) {
+        ({ data } = await uploadPlatformSettingImage({
+          key: field.key,
+          image_base64,
+        }));
+      } else {
+        const payload = {
+          key: field.key,
+          image_base64,
+        };
+        if (isSuperAdmin) {
+          payload.company_id = Number(selectedCompanyId);
+        }
+        ({ data } = await uploadSettingImage(payload));
       }
 
-      const { data } = await uploadSettingImage(payload);
       handleFieldChange(field.key, {
         value: data.value,
         image_base64: null,
         fileName,
         uploading: false,
       });
+      if (BRANDING_KEYS.has(field.key)) {
+        await refreshOwnBranding();
+      }
     } catch (err) {
       handleFieldChange(field.key, { uploading: false });
       setError(getApiErrorMessage(err, "Failed to upload image."));
@@ -384,14 +413,19 @@ function Settings() {
       })),
     };
 
-    if (isSuperAdmin) {
-      payload.company_id = Number(selectedCompanyId);
-    }
-
     try {
-      await bulkUpdateSettings(payload);
-      setSuccess("Settings saved successfully.");
+      if (isPlatformScope) {
+        await updatePlatformSettings(payload);
+        setSuccess("Platform settings saved successfully.");
+      } else {
+        if (isSuperAdmin) {
+          payload.company_id = Number(selectedCompanyId);
+        }
+        await bulkUpdateSettings(payload);
+        setSuccess("Settings saved successfully.");
+      }
       await load();
+      await refreshOwnBranding();
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to save settings."));
     } finally {
@@ -465,36 +499,50 @@ function Settings() {
     );
   };
 
-  const hasCompany = isSuperAdmin ? Boolean(selectedCompanyId) : Boolean(authCompanyId);
+  const hasTarget = isSuperAdmin ? Boolean(selectedCompanyId) : Boolean(authCompanyId);
 
   return (
     <section className="page-card settings-page">
       <div className="page-card-header settings-page-header">
         <h2>Settings</h2>
-        <p>Configure branding, billing, and organisation preferences.</p>
+        <p>
+          {isPlatformScope
+            ? "Configure ApnaMedi platform branding and contact details."
+            : "Configure branding, billing, and organisation preferences."}
+        </p>
       </div>
 
       {isSuperAdmin && (
         <div className="settings-company-bar">
-          <CompanySelect
-            id="settings_company_id"
-            value={selectedCompanyId}
-            onChange={handleCompanyChange}
-            label="Organisation"
-          />
+          <div className="crud-field">
+            <label htmlFor="settings_scope">Settings for</label>
+            <select
+              id="settings_scope"
+              value={selectedCompanyId}
+              onChange={handleCompanyChange}
+              required
+            >
+              <option value={PLATFORM_SCOPE}>ApnaMedi Platform (Super Admin)</option>
+              {companies.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       )}
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
       {success && <div className="crud-alert crud-alert--success">{success}</div>}
 
-      {!hasCompany && (
+      {!hasTarget && (
         <p className="settings-empty">Select an organisation to manage its settings.</p>
       )}
 
-      {hasCompany && loading && <p className="settings-loading">Loading settings…</p>}
+      {hasTarget && loading && <p className="settings-loading">Loading settings…</p>}
 
-      {hasCompany && !loading && groups && (
+      {hasTarget && !loading && groups && (
         <form className="settings-form" onSubmit={handleSubmit}>
           {GROUP_ORDER.map((groupKey) => {
             const fields = groups[groupKey] || [];
@@ -502,7 +550,11 @@ function Settings() {
 
             return (
               <fieldset key={groupKey} className="settings-group">
-                <legend>{GROUP_LABELS[groupKey] || groupKey}</legend>
+                <legend>
+                  {isPlatformScope && groupKey === "general"
+                    ? "Platform branding"
+                    : GROUP_LABELS[groupKey] || groupKey}
+                </legend>
                 {renderGroupFields(fields)}
               </fieldset>
             );
@@ -510,7 +562,7 @@ function Settings() {
 
           <div className="settings-actions">
             <button type="submit" className="crud-btn crud-btn--primary" disabled={saving}>
-              {saving ? "Saving…" : "Save settings"}
+              {saving ? "Saving…" : isPlatformScope ? "Save platform settings" : "Save settings"}
             </button>
           </div>
         </form>

@@ -422,7 +422,7 @@ function Doctors() {
             </div>
             <div className="crud-field">
               <label htmlFor="name">Full name</label>
-              <input id="name" name="name" value={form.name} onChange={handleChange} required />
+              <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter full name" />
             </div>
             <div className="crud-field">
               <label htmlFor="email">Email</label>
@@ -433,6 +433,7 @@ function Doctors() {
                 value={form.email}
                 onChange={handleChange}
                 required
+                placeholder="Enter email"
               />
             </div>
             
@@ -456,7 +457,7 @@ function Doctors() {
             </div>
             <div className="crud-field">
               <label htmlFor="phone">Phone</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} />
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone number" />
             </div>
             <div className="crud-field">
               <label htmlFor="password">
@@ -470,6 +471,7 @@ function Doctors() {
                 onChange={handleChange}
                 required={!editing}
                 minLength={8}
+                placeholder="Enter password"
               />
             </div>
             <div className="crud-field">
@@ -479,6 +481,7 @@ function Doctors() {
                 name="qualification"
                 value={form.qualification}
                 onChange={handleChange}
+                placeholder="Enter qualification"
               />
             </div>
             <div className="crud-field">
@@ -490,6 +493,7 @@ function Doctors() {
                 min="0"
                 value={form.experience_years}
                 onChange={handleChange}
+                placeholder="Years of experience"
               />
             </div>
             <div className="crud-field">
@@ -499,6 +503,7 @@ function Doctors() {
                 name="license_number"
                 value={form.license_number}
                 onChange={handleChange}
+                placeholder="Enter license number"
               />
             </div>
             <div className="crud-field">
@@ -511,11 +516,12 @@ function Doctors() {
                 min="0"
                 value={form.consultation_fee}
                 onChange={handleChange}
+                placeholder="Enter amount"
               />
             </div>
             <div className="crud-field crud-field--full">
               <label htmlFor="bio">Bio</label>
-              <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} />
+              <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} placeholder="Enter bio (optional)" />
             </div>
             <div className="crud-field crud-checkbox">
               <label>

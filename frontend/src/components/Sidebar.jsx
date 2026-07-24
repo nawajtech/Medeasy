@@ -64,7 +64,7 @@ const sectionIconMap = {
 };
 
 function Sidebar() {
-  const { user } = useAuth();
+  const { user, branding } = useAuth();
   const items = filterMenuByPermissions(user?.permissions, user?.role, user?.company?.modules);
   const groups = groupMenuItems(items);
 
@@ -72,13 +72,19 @@ function Sidebar() {
     <aside className="sidebar" aria-label="Main navigation">
       <div className="sidebar-inner">
         <Link to="/" className="brand">
-          <div className="brand-icon">
-            <IconHeartPulse size={22} />
+          <div className={`brand-icon${branding.logo ? " brand-icon--image" : ""}`}>
+            {branding.logo ? (
+              <img src={branding.logo} alt="" className="brand-logo" />
+            ) : (
+              <IconHeartPulse size={22} />
+            )}
           </div>
           <div className="brand-text">
-            <span className="brand-name">ApnaMedi</span>
+            <span className="brand-name">{branding.name || "ApnaMedi"}</span>
             <span className="brand-tagline">
-              {user?.company?.name || "Healthcare SaaS"}
+              {user?.company?.name && branding.name !== user.company.name
+                ? user.company.name
+                : branding.tagline || "Healthcare SaaS"}
             </span>
           </div>
         </Link>

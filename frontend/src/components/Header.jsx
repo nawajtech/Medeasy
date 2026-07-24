@@ -20,7 +20,7 @@ function formatTime(iso) {
 function Header() {
   const { pathname } = useLocation();
   const meta = getRouteMeta(pathname);
-  const { user } = useAuth();
+  const { user, branding } = useAuth();
   const {
     notifications,
     unreadCount,
@@ -66,7 +66,7 @@ function Header() {
     <header className="top-header">
       <div className="header-left">
         <nav className="breadcrumb" aria-label="Breadcrumb">
-          <span>ApnaMedi</span>
+          <span>{branding?.name || "ApnaMedi"}</span>
           <IconChevronRight />
           <span className="breadcrumb-current">{meta.breadcrumb}</span>
         </nav>
