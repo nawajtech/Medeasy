@@ -8,11 +8,10 @@ use App\Models\Company;
 use App\Models\Setting;
 use App\Services\CompanySetupService;
 use App\Support\PublicStorageUrl;
+use App\Support\S3Storage;
 use App\Support\SettingDefinitions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class SettingController extends Controller
@@ -263,30 +262,20 @@ class SettingController extends Controller
 
     private function storeSettingImage(string $base64, ?string $existingStored = null): string
     {
-        if (! preg_match('/^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i', $base64, $matches)) {
-            abort(422, 'Invalid image upload.');
-        }
-
         if ($existingStored) {
             $this->deleteSettingImage($existingStored);
         }
 
-        $ext = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
-        $raw = base64_decode(substr($base64, strpos($base64, ',') + 1));
-        $filename = 'settings/'.Str::uuid().'.'.$ext;
-
-        Storage::disk('public')->put($filename, $raw);
-
-        return $filename;
+        try {
+            return S3Storage::putBase64Image($base64, 'settings');
+        } catch (\InvalidArgumentException $e) {
+            abort(422, $e->getMessage());
+        }
     }
 
     private function deleteSettingImage(string $stored): void
     {
-        $relative = PublicStorageUrl::toRelativePath($stored);
-
-        if ($relative) {
-            Storage::disk('public')->delete($relative);
-        }
+        S3Storage::delete($stored);
     }
 
     private function rules(?int $settingId = null, ?int $companyId = null): array
