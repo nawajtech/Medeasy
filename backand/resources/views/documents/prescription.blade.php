@@ -62,7 +62,7 @@
         @if($appointment->prescription_type === 'upload' && $appointment->prescription_file)
             @php
                 $ext = strtolower(pathinfo($appointment->prescription_file, PATHINFO_EXTENSION));
-                $fileUrl = \Illuminate\Support\Facades\Storage::disk('public')->url($appointment->prescription_file);
+                $fileUrl = \App\Support\S3Storage::url($appointment->prescription_file);
             @endphp
             @if(in_array($ext, ['jpg', 'jpeg', 'png', 'webp']))
                 <img src="{{ $fileUrl }}" alt="Uploaded prescription" style="max-width:100%;border:1px solid #e2e8f0;border-radius:8px;">
