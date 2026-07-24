@@ -11,7 +11,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: EC2_HOST
 
     steps:
       - name: Checkout Repository
@@ -24,11 +23,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-          git fetch --all --prune
-          git checkout main
-          git reset --hard origin/main
-          git clean -fd
-          git status
+      - name: Fetch Main
+        run: git fetch origin
+
+      - name: Checkout Main
+        run: git checkout main
 
       - name: Merge Staging into Main
         run: git merge origin/staging --no-edit
@@ -50,26 +49,47 @@ jobs:
             echo "Starting Deployment"
             echo "=============================="
 
+            echo "Current User:"
+            whoami
+            id
+
             cd /var/www/Medeasy
 
-            echo "Fetching latest code..."
-            git fetch origin
+            echo "Updating Repository..."
+
+            git fetch --all --prune
             git checkout main
             git reset --hard origin/main
+            git clean -fd
 
-            ##############################
+            git status
+            git log --oneline -1
+
+            ####################################
             # Laravel Backend
-            ##############################
+            ####################################
 
             echo "Deploying Laravel..."
 
             cd backand
 
+            # Fix permissions before composer
+            sudo chown -R ubuntu:www-data storage bootstrap/cache
+
+            sudo chmod -R 775 storage bootstrap/cache
+
+            sudo find storage -type f -exec chmod 664 {} \;
+            sudo find bootstrap/cache -type f -exec chmod 664 {} \;
+
+            ls -ld storage
+            ls -ld bootstrap/cache
+            ls -l storage/logs
+
             composer install --no-interaction --prefer-dist --optimize-autoloader
 
-            php artisan migrate --force
-
             php artisan storage:link || true
+
+            php artisan migrate --force
 
             php artisan optimize:clear
 
@@ -77,9 +97,12 @@ jobs:
             php artisan route:cache
             php artisan view:cache
 
-            ##############################
+            # Give Laravel ownership after deployment
+            sudo chown -R www-data:www-data storage bootstrap/cache
+
+            ####################################
             # React Frontend
-            ##############################
+            ####################################
 
             echo "Deploying React..."
 
@@ -93,9 +116,9 @@ jobs:
 
             npm run build
 
-            ##############################
+            ####################################
             # Restart Services
-            ##############################
+            ####################################
 
             echo "Reloading Services..."
 
@@ -103,5 +126,5 @@ jobs:
             sudo systemctl reload nginx
 
             echo "=============================="
-            echo "Deployment Completed Successfully"
+            echo "Deployment Successful"
             echo "=============================="
