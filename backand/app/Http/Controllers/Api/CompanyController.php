@@ -7,10 +7,9 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Services\CompanyProvisioningService;
 use App\Services\TenantRoleProvisioningService;
+use App\Support\S3Storage;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CompanyController extends Controller
@@ -97,34 +96,23 @@ class CompanyController extends Controller
             return $data;
         }
 
-        $base64 = $request->logo_base64;
+        try {
+            if ($existing?->logo_url) {
+                $this->deleteLogo($existing->logo_url);
+            }
 
-        // Validate it looks like a data URI
-        if (! preg_match('/^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i', $base64, $matches)) {
-            return $data; // silently ignore bad input; validation catches required
+            $path = S3Storage::putBase64Image($request->logo_base64, 'logos');
+            $data['logo_url'] = S3Storage::url($path);
+        } catch (\InvalidArgumentException) {
+            // Silently ignore bad input; validation catches required cases
         }
-
-        // Delete old logo
-        if ($existing?->logo_url) {
-            $this->deleteLogo($existing->logo_url);
-        }
-
-        $ext      = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
-        $raw      = base64_decode(substr($base64, strpos($base64, ',') + 1));
-        $filename = 'logos/'.Str::uuid().'.'.$ext;
-
-        Storage::disk('public')->put($filename, $raw);
-
-        $data['logo_url'] = Storage::disk('public')->url($filename);
 
         return $data;
     }
 
     private function deleteLogo(string $url): void
     {
-        // Convert stored public URL back to relative path
-        $relative = 'logos/'.basename($url);
-        Storage::disk('public')->delete($relative);
+        S3Storage::delete($url);
     }
 
     private function normalizeModulesPayload(array $data): array

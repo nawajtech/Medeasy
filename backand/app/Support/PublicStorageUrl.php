@@ -10,6 +10,16 @@ class PublicStorageUrl
             return null;
         }
 
+        // Absolute URLs (S3 / CDN / legacy full public URLs)
+        if (preg_match('#^https?://#i', $stored)) {
+            return self::repairStoredPath($stored);
+        }
+
+        // Media disk (S3 by default) for relative paths
+        if (config('filesystems.media', 's3') !== 'public') {
+            return S3Storage::url($stored);
+        }
+
         $path = self::toStoragePath($stored);
 
         $request = request();
@@ -41,18 +51,7 @@ class PublicStorageUrl
 
     public static function toRelativePath(?string $stored): ?string
     {
-        $path = self::toStoragePath($stored);
-
-        if (! $path) {
-            return null;
-        }
-
-        $prefix = '/storage/';
-        if (str_starts_with($path, $prefix)) {
-            return substr($path, strlen($prefix));
-        }
-
-        return ltrim($path, '/');
+        return S3Storage::relativePath($stored);
     }
 
     public static function repairStoredPath(string $stored): string
