@@ -24,11 +24,11 @@ jobs:
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
 
-      - name: Fetch Branches
-        run: git fetch origin
-
-      - name: Checkout Main
-        run: git checkout main
+          git fetch --all --prune
+          git checkout main
+          git reset --hard origin/main
+          git clean -fd
+          git status
 
       - name: Merge Staging into Main
         run: git merge origin/staging --no-edit
