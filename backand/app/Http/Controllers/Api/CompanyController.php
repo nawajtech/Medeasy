@@ -7,9 +7,10 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Services\CompanyProvisioningService;
 use App\Services\TenantRoleProvisioningService;
+use App\Support\MediaStorage;
+use App\Support\PublicStorageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -113,18 +114,16 @@ class CompanyController extends Controller
         $raw      = base64_decode(substr($base64, strpos($base64, ',') + 1));
         $filename = 'logos/'.Str::uuid().'.'.$ext;
 
-        Storage::disk('public')->put($filename, $raw);
+        MediaStorage::put($filename, $raw);
 
-        $data['logo_url'] = Storage::disk('public')->url($filename);
+        $data['logo_url'] = PublicStorageUrl::toUrl($filename);
 
         return $data;
     }
 
     private function deleteLogo(string $url): void
     {
-        // Convert stored public URL back to relative path
-        $relative = 'logos/'.basename($url);
-        Storage::disk('public')->delete($relative);
+        MediaStorage::delete($url);
     }
 
     private function normalizeModulesPayload(array $data): array

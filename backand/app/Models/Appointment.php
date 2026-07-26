@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
+use App\Support\PublicStorageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\Storage;
 
 class Appointment extends Model
 {
@@ -69,6 +69,6 @@ class Appointment extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->prescription_file);
+        return PublicStorageUrl::toUrl($this->prescription_file);
     }
 }

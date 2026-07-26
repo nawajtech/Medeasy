@@ -7,11 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Setting;
 use App\Services\CompanySetupService;
+use App\Support\MediaStorage;
 use App\Support\PublicStorageUrl;
 use App\Support\SettingDefinitions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -275,18 +275,14 @@ class SettingController extends Controller
         $raw = base64_decode(substr($base64, strpos($base64, ',') + 1));
         $filename = 'settings/'.Str::uuid().'.'.$ext;
 
-        Storage::disk('public')->put($filename, $raw);
+        MediaStorage::put($filename, $raw);
 
         return $filename;
     }
 
     private function deleteSettingImage(string $stored): void
     {
-        $relative = PublicStorageUrl::toRelativePath($stored);
-
-        if ($relative) {
-            Storage::disk('public')->delete($relative);
-        }
+        MediaStorage::delete($stored);
     }
 
     private function rules(?int $settingId = null, ?int $companyId = null): array

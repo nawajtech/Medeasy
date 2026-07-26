@@ -32,6 +32,7 @@ use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PlatformSettingController;
+use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -40,6 +41,7 @@ Route::post('auth/login', [AuthController::class, 'login']);
 // Public — the active theme is applied on the login screen and for every user.
 Route::get('theme', [ThemeController::class, 'show']);
 Route::get('platform-branding', [PlatformSettingController::class, 'show']);
+Route::get('media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);

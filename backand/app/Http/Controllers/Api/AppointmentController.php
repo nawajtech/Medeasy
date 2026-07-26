@@ -11,12 +11,12 @@ use App\Models\Patient;
 use App\Services\ClinicBrandingService;
 use App\Services\DoctorAvailabilityService;
 use App\Services\NotificationService;
+use App\Support\MediaStorage;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
@@ -227,10 +227,13 @@ class AppointmentController extends Controller
         ]);
 
         if ($appointment->prescription_file) {
-            Storage::disk('public')->delete($appointment->prescription_file);
+            MediaStorage::delete($appointment->prescription_file);
         }
 
-        $path = $validated['file']->store('prescriptions/'.$appointment->company_id, 'public');
+        $path = MediaStorage::putFile('prescriptions/'.$appointment->company_id, $validated['file']);
+        if (! $path) {
+            abort(500, 'Failed to upload prescription file to storage.');
+        }
 
         $appointment->update([
             'prescription_type' => 'upload',
@@ -249,7 +252,7 @@ class AppointmentController extends Controller
         if ($type === 'handwritten' || $type === 'structured') {
             $appointmentData['prescription_file'] = null;
             if ($appointment->prescription_file) {
-                Storage::disk('public')->delete($appointment->prescription_file);
+                MediaStorage::delete($appointment->prescription_file);
             }
         }
 
