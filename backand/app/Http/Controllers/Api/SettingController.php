@@ -7,8 +7,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Setting;
 use App\Services\CompanySetupService;
+use App\Support\MediaStorage;
 use App\Support\PublicStorageUrl;
-use App\Support\S3Storage;
 use App\Support\SettingDefinitions;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -267,7 +267,7 @@ class SettingController extends Controller
         }
 
         try {
-            return S3Storage::putBase64Image($base64, 'settings');
+            return MediaStorage::putBase64Image($base64, 'settings');
         } catch (\InvalidArgumentException $e) {
             abort(422, $e->getMessage());
         }
@@ -275,7 +275,7 @@ class SettingController extends Controller
 
     private function deleteSettingImage(string $stored): void
     {
-        S3Storage::delete($stored);
+        MediaStorage::delete($stored);
     }
 
     private function rules(?int $settingId = null, ?int $companyId = null): array

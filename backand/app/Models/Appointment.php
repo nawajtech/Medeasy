@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
-use App\Support\S3Storage;
+use App\Support\PublicStorageUrl;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -69,6 +69,6 @@ class Appointment extends Model
             return null;
         }
 
-        return S3Storage::url($this->prescription_file);
+        return PublicStorageUrl::toUrl($this->prescription_file);
     }
 }
