@@ -11,7 +11,6 @@ use App\Support\MediaStorage;
 use App\Support\PublicStorageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class CompanyController extends Controller
@@ -80,7 +79,6 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
 
-        // Remove logo from storage if present
         if ($company->logo_url) {
             $this->deleteLogo($company->logo_url);
         }
@@ -90,33 +88,22 @@ class CompanyController extends Controller
         return response()->json(['message' => 'Company deleted successfully']);
     }
 
-    // ── Logo handling ──────────────────────────────────────────────────────────
-
     private function handleLogo(Request $request, array $data, ?Company $existing): array
     {
         if (! $request->filled('logo_base64')) {
             return $data;
         }
 
-        $base64 = $request->logo_base64;
+        try {
+            if ($existing?->logo_url) {
+                $this->deleteLogo($existing->logo_url);
+            }
 
-        // Validate it looks like a data URI
-        if (! preg_match('/^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i', $base64, $matches)) {
-            return $data; // silently ignore bad input; validation catches required
+            $path = MediaStorage::putBase64Image($request->logo_base64, 'logos');
+            $data['logo_url'] = PublicStorageUrl::toUrl($path);
+        } catch (\InvalidArgumentException) {
+            // Silently ignore bad input; validation catches required cases
         }
-
-        // Delete old logo
-        if ($existing?->logo_url) {
-            $this->deleteLogo($existing->logo_url);
-        }
-
-        $ext      = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
-        $raw      = base64_decode(substr($base64, strpos($base64, ',') + 1));
-        $filename = 'logos/'.Str::uuid().'.'.$ext;
-
-        MediaStorage::put($filename, $raw);
-
-        $data['logo_url'] = PublicStorageUrl::toUrl($filename);
 
         return $data;
     }
@@ -135,16 +122,13 @@ class CompanyController extends Controller
         return $data;
     }
 
-    // ── Validation rules ───────────────────────────────────────────────────────
-
     private function rules(?int $companyId = null, bool $isUpdate = false): array
     {
         $logoRule = $isUpdate
-            ? ['nullable', 'string']                   // base64 optional on update
-            : ['required', 'string'];                  // required on create
+            ? ['nullable', 'string']
+            : ['required', 'string'];
 
         return [
-            // ── Core identity ─────────────────────────────────────────
             'name' => [
                 'required', 'string', 'max:255',
                 Rule::unique('companies', 'name')->ignore($companyId)->whereNull('deleted_at'),
@@ -156,26 +140,20 @@ class CompanyController extends Controller
             'type' => ['nullable', 'string', 'max:50'],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys(Company::MODULES))],
-
-            // ── Logo ──────────────────────────────────────────────────
             'logo_base64' => $logoRule,
-
-            // ── Contact ───────────────────────────────────────────────
-            'phone'  => ['required', 'string', 'max:30'],
-            'email'  => ['required', 'email', 'max:255'],
-            'address'=> ['required', 'string', 'max:500'],
-            'city'   => ['required', 'string', 'max:100'],
-            'state'  => ['nullable', 'string', 'max:100'],
-            'country'=> ['required', 'string', 'max:100'],
-            'website'=> ['nullable', 'url', 'max:255'],
-
-            // ── Business details ──────────────────────────────────────
-            'gst_number'          => ['nullable', 'string', 'max:20'],
+            'phone' => ['required', 'string', 'max:30'],
+            'email' => ['required', 'email', 'max:255'],
+            'address' => ['required', 'string', 'max:500'],
+            'city' => ['required', 'string', 'max:100'],
+            'state' => ['nullable', 'string', 'max:100'],
+            'country' => ['required', 'string', 'max:100'],
+            'website' => ['nullable', 'url', 'max:255'],
+            'gst_number' => ['nullable', 'string', 'max:20'],
             'registration_number' => ['nullable', 'string', 'max:60'],
-            'currency'            => ['required', Rule::in(['INR', 'USD', 'EUR', 'GBP'])],
-            'description'         => ['nullable', 'string', 'max:2000'],
-            'is_active'           => ['boolean'],
-            'plan_id'             => ['nullable', 'integer', 'exists:plans,id'],
+            'currency' => ['required', Rule::in(['INR', 'USD', 'EUR', 'GBP'])],
+            'description' => ['nullable', 'string', 'max:2000'],
+            'is_active' => ['boolean'],
+            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
         ];
     }
 

@@ -10,7 +10,7 @@ class PublicStorageUrl
             return null;
         }
 
-        // Already an absolute app/media or S3 URL — normalize to app media URL when possible.
+        // Already an absolute URL — normalize known media keys to /api/media.
         if (preg_match('#^https?://#i', $stored)) {
             $relative = self::toRelativePath($stored);
             if ($relative && preg_match('#^(platform|settings|logos|prescriptions)/#', $relative)) {
@@ -74,7 +74,7 @@ class PublicStorageUrl
         }
 
         if (preg_match('#^https?://[^/]+/(.+)$#i', $stored, $matches)) {
-            $path = ltrim($matches[1], '/');
+            $path = ltrim(rawurldecode($matches[1]), '/');
             if (preg_match('#^(platform|settings|logos|prescriptions)/#', $path)) {
                 return '/storage/'.$path;
             }

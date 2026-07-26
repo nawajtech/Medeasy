@@ -12,11 +12,12 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Public media disk (logos, favicons, prescriptions, settings images)
+    | Media Disk (images & public uploads)
     |--------------------------------------------------------------------------
     |
-    | Set MEDIA_DISK=s3 (and AWS_* vars) to store uploads in S3.
-    | Falls back to the local "public" disk.
+    | Used by App\Support\MediaStorage / S3Storage.
+    | Set MEDIA_DISK=s3 (and AWS_* vars) for S3.
+    | Use MEDIA_DISK=public for local development without AWS.
     |
     */
 

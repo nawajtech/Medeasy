@@ -3,24 +3,26 @@
 namespace App\Support;
 
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 /**
  * Central media disk for public uploads (logos, favicons, prescriptions).
- * Uses S3 when FILESYSTEM_DISK=s3 (or MEDIA_DISK=s3), otherwise local "public".
+ * Uses S3 when MEDIA_DISK=s3, otherwise local "public".
  */
 class MediaStorage
 {
     public static function diskName(): string
     {
-        $disk = config('filesystems.media', env('MEDIA_DISK', env('FILESYSTEM_DISK', 'public')));
+        $disk = (string) config('filesystems.media', env('MEDIA_DISK', 'public'));
 
-        if ($disk === 'local') {
+        if ($disk === 'local' || $disk === '') {
             return 'public';
         }
 
-        return $disk ?: 'public';
+        return $disk;
     }
 
     public static function disk(): Filesystem
@@ -73,6 +75,49 @@ class MediaStorage
         return self::disk()->putFile($directory, $file, $options);
     }
 
+    public static function upload(UploadedFile $file, string $folder = 'images'): string
+    {
+        $path = self::putFile(trim($folder, '/'), $file);
+
+        if (! is_string($path) || $path === '') {
+            throw new \RuntimeException('Failed to upload file to storage.');
+        }
+
+        return $path;
+    }
+
+    /**
+     * Decode a data-URI image and store it. Returns the relative path.
+     *
+     * @throws \InvalidArgumentException
+     */
+    public static function putBase64Image(string $base64, string $folder = 'images'): string
+    {
+        if (! preg_match('/^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i', $base64, $matches)) {
+            throw new \InvalidArgumentException('Invalid image upload.');
+        }
+
+        $ext = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
+        $raw = base64_decode(substr($base64, strpos($base64, ',') + 1), true);
+
+        if ($raw === false) {
+            throw new \InvalidArgumentException('Invalid image upload.');
+        }
+
+        $mime = match ($ext) {
+            'jpg', 'jpeg' => 'image/jpeg',
+            'png' => 'image/png',
+            'gif' => 'image/gif',
+            'webp' => 'image/webp',
+            'svg' => 'image/svg+xml',
+            default => 'application/octet-stream',
+        };
+
+        $path = trim($folder, '/').'/'.Str::uuid().'.'.$ext;
+
+        return self::put($path, $raw, ['ContentType' => $mime]);
+    }
+
     public static function delete(?string $path): void
     {
         $relative = PublicStorageUrl::toRelativePath($path);
@@ -86,8 +131,6 @@ class MediaStorage
                 $disk->delete($relative);
             }
         } catch (\Throwable $e) {
-            // Don't block replace/upload if the old object is already gone
-            // or the IAM user lacks s3:DeleteObject.
             Log::warning('Media delete skipped', [
                 'disk' => self::diskName(),
                 'path' => $relative,
