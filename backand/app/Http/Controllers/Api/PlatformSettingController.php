@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
+use App\Support\MediaStorage;
 use App\Support\PlatformSettingDefinitions;
 use App\Support\PublicStorageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 class PlatformSettingController extends Controller
@@ -167,29 +166,19 @@ class PlatformSettingController extends Controller
 
     private function storeImage(string $base64, ?string $existingStored = null): string
     {
-        if (! preg_match('/^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/i', $base64, $matches)) {
-            abort(422, 'Invalid image upload.');
-        }
-
         if ($existingStored) {
             $this->deleteImage($existingStored);
         }
 
-        $ext = strtolower(str_replace('svg+xml', 'svg', $matches[1]));
-        $raw = base64_decode(substr($base64, strpos($base64, ',') + 1));
-        $filename = 'platform/'.Str::uuid().'.'.$ext;
-
-        Storage::disk('public')->put($filename, $raw);
-
-        return $filename;
+        try {
+            return MediaStorage::putBase64Image($base64, 'platform');
+        } catch (\InvalidArgumentException $e) {
+            abort(422, $e->getMessage());
+        }
     }
 
     private function deleteImage(string $stored): void
     {
-        $relative = PublicStorageUrl::toRelativePath($stored);
-
-        if ($relative) {
-            Storage::disk('public')->delete($relative);
-        }
+        MediaStorage::delete($stored);
     }
 }
