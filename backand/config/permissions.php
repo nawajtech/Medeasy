@@ -182,6 +182,19 @@ return [
     ],
 
     /**
+     * System roles shown/provisioned for each tenant (Roles page + user assignment).
+     * Other role definitions may remain for legacy users but are not listed by default.
+     */
+    'tenant_roles' => [
+        'company_admin',
+        'receptionist',
+        'doctor',
+        'accountant',
+        'staff',
+        'lab_technician',
+    ],
+
+    /**
      * Reduced permission sets when a role operates in a specific tenant context.
      * Used instead of the default role permissions list during tenant provisioning.
      */
@@ -207,7 +220,7 @@ return [
             'exclude_permissions' => ['role.*'],
         ],
         'company_admin' => [
-            'label' => 'Hospital Admin',
+            'label' => 'Admin',
             'description' => 'Manages a single clinic or hospital tenant.',
             'is_system' => true,
             'permissions' => [
