@@ -7,6 +7,7 @@
   align-items: center;
   gap: 12px;
   margin-bottom: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .dtq-date {
@@ -27,8 +28,8 @@
 
 .dtq-summary {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
   margin-bottom: 1.25rem;
 }
 
@@ -36,20 +37,20 @@
   background: var(--me-bg-subtle, #f8fafc);
   border: 1px solid var(--me-border);
   border-radius: var(--me-radius-md);
-  padding: 14px 16px;
+  padding: 12px 14px;
   text-align: center;
 }
 
 .dtq-summary-num {
   display: block;
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 700;
   color: var(--me-text);
   line-height: 1.2;
 }
 
 .dtq-summary-label {
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   color: var(--me-text-muted);
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -99,4 +100,129 @@
 
 .dtq-actions {
   flex-wrap: wrap;
+  gap: 8px;
+}
+
+.dtq-mobile-list {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .dtq-page {
+    padding: 12px;
+  }
+
+  .dtq-page .page-card-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .dtq-page .page-card-header p {
+    font-size: 0.875rem;
+  }
+
+  .dtq-summary {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .dtq-summary-card {
+    padding: 10px 8px;
+  }
+
+  .dtq-summary-num {
+    font-size: 1.2rem;
+  }
+
+  .dtq-summary-label {
+    font-size: 0.65rem;
+  }
+
+  .dtq-desktop-only {
+    display: none !important;
+  }
+
+  .dtq-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .dtq-card {
+    border: 1px solid var(--me-border);
+    border-radius: 12px;
+    padding: 14px;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  }
+
+  .dtq-card.is-active {
+    border-color: #f59e0b;
+    background: rgba(217, 119, 6, 0.04);
+  }
+
+  .dtq-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .dtq-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .dtq-card-patient {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--me-text);
+  }
+
+  .dtq-card-phone {
+    display: inline-block;
+    margin-top: 4px;
+    font-size: 0.9rem;
+    color: #2563eb;
+    text-decoration: none;
+  }
+
+  .dtq-card-test {
+    margin-top: 8px;
+    font-size: 0.9rem;
+    color: var(--me-text);
+  }
+
+  .dtq-card-time {
+    margin-top: 4px;
+    font-size: 0.8rem;
+    color: var(--me-text-muted);
+  }
+
+  .dtq-card-actions {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--me-border);
+  }
+
+  .dtq-card-actions .dtq-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .dtq-card-actions .crud-btn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+    font-size: 0.9rem;
+  }
+
+  .dtq-card-actions .crud-btn--primary {
+    grid-column: 1 / -1;
+  }
 }

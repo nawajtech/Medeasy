@@ -60,9 +60,16 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
+.dgn-pay-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
 .dgn-pay-pending { background: #fef3c7; color: #92400e; }
 .dgn-pay-partial { background: #dbeafe; color: #1d4ed8; }
 .dgn-pay-paid { background: #dcfce7; color: #166534; }
+.dgn-pay-refunded { background: #fce7f3; color: #9d174d; }
 
 .dgn-due-cell {
   color: #b45309;

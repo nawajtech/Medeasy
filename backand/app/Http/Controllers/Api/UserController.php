@@ -26,11 +26,8 @@ class UserController extends Controller
     private const STAFF_ROLES = [
         User::ROLE_COMPANY_ADMIN,
         User::ROLE_STAFF,
-        User::ROLE_NURSE,
         User::ROLE_LAB_TECHNICIAN,
-        User::ROLE_RADIOLOGIST,
         User::ROLE_RECEPTIONIST,
-        User::ROLE_PHARMACIST,
         User::ROLE_ACCOUNTANT,
     ];
 
@@ -143,7 +140,7 @@ class UserController extends Controller
 
         $roles = Role::query()
             ->where('company_id', $companyId)
-            ->where('name', '!=', User::ROLE_SUPER_ADMIN)
+            ->whereIn('name', User::TENANT_STAFF_ROLES)
             ->when(! $actor->isSuperAdmin(), fn ($q) => $q->whereNotIn('name', [
                 User::ROLE_COMPANY_ADMIN,
                 User::ROLE_DOCTOR,
@@ -197,7 +194,7 @@ class UserController extends Controller
 
         $query = Role::query()
             ->where('company_id', $companyId)
-            ->where('name', '!=', User::ROLE_SUPER_ADMIN);
+            ->whereIn('name', User::TENANT_STAFF_ROLES);
 
         if (! auth()->user()->isSuperAdmin()) {
             $query->whereNotIn('name', [User::ROLE_COMPANY_ADMIN, User::ROLE_DOCTOR]);

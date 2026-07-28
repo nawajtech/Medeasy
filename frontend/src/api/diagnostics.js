@@ -1,11 +1,20 @@
 import api from "./axios";
 import { openAuthenticatedDocument } from "../utils/openDocument";
+import { buildImportFormData, downloadSpreadsheetExport } from "../utils/spreadsheet";
 
 // ── Categories ─────────────────────────────────────
 export const getDiagnosticCategories = (params) => api.get("/diagnostics/categories", { params });
 export const createDiagnosticCategory = (data) => api.post("/diagnostics/categories", data);
 export const updateDiagnosticCategory = (id, data) => api.put(`/diagnostics/categories/${id}`, data);
 export const deleteDiagnosticCategory = (id) => api.delete(`/diagnostics/categories/${id}`);
+export const exportDiagnosticCategories = (params) =>
+  downloadSpreadsheetExport("/diagnostics/categories/export", params);
+export const importDiagnosticCategories = (file, companyId) =>
+  api.post("/diagnostics/categories/import", buildImportFormData(file, companyId), {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+export const downloadDiagnosticCategorySample = () =>
+  downloadSpreadsheetExport("/diagnostics/categories/import-template");
 
 // ── Tests (types) ──────────────────────────────────
 export const getDiagnosticTypes = (params) => api.get("/diagnostics/types", { params });

@@ -45,15 +45,29 @@ const PAYMENT_STATUS_META = {
   pending: { label: "Unpaid", color: "dgn-pay-pending" },
   partial: { label: "Partial", color: "dgn-pay-partial" },
   paid: { label: "Paid", color: "dgn-pay-paid" },
+  refunded: { label: "Refunded", color: "dgn-pay-refunded" },
 };
 
 function money(n) {
   return `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-function PaymentBadge({ status }) {
-  const meta = PAYMENT_STATUS_META[status] || { label: status || "—", color: "" };
-  return <span className={`dgn-pay-badge ${meta.color}`}>{meta.label}</span>;
+function PaymentBadge({ status, refundedTotal = 0 }) {
+  const hasRefund = Number(refundedTotal) > 0;
+  const effectiveStatus =
+    status === "refunded" || (hasRefund && (status === "pending" || !status))
+      ? "refunded"
+      : status;
+  const meta = PAYMENT_STATUS_META[effectiveStatus] || { label: effectiveStatus || "—", color: "" };
+
+  return (
+    <span className="dgn-pay-badges">
+      <span className={`dgn-pay-badge ${meta.color}`}>{meta.label}</span>
+      {hasRefund && effectiveStatus !== "refunded" && (
+        <span className="dgn-pay-badge dgn-pay-refunded">Refunded</span>
+      )}
+    </span>
+  );
 }
 
 function orderPayable(order) {
@@ -144,7 +158,7 @@ function DiagnosticOrders() {
   const [patients, setPatients] = useState([]);
   const [orderForm, setOrderForm] = useState({
     company_id: "", patient_id: "", branch_id: "", booking_type: "test",
-    test_type_id: "", package_id: "", doctor_id: "",
+    category_id: "", test_type_id: "", package_id: "", doctor_id: "",
     referral_partner_id: "", deduct_commission_from_bill: false,
     priority: "routine", clinical_notes: "", notes: "",
     paid_amount: "", payment_method: "cash",
@@ -175,13 +189,17 @@ function DiagnosticOrders() {
 
   const loadTaxSettings = useCallback(async (companyId = "") => {
     try {
+      if (isSuperAdmin && !companyId) {
+        setTaxSettings({ enabled: false, mode: "cgst_sgst", rate: 0, inclusive: false });
+        return;
+      }
       const params = companyId ? { company_id: companyId } : {};
       const { data } = await getTaxSettings(params);
       setTaxSettings(data);
     } catch {
       setTaxSettings({ enabled: false, mode: "cgst_sgst", rate: 0, inclusive: false });
     }
-  }, []);
+  }, [isSuperAdmin]);
 
   const loadDoctors = useCallback(async (companyId = "") => {
     try {
@@ -315,26 +333,17 @@ function DiagnosticOrders() {
     loadCatalog().catch(() => {});
   }, [loadOrders, loadCatalog]);
 
-  const testsByCategory = useMemo(() => {
-    const map = new Map();
-    for (const cat of categories) {
-      map.set(cat.id, { category: cat, tests: [] });
-    }
-    for (const test of types) {
-      const key = test.category_id;
-      if (!map.has(key)) {
-        map.set(key, {
-          category: test.category || { id: key, name: "Uncategorized" },
-          tests: [],
-        });
-      }
-      map.get(key).tests.push(test);
-    }
-    return [...map.values()].sort(
-      (a, b) => (a.category.sort_order ?? 0) - (b.category.sort_order ?? 0)
-        || String(a.category.name).localeCompare(String(b.category.name))
+  const activeCategories = useMemo(
+    () => categories.filter((c) => c.is_active !== false),
+    [categories]
+  );
+
+  const testsForSelectedCategory = useMemo(() => {
+    if (!orderForm.category_id) return [];
+    return types.filter(
+      (t) => t.is_active && String(t.category_id) === String(orderForm.category_id)
     );
-  }, [categories, types]);
+  }, [types, orderForm.category_id]);
 
   const loadCreatePatients = async (companyId = "") => {
     try {
@@ -350,7 +359,7 @@ function DiagnosticOrders() {
     setPatients([]);
     setOrderForm({
       company_id: "", patient_id: "", branch_id: "", booking_type: "test",
-      test_type_id: "", package_id: "", doctor_id: "",
+      category_id: "", test_type_id: "", package_id: "", doctor_id: "",
       referral_partner_id: "", deduct_commission_from_bill: false,
       priority: "routine", clinical_notes: "", notes: "",
       paid_amount: "", payment_method: "cash",
@@ -367,6 +376,7 @@ function DiagnosticOrders() {
       patient_id: "",
       branch_id: "",
       booking_type: "test",
+      category_id: "",
       test_type_id: "",
       package_id: "",
       doctor_id: "",
@@ -387,8 +397,19 @@ function DiagnosticOrders() {
     setOrderForm((p) => ({
       ...p,
       booking_type: bookingType,
+      category_id: "",
       test_type_id: "",
       package_id: "",
+      doctor_id: "",
+      paid_amount: "",
+    }));
+  };
+
+  const handleCategoryChange = (e) => {
+    setOrderForm((p) => ({
+      ...p,
+      category_id: e.target.value,
+      test_type_id: "",
       doctor_id: "",
       paid_amount: "",
     }));
@@ -457,6 +478,7 @@ function DiagnosticOrders() {
         payment_method: Number(orderForm.paid_amount) > 0 ? orderForm.payment_method : undefined,
       };
       delete payload.booking_type;
+      delete payload.category_id;
       const { data } = await createDiagnosticOrder(payload);
       setCreateOpen(false);
       await loadOrders();
@@ -655,33 +677,6 @@ function DiagnosticOrders() {
 
   const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN") : "—");
 
-  const renderTestSelectOptions = () => {
-    const active = types.filter((t) => t.is_active);
-    if (!active.length) {
-      return (
-        <option value="">No tests — add categories & tests first</option>
-      );
-    }
-    return (
-      <>
-        <option value="">Select test</option>
-        {testsByCategory.map(({ category, tests }) => {
-          const group = tests.filter((t) => t.is_active);
-          if (!group.length) return null;
-          return (
-            <optgroup key={category.id} label={category.name}>
-              {group.map((t) => (
-                <option key={t.id} value={t.id}>
-                  {t.name} — ₹{Number(t.price).toLocaleString("en-IN")}
-                </option>
-              ))}
-            </optgroup>
-          );
-        })}
-      </>
-    );
-  };
-
   return (
     <section className="page-card dgn-page">
       <div className="page-card-header">
@@ -733,7 +728,7 @@ function DiagnosticOrders() {
                 <td>{money(orderPayable(order))}</td>
                 <td>{money(order.paid_amount)}</td>
                 <td className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(order.due_amount)}</td>
-                <td><PaymentBadge status={order.payment_status} /></td>
+                <td><PaymentBadge status={order.payment_status} refundedTotal={order.refunded_total} /></td>
                 <td><StatusBadge status={order.status} /></td>
                 <td>
                   <div className="crud-actions">
@@ -766,13 +761,19 @@ function DiagnosticOrders() {
             {isSuperAdmin && (
               <CompanySelect id="do_company" label="Company *" value={orderForm.company_id} onChange={handleOrderCompanyChange} required />
             )}
-            <div className="crud-field crud-field--full">
-              <label htmlFor="do_patient">Patient *</label>
-              <select id="do_patient" value={orderForm.patient_id} onChange={(e) => setOrderForm((p) => ({ ...p, patient_id: e.target.value }))} required>
-                <option value="">Select patient</option>
-                {patients.map((p) => <option key={p.id} value={p.id}>{p.name}{p.phone ? ` — ${p.phone}` : ""}</option>)}
-              </select>
-            </div>
+            <SearchableSelect
+              id="do_patient"
+              label="Patient *"
+              options={patients}
+              value={orderForm.patient_id}
+              onChange={(id) => setOrderForm((p) => ({ ...p, patient_id: id }))}
+              required
+              placeholder="Search by name or phone no…"
+              emptyLabel="No patients found"
+              getOptionLabel={(p) => `${p.name}${p.phone ? ` — ${p.phone}` : ""}${p.patient_code ? ` (${p.patient_code})` : ""}`}
+              getOptionSearchText={(p) => `${p.name || ""} ${p.phone || ""} ${p.patient_code || ""}`}
+              hint="Type patient name or mobile number to search."
+            />
             <div className="crud-field crud-field--full">
               <label>Booking type</label>
               <div className="crud-inline-tabs">
@@ -793,12 +794,45 @@ function DiagnosticOrders() {
               </div>
             </div>
             {orderForm.booking_type === "test" ? (
-              <div className="crud-field crud-field--full">
-                <label htmlFor="do_type">Test *</label>
-                <select id="do_type" value={orderForm.test_type_id} onChange={handleTestTypeChange} required>
-                  {renderTestSelectOptions()}
-                </select>
-              </div>
+              <>
+                <div className="crud-field crud-field--full">
+                  <label htmlFor="do_category">Category *</label>
+                  <select
+                    id="do_category"
+                    value={orderForm.category_id}
+                    onChange={handleCategoryChange}
+                    required
+                  >
+                    <option value="">Select category</option>
+                    {activeCategories.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="crud-field crud-field--full">
+                  <label htmlFor="do_type">Test *</label>
+                  <select
+                    id="do_type"
+                    value={orderForm.test_type_id}
+                    onChange={handleTestTypeChange}
+                    required
+                    disabled={!orderForm.category_id}
+                  >
+                    <option value="">
+                      {!orderForm.category_id
+                        ? "Select category first"
+                        : testsForSelectedCategory.length
+                          ? "Select test"
+                          : "No tests in this category"}
+                    </option>
+                    {testsForSelectedCategory.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name} — ₹{Number(t.price).toLocaleString("en-IN")}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             ) : (
               <div className="crud-field crud-field--full">
                 <label htmlFor="do_package">Package *</label>
@@ -1139,7 +1173,7 @@ function DiagnosticOrders() {
               <div><dt>Final payable</dt><dd><strong>{money(orderPayable(detailOrder))}</strong></dd></div>
               <div><dt>Paid</dt><dd>{money(detailOrder.paid_amount)}</dd></div>
               <div><dt>Due</dt><dd><strong className={Number(detailOrder.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(detailOrder.due_amount)}</strong></dd></div>
-              <div><dt>Payment status</dt><dd><PaymentBadge status={detailOrder.payment_status} /></dd></div>
+              <div><dt>Payment status</dt><dd><PaymentBadge status={detailOrder.payment_status} refundedTotal={detailOrder.refunded_total ?? detailOrder.refunds?.reduce((s, r) => s + Number(r.amount || 0), 0)} /></dd></div>
             </dl>
             {detailOrder.payments?.length > 0 && (
               <div className="dgn-payment-history">

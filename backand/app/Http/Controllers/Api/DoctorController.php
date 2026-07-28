@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
 use App\Models\Branch;
+use App\Models\Company;
 use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\User;
@@ -48,6 +49,7 @@ class DoctorController extends Controller
 
         $companyId = $this->resolveCompanyId($request);
         $validated = $request->validate($this->rules(null, $companyId));
+        $validated = $this->applyConsultationFeeForCompany($validated, $companyId);
 
         $this->assertDepartmentInCompany($validated['department_id'], $companyId);
 
@@ -107,6 +109,7 @@ class DoctorController extends Controller
         }
 
         $validated = $request->validate($this->rules($doctor, $doctor->company_id));
+        $validated = $this->applyConsultationFeeForCompany($validated, $doctor->company_id);
         $this->assertDepartmentInCompany($validated['department_id'], $doctor->company_id);
 
         DB::transaction(function () use ($doctor, $validated, $request) {
@@ -176,7 +179,6 @@ class DoctorController extends Controller
                 'doctors.qualification',
                 'doctors.experience_years',
                 'doctors.license_number',
-                'doctors.consultation_fee',
                 'doctors.bio',
                 'doctors.company_id',
                 'doctors.branch_id',
@@ -204,7 +206,6 @@ class DoctorController extends Controller
             'qualification',
             'experience_years',
             'license_number',
-            'consultation_fee',
             'bio',
         ];
 
@@ -223,7 +224,6 @@ class DoctorController extends Controller
                     $doctor->qualification,
                     $doctor->experience_years,
                     $doctor->license_number,
-                    $doctor->consultation_fee,
                     $doctor->bio,
                 ];
             }
@@ -248,7 +248,6 @@ class DoctorController extends Controller
             'qualification',
             'experience_years',
             'license_number',
-            'consultation_fee',
             'bio',
         ];
 
@@ -264,7 +263,6 @@ class DoctorController extends Controller
             'MBBS, MD',
             '10',
             'LIC-12345',
-            '500',
             'Experienced general physician',
         ]];
 
@@ -283,6 +281,7 @@ class DoctorController extends Controller
         ]);
 
         $companyId = $this->resolveCompanyId($request);
+        $company = Company::findOrFail($companyId);
 
         try {
             $sheet = SpreadsheetIO::readUploadedFile($request->file('file'));
@@ -302,7 +301,6 @@ class DoctorController extends Controller
             'qualification' => ['qualification', 'qualifications'],
             'experience_years' => ['experience_years', 'experience'],
             'license_number' => ['license_number', 'license'],
-            'consultation_fee' => ['consultation_fee', 'fee'],
             'bio' => ['bio', 'about'],
         ]);
 
@@ -379,9 +377,12 @@ class DoctorController extends Controller
                 'qualification' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'qualification')),
                 'experience_years' => $this->nullableInt(SpreadsheetIO::cell($row, $columnMap, 'experience_years')),
                 'license_number' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'license_number')),
-                'consultation_fee' => $this->nullableNumber(SpreadsheetIO::cell($row, $columnMap, 'consultation_fee')),
                 'bio' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'bio')),
             ];
+
+            if (! $company->hasModule(Company::MODULE_CLINIC)) {
+                $doctorPayload['consultation_fee'] = 0;
+            }
 
             $doctorCode = SpreadsheetIO::cell($row, $columnMap, 'doctor_code');
             if ($doctorCode !== '') {
@@ -506,7 +507,7 @@ class DoctorController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
             'password' => [$doctor ? 'nullable' : 'required', 'string', 'min:8'],
-            'phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($userId)],
+            'phone' => ['required', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($userId)],
             'status' => ['boolean'],
             'department_id' => ['required', 'exists:departments,id'],
             'doctor_code' => [
@@ -516,8 +517,8 @@ class DoctorController extends Controller
                 Rule::unique('doctors', 'doctor_code')->where('company_id', $companyId)->ignore($doctorId),
             ],
             'branch_id' => ['nullable', 'exists:branches,id'],
-            'qualification' => ['nullable', 'string', 'max:255'],
-            'experience_years' => ['nullable', 'integer', 'min:0'],
+            'qualification' => ['required', 'string', 'max:255'],
+            'experience_years' => ['required', 'integer', 'min:0'],
             'license_number' => [
                 'nullable',
                 'string',
@@ -527,6 +528,16 @@ class DoctorController extends Controller
             'consultation_fee' => ['nullable', 'numeric', 'min:0'],
             'bio' => ['nullable', 'string'],
         ];
+    }
+
+    private function applyConsultationFeeForCompany(array $validated, int $companyId): array
+    {
+        $company = Company::find($companyId);
+        if ($company && ! $company->hasModule(Company::MODULE_CLINIC)) {
+            $validated['consultation_fee'] = 0;
+        }
+
+        return $validated;
     }
 
     private function nextDoctorCode(int $companyId): string

@@ -25,6 +25,10 @@ class RoleController extends Controller
 
         $roles = Role::query()
             ->where('company_id', auth()->user()->company_id)
+            ->where(function ($q) {
+                $q->whereIn('name', User::TENANT_STAFF_ROLES)
+                    ->orWhere('is_system', false);
+            })
             ->withCount('permissions')
             ->orderBy('name')
             ->get()
@@ -142,6 +146,7 @@ class RoleController extends Controller
         $roles = Role::query()
             ->where('company_id', $companyId)
             ->where('name', '!=', User::ROLE_SUPER_ADMIN)
+            ->whereIn('name', User::TENANT_STAFF_ROLES)
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->whereNotIn('name', [
                 User::ROLE_COMPANY_ADMIN,
                 User::ROLE_DOCTOR,

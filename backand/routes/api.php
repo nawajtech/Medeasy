@@ -130,6 +130,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:users.delete')->delete('users/{user}', [UserController::class, 'destroy']);
 
     Route::middleware('permission:department.view')->get('departments', [DepartmentController::class, 'index']);
+    Route::middleware('permission:department.view')->get('departments/export', [DepartmentController::class, 'export']);
+    Route::middleware('permission:department.create')->get('departments/import-template', [DepartmentController::class, 'importTemplate']);
+    Route::middleware('permission:department.create')->post('departments/import', [DepartmentController::class, 'import']);
     Route::middleware('permission:department.view')->get('departments/{department}', [DepartmentController::class, 'show']);
     Route::middleware('permission:department.create')->post('departments', [DepartmentController::class, 'store']);
     Route::middleware('permission:department.edit')->put('departments/{department}', [DepartmentController::class, 'update']);
@@ -267,6 +270,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ── Diagnostic module ─────────────────────────────────────────
     Route::middleware('permission:diagnostic.view')->group(function () {
         Route::get('diagnostics/categories', [DiagnosticCategoryController::class, 'index']);
+        Route::get('diagnostics/categories/export', [DiagnosticCategoryController::class, 'export']);
         Route::get('diagnostics/types', [DiagnosticTestTypeController::class, 'index']);
         Route::get('diagnostics/packages', [DiagnosticPackageController::class, 'index']);
         Route::get('diagnostics/referral-partners', [ReferralPartnerController::class, 'index']);
@@ -278,6 +282,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::middleware('audit.document')->get('diagnostics/orders/{diagnosticOrder}/prescription', [DiagnosticOrderController::class, 'prescription']);
     });
     Route::middleware('permission:diagnostic.create')->group(function () {
+        Route::get('diagnostics/categories/import-template', [DiagnosticCategoryController::class, 'importTemplate']);
+        Route::post('diagnostics/categories/import', [DiagnosticCategoryController::class, 'import']);
         Route::post('diagnostics/categories', [DiagnosticCategoryController::class, 'store']);
         Route::post('diagnostics/types', [DiagnosticTestTypeController::class, 'store']);
         Route::post('diagnostics/packages', [DiagnosticPackageController::class, 'store']);
@@ -308,7 +314,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:diagnostic.approve')->patch('diagnostics/orders/{diagnosticOrder}/approve', [DiagnosticOrderController::class, 'approveReport']);
 
     Route::get('companies-list', fn () => response()->json(
-        \App\Models\Company::orderBy('name')->get(['id', 'name', 'code', 'type', 'is_active'])
+        \App\Models\Company::orderBy('name')->get(['id', 'name', 'code', 'type', 'modules', 'is_active'])
     ))->middleware('permission:dashboard.view');
     });
 });

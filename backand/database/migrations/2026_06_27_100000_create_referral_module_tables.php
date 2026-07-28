@@ -12,16 +12,17 @@ return new class extends Migration
             $table->id();
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('mobile', 20)->nullable();
+            $table->string('phone', 20)->nullable();
             $table->text('address')->nullable();
             $table->enum('type', ['doctor', 'clinic', 'hospital', 'agent'])->default('doctor');
+            $table->string('referral_code', 50)->nullable()->unique();
             $table->enum('surcharge_type', ['fixed', 'percentage'])->nullable();
             $table->decimal('surcharge_value', 10, 2)->default(0);
-            $table->boolean('is_active')->default(true);
+            $table->string('status', 20)->default('active');
             $table->timestamps();
             $table->softDeletes();
 
-            $table->index(['company_id', 'is_active']);
+            $table->index(['company_id', 'status']);
         });
 
         Schema::table('diagnostic_test_types', function (Blueprint $table) {

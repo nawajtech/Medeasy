@@ -16,7 +16,7 @@ import {
 import { getDashboard } from "../api/dashboard";
 import { useAuth } from "../auth/AuthContext";
 import { currencySymbol, formatCurrency } from "../config/currency";
-import { PERMISSIONS, isDiagnosticsOnlyDoctor } from "../config/permissions";
+import { PERMISSIONS, getHomePath } from "../config/permissions";
 import { usePermissions } from "../hooks/usePermissions";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
@@ -468,8 +468,8 @@ function Dashboard() {
       ]
     : [];
 
-  if (isDiagnosticsOnlyDoctor(user?.role, user?.company?.modules)) {
-    return <Navigate to="/diagnostics/today" replace />;
+  if (user?.role === "doctor") {
+    return <Navigate to={getHomePath(user)} replace />;
   }
 
   return (

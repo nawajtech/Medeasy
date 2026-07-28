@@ -29,23 +29,64 @@ class DiagnosticOrderController extends Controller
     public function index(Request $request): JsonResponse
     {
         $companyId = $this->optionalCompanyId($request);
+        $doctorId = $this->doctorIdForUser();
 
-        $orders = DiagnosticOrder::with(['patient', 'doctor.user', 'testType.category', 'technician', 'report', 'branch', 'referralPartner', 'package'])
-            ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
-            ->when($doctorId = $this->doctorIdForUser(), fn ($q) => $q->where('doctor_id', $doctorId))
-            ->when($request->filled('branch_id'), fn ($q) => $q->where('branch_id', (int) $request->branch_id))
-            ->when($request->filled('status'), fn ($q) => $q->where('status', $request->status))
-            ->when($request->filled('category_id'), fn ($q) => $q->whereHas(
+        $query = DiagnosticOrder::query()
+            ->with([
+                'patient',
+                'doctor.user',
+                'testType.category',
+                'technician',
+                'report',
+                'branch',
+                'referralPartner',
+                'package',
+            ])
+            ->withSum('refunds as refunded_total', 'amount');
+
+        if ($companyId) {
+            $query->where('company_id', $companyId);
+        }
+
+        if ($doctorId) {
+            $query->where('doctor_id', $doctorId);
+        }
+
+        if ($request->filled('branch_id')) {
+            $query->where('branch_id', (int) $request->branch_id);
+        }
+
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('category_id')) {
+            $query->whereHas(
                 'testType',
-                fn ($q2) => $q2->where('category_id', $request->category_id)
-            ))
-            ->when($request->filled('modality'), fn ($q) => $q->whereHas('testType', fn ($q2) => $q2->where('modality', $request->modality)))
-            ->when($request->filled('patient_id'), fn ($q) => $q->where('patient_id', $request->patient_id))
-            ->when($request->filled('date_from'), fn ($q) => $q->whereDate('created_at', '>=', $request->date_from))
-            ->when($request->filled('date_to'), fn ($q) => $q->whereDate('created_at', '<=', $request->date_to))
-            ->orderByDesc('created_at')
-            ->paginate($request->input('per_page', 25));
+                fn ($q) => $q->where('category_id', $request->category_id)
+            );
+        }
 
+        if ($request->filled('modality')) {
+            $query->whereHas(
+                'testType',
+                fn ($q) => $q->where('modality', $request->modality)
+            );
+        }
+
+        if ($request->filled('patient_id')) {
+            $query->where('patient_id', $request->patient_id);
+        }
+
+        if ($request->filled('date_from')) {
+            $query->whereDate('created_at', '>=', $request->date_from);
+        }
+
+        if ($request->filled('date_to')) {
+            $query->whereDate('created_at', '<=', $request->date_to);
+        }
+
+        $orders = $query->orderByDesc('created_at')->paginate($request->input('per_page', 25));
         return response()->json($orders);
     }
 

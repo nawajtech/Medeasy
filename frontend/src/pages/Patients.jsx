@@ -23,11 +23,9 @@ const emptyForm = {
   name: "",
   email: "",
   phone: "",
-  password: "",
   status: true,
-  patient_code: "",
   gender: "",
-  date_of_birth: "",
+  age: "",
   blood_group: "",
   height: "",
   weight: "",
@@ -49,6 +47,26 @@ function calcAge(dateOfBirth) {
     age -= 1;
   }
   return age >= 0 ? `${age} yrs` : "—";
+}
+
+function ageFromDateOfBirth(dateOfBirth) {
+  if (!dateOfBirth) return "";
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return "";
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const monthDiff = today.getMonth() - birth.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+    age -= 1;
+  }
+  return age >= 0 ? String(age) : "";
+}
+
+function ageToDateOfBirth(age) {
+  const years = Number(age);
+  if (!Number.isFinite(years) || years < 0 || years > 150) return null;
+  const year = new Date().getFullYear() - Math.floor(years);
+  return `${year}-01-01`;
 }
 
 function Patients() {
@@ -100,12 +118,10 @@ function Patients() {
       name: patient.name || "",
       email: patient.email || "",
       phone: patient.phone || "",
-      password: "",
       status: Boolean(patient.status),
       company_id: String(patient.company_id || ""),
-      patient_code: patient.patient_code || "",
       gender: patient.gender || "",
-      date_of_birth: patient.date_of_birth?.slice(0, 10) || "",
+      age: ageFromDateOfBirth(patient.date_of_birth),
       blood_group: patient.blood_group || "",
       height: patient.height ?? "",
       weight: patient.weight ?? "",
@@ -134,9 +150,13 @@ function Patients() {
 
   const buildPayload = () => {
     const payload = { ...form };
-    if (editing && !payload.password) delete payload.password;
-    if (!payload.patient_code) delete payload.patient_code;
+    delete payload.password;
+    delete payload.patient_code;
+    if (!isSuperAdmin) delete payload.company_id;
+    payload.age = Number(payload.age);
+    payload.date_of_birth = ageToDateOfBirth(payload.age);
     if (!payload.gender) payload.gender = null;
+    if (!payload.email) payload.email = null;
     if (!payload.height) payload.height = null;
     else payload.height = Number(payload.height);
     if (!payload.weight) payload.weight = null;
@@ -442,16 +462,59 @@ function Patients() {
       >
         <form onSubmit={handleSubmit}>
           <div className="crud-form-grid">
-            <CompanySelect value={form.company_id} onChange={handleChange} />
+            <CompanySelect
+              value={form.company_id}
+              onChange={handleChange}
+              label="Company / clinic *"
+              required
+            />
             {!isSuperAdmin && user?.company?.name && (
               <div className="crud-field">
-                <label>Clinic / company</label>
+                <label>Company / clinic *</label>
                 <input type="text" value={user.company.name} readOnly disabled />
               </div>
             )}
             <div className="crud-field">
-              <label htmlFor="name">Full name</label>
+              <label htmlFor="name">Full name *</label>
               <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter full name" />
+            </div>
+            <div className="crud-field">
+              <label htmlFor="phone">Phone no *</label>
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="Enter phone number" />
+            </div>
+            <div className="crud-field">
+              <label htmlFor="gender">Gender *</label>
+              <select id="gender" name="gender" value={form.gender} onChange={handleChange} required>
+                <option value="">Select gender</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div className="crud-field">
+              <label htmlFor="age">Age *</label>
+              <input
+                id="age"
+                name="age"
+                type="number"
+                min="0"
+                max="150"
+                value={form.age}
+                onChange={handleChange}
+                required
+                placeholder="Enter age in years"
+              />
+            </div>
+            <div className="crud-field crud-field--full">
+              <label htmlFor="address">Address *</label>
+              <textarea
+                id="address"
+                name="address"
+                value={form.address}
+                onChange={handleChange}
+                required
+                placeholder="Enter address"
+              />
             </div>
             <div className="crud-field">
               <label htmlFor="email">Email</label>
@@ -461,60 +524,7 @@ function Patients() {
                 type="email"
                 value={form.email}
                 onChange={handleChange}
-                required
-                placeholder="Enter email"
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="patient_code">
-                Patient code{editing ? "" : " (auto if empty)"}
-              </label>
-              <input
-                id="patient_code"
-                name="patient_code"
-                value={form.patient_code}
-                onChange={handleChange}
-                required={Boolean(editing)}
-                placeholder="Enter patient code"
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="phone">Mobile number *</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="Enter phone number" />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="password">
-                Password{editing ? " (leave blank to keep)" : ""}
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                value={form.password}
-                onChange={handleChange}
-                required={!editing}
-                minLength={8}
-                placeholder="Enter password"
-              />
-            </div>
-            <div className="crud-field">
-              <label htmlFor="gender">Gender</label>
-              <select id="gender" name="gender" value={form.gender} onChange={handleChange}>
-                <option value="">—</option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-            </div>
-            <div className="crud-field">
-              <label htmlFor="date_of_birth">Date of birth</label>
-              <input
-                id="date_of_birth"
-                name="date_of_birth"
-                type="date"
-                value={form.date_of_birth}
-                onChange={handleChange}
-                placeholder="YYYY-MM-DD"
+                placeholder="Enter email (optional)"
               />
             </div>
             <div className="crud-field">
@@ -550,10 +560,6 @@ function Patients() {
                 onChange={handleChange}
                 placeholder="Weight in kg"
               />
-            </div>
-            <div className="crud-field crud-field--full">
-              <label htmlFor="address">Address</label>
-              <textarea id="address" name="address" value={form.address} onChange={handleChange} placeholder="Enter address" />
             </div>
             <div className="crud-field">
               <label htmlFor="emergency_contact_name">Emergency contact</label>
