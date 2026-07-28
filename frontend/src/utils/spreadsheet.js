@@ -39,6 +39,18 @@ function defaultSpreadsheetFilename(path) {
   if (path.includes("doctor-import-sample") || path.includes("doctors/import-template")) {
     return `doctor-import-sample-${date}.xls`;
   }
+  if (path.includes("diagnostic-category-import-sample") || path.includes("diagnostics/categories/import-template")) {
+    return `diagnostic-category-import-sample-${date}.xls`;
+  }
+  if (path.includes("department-import-sample") || path.includes("departments/import-template")) {
+    return `department-import-sample-${date}.xls`;
+  }
+  if (path.includes("diagnostics/categories")) {
+    return `diagnostic-categories-${date}.xls`;
+  }
+  if (path.includes("departments")) {
+    return `departments-${date}.xls`;
+  }
   if (path.includes("patients")) {
     return `patients-${date}.xls`;
   }

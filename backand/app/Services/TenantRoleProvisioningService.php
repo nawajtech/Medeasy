@@ -24,6 +24,11 @@ class TenantRoleProvisioningService
                 continue;
             }
 
+            // Keep hospital admin for tenant ownership; skip unused staff roles.
+            if (in_array($name, [User::ROLE_NURSE, User::ROLE_PHARMACIST, User::ROLE_RADIOLOGIST], true)) {
+                continue;
+            }
+
             $role = Role::updateOrCreate(
                 [
                     'name' => $name,

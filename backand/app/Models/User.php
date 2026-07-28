@@ -42,6 +42,26 @@ class User extends Authenticatable
         self::ROLE_ACCOUNTANT,
     ];
 
+    /**
+     * Roles shown on the Roles page / staff assignment UI.
+     * Hospital admin remains system-only (not listed here).
+     */
+    public const TENANT_STAFF_ROLES = [
+        self::ROLE_RECEPTIONIST,
+        self::ROLE_DOCTOR,
+        self::ROLE_ACCOUNTANT,
+        self::ROLE_STAFF,
+        self::ROLE_LAB_TECHNICIAN,
+    ];
+
+    /** System roles kept off the Roles management grid. */
+    public const HIDDEN_TENANT_ROLES = [
+        self::ROLE_COMPANY_ADMIN,
+        self::ROLE_NURSE,
+        self::ROLE_PHARMACIST,
+        self::ROLE_RADIOLOGIST,
+    ];
+
     /** Spatie permissions/roles are registered under the web guard. */
     protected string $guard_name = 'web';
 

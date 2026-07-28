@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import "../App.css";
+import { getCompaniesList } from "../api/companiesList";
 import { getDepartments } from "../api/departments";
 import {
   createDoctor,
@@ -16,6 +17,7 @@ import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
+import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
 import { getApiErrorMessage } from "../utils/apiError";
 import "./Doctors.css";
 
@@ -38,10 +40,11 @@ const emptyForm = {
 
 function Doctors() {
   const navigate = useNavigate();
-  const { isDoctor, isSuperAdmin, isCompanyAdmin } = useAuth();
+  const { isDoctor, isSuperAdmin, isCompanyAdmin, user } = useAuth();
   const canManageSchedule = isSuperAdmin || isCompanyAdmin;
   const [items, setItems] = useState([]);
   const [departments, setDepartments] = useState([]);
+  const [companies, setCompanies] = useState([]);
   const [filterBranchId, setFilterBranchId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -77,6 +80,25 @@ function Doctors() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    if (!isSuperAdmin) return;
+    getCompaniesList()
+      .then((res) => setCompanies(res.data || []))
+      .catch(() => setCompanies([]));
+  }, [isSuperAdmin]);
+
+  const formCompanyModules = useMemo(() => {
+    if (isSuperAdmin && form.company_id) {
+      const company = companies.find((c) => String(c.id) === String(form.company_id));
+      if (company?.modules?.length) return normalizeModules(company.modules);
+      return normalizeModules(modulesFromLegacyType(company?.type));
+    }
+    if (user?.company?.modules?.length) return normalizeModules(user.company.modules);
+    return normalizeModules(modulesFromLegacyType(user?.company?.type));
+  }, [isSuperAdmin, form.company_id, companies, user]);
+
+  const hideConsultationFee = !formCompanyModules.includes("clinic");
 
   const openCreate = () => {
     setEditing(null);
@@ -124,11 +146,16 @@ function Doctors() {
     const payload = { ...form };
     if (editing && !payload.password) delete payload.password;
     if (!payload.doctor_code) delete payload.doctor_code;
+    if (!isSuperAdmin) delete payload.company_id;
     payload.department_id = Number(payload.department_id);
-    if (!payload.experience_years) payload.experience_years = null;
-    else payload.experience_years = Number(payload.experience_years);
-    if (!payload.consultation_fee) payload.consultation_fee = null;
-    else payload.consultation_fee = Number(payload.consultation_fee);
+    payload.experience_years = Number(payload.experience_years);
+    if (hideConsultationFee) {
+      payload.consultation_fee = 0;
+    } else if (!payload.consultation_fee && payload.consultation_fee !== 0) {
+      payload.consultation_fee = null;
+    } else {
+      payload.consultation_fee = Number(payload.consultation_fee);
+    }
     return payload;
   };
 
@@ -322,7 +349,6 @@ function Doctors() {
               <th>Name</th>
               <th>Department</th>
               <th>Branch</th>
-              <th>Fee</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -330,7 +356,7 @@ function Doctors() {
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={7} className="crud-empty">
+                <td colSpan={6} className="crud-empty">
                   No doctors yet. Add one or import an Excel file.
                 </td>
               </tr>
@@ -349,11 +375,6 @@ function Doctors() {
                   {doctor.branch
                     ? <span className="branch-pill">{doctor.branch.name}</span>
                     : <span style={{ color: "var(--me-text-muted)" }}>—</span>}
-                </td>
-                <td>
-                  {doctor.consultation_fee != null
-                    ? `₹${Number(doctor.consultation_fee).toFixed(0)}`
-                    : "—"}
                 </td>
                 <td>
                   <span
@@ -421,11 +442,11 @@ function Doctors() {
               />
             </div>
             <div className="crud-field">
-              <label htmlFor="name">Full name</label>
+              <label htmlFor="name">Full name *</label>
               <input id="name" name="name" value={form.name} onChange={handleChange} required placeholder="Enter full name" />
             </div>
             <div className="crud-field">
-              <label htmlFor="email">Email</label>
+              <label htmlFor="email">Email *</label>
               <input
                 id="email"
                 name="email"
@@ -438,7 +459,7 @@ function Doctors() {
             </div>
             
             <div className="crud-field">
-              <label htmlFor="department_id">Department / speciality</label>
+              <label htmlFor="department_id">Department / speciality *</label>
               <select
                 id="department_id"
                 name="department_id"
@@ -456,12 +477,12 @@ function Doctors() {
               </select>
             </div>
             <div className="crud-field">
-              <label htmlFor="phone">Phone</label>
-              <input id="phone" name="phone" value={form.phone} onChange={handleChange} placeholder="Enter phone number" />
+              <label htmlFor="phone">Phone *</label>
+              <input id="phone" name="phone" value={form.phone} onChange={handleChange} required placeholder="Enter phone number" />
             </div>
             <div className="crud-field">
               <label htmlFor="password">
-                Password{editing ? " (leave blank to keep)" : ""}
+                {editing ? "Password (leave blank to keep)" : "Password *"}
               </label>
               <input
                 id="password"
@@ -475,17 +496,18 @@ function Doctors() {
               />
             </div>
             <div className="crud-field">
-              <label htmlFor="qualification">Qualification</label>
+              <label htmlFor="qualification">Qualification *</label>
               <input
                 id="qualification"
                 name="qualification"
                 value={form.qualification}
                 onChange={handleChange}
+                required
                 placeholder="Enter qualification"
               />
             </div>
             <div className="crud-field">
-              <label htmlFor="experience_years">Experience (years)</label>
+              <label htmlFor="experience_years">Experience (years) *</label>
               <input
                 id="experience_years"
                 name="experience_years"
@@ -493,6 +515,7 @@ function Doctors() {
                 min="0"
                 value={form.experience_years}
                 onChange={handleChange}
+                required
                 placeholder="Years of experience"
               />
             </div>
@@ -506,19 +529,21 @@ function Doctors() {
                 placeholder="Enter license number"
               />
             </div>
-            <div className="crud-field">
-              <label htmlFor="consultation_fee">Consultation fee</label>
-              <input
-                id="consultation_fee"
-                name="consultation_fee"
-                type="number"
-                step="0.01"
-                min="0"
-                value={form.consultation_fee}
-                onChange={handleChange}
-                placeholder="Enter amount"
-              />
-            </div>
+            {!hideConsultationFee && (
+              <div className="crud-field">
+                <label htmlFor="consultation_fee">Consultation fee</label>
+                <input
+                  id="consultation_fee"
+                  name="consultation_fee"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={form.consultation_fee}
+                  onChange={handleChange}
+                  placeholder="Enter amount"
+                />
+              </div>
+            )}
             <div className="crud-field crud-field--full">
               <label htmlFor="bio">Bio</label>
               <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} placeholder="Enter bio (optional)" />

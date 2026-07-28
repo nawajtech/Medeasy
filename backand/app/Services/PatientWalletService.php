@@ -187,8 +187,9 @@ class PatientWalletService
 
             $newPaid = round(max(0, (float) $order->paid_amount - $amount), 2);
             $totals = app(DiagnosticPaymentService::class)->compute(
-                (float) ($order->net_amount ?? $order->amount ?? 0),
-                $newPaid
+                (float) ($order->grand_total ?? $order->net_amount ?? $order->amount ?? 0),
+                $newPaid,
+                hasRefunds: true,
             );
             $order->update($totals);
 

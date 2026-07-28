@@ -14,7 +14,9 @@ export default function SearchableSelect({
   emptyLabel = "No matches",
   getOptionLabel = (o) => o.name || String(o.id),
   getOptionValue = (o) => o.id,
+  getOptionSearchText,
   disabled = false,
+  required = false,
   hint,
 }) {
   const wrapRef = useRef(null);
@@ -29,8 +31,17 @@ export default function SearchableSelect({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return options;
-    return options.filter((o) => getOptionLabel(o).toLowerCase().includes(q));
-  }, [options, query, getOptionLabel]);
+    const digits = q.replace(/\D/g, "");
+    return options.filter((o) => {
+      const label = (getOptionSearchText ? getOptionSearchText(o) : getOptionLabel(o)).toLowerCase();
+      if (label.includes(q)) return true;
+      if (digits.length >= 3) {
+        const phoneDigits = String(o.phone || o.mobile || "").replace(/\D/g, "");
+        if (phoneDigits.includes(digits)) return true;
+      }
+      return false;
+    });
+  }, [options, query, getOptionLabel, getOptionSearchText]);
 
   useEffect(() => {
     if (selected) {
@@ -67,6 +78,16 @@ export default function SearchableSelect({
   return (
     <div className="crud-field crud-field--full searchable-select" ref={wrapRef}>
       {label && <label htmlFor={id}>{label}</label>}
+      {required && (
+        <input
+          tabIndex={-1}
+          aria-hidden="true"
+          value={value || ""}
+          required
+          onChange={() => {}}
+          style={{ position: "absolute", opacity: 0, height: 0, width: 0, pointerEvents: "none" }}
+        />
+      )}
       <div className={`searchable-select__control ${open ? "is-open" : ""}`}>
         <input
           id={id}

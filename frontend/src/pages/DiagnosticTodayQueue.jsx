@@ -39,6 +39,73 @@ function StatusPill({ status }) {
   return <span className={`dtq-status ${meta.className}`}>{meta.label}</span>;
 }
 
+function QueueActions({ item, busy, onStart, onComplete, onAbsent, onRecall, onWriteRx, onPrintRx }) {
+  const canStart = ["booked", "scheduled", "not_present"].includes(item.status);
+  const canComplete = item.status === "in_progress";
+  const canAbsent = ["booked", "scheduled"].includes(item.status);
+  const canRecall = item.status === "not_present";
+
+  return (
+    <div className="crud-actions dtq-actions">
+      {canStart && (
+        <button
+          type="button"
+          className="crud-btn crud-btn--primary crud-btn--sm"
+          disabled={busy}
+          onClick={onStart}
+        >
+          {busy ? "Updating…" : "Start"}
+        </button>
+      )}
+      {canComplete && (
+        <>
+          <button
+            type="button"
+            className="crud-btn crud-btn--primary crud-btn--sm"
+            disabled={busy}
+            onClick={onWriteRx}
+          >
+            Write Rx
+          </button>
+          <button
+            type="button"
+            className="crud-btn crud-btn--ghost crud-btn--sm"
+            disabled={busy}
+            onClick={onComplete}
+          >
+            Complete
+          </button>
+        </>
+      )}
+      {item.status === "completed" && item.report && (
+        <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={onPrintRx}>
+          Print Rx
+        </button>
+      )}
+      {canAbsent && (
+        <button
+          type="button"
+          className="crud-btn crud-btn--ghost crud-btn--sm"
+          disabled={busy}
+          onClick={onAbsent}
+        >
+          Not present
+        </button>
+      )}
+      {canRecall && (
+        <button
+          type="button"
+          className="crud-btn crud-btn--ghost crud-btn--sm"
+          disabled={busy}
+          onClick={onRecall}
+        >
+          Re-queue
+        </button>
+      )}
+    </div>
+  );
+}
+
 function DiagnosticTodayQueue() {
   const { user } = useAuth();
   const [summary, setSummary] = useState(null);
@@ -118,13 +185,26 @@ function DiagnosticTodayQueue() {
     }
   };
 
+  const renderActions = (item) => (
+    <QueueActions
+      item={item}
+      busy={updatingId === item.id}
+      onStart={() => changeStatus(item.id, "in_progress")}
+      onComplete={() => changeStatus(item.id, "completed")}
+      onAbsent={() => changeStatus(item.id, "not_present")}
+      onRecall={() => changeStatus(item.id, "scheduled")}
+      onWriteRx={() => openPrescription(item)}
+      onPrintRx={() => handlePrintPrescription(item)}
+    />
+  );
+
   return (
     <section className="page-card dtq-page">
       <div className="page-card-header">
         <h2>Today&apos;s appointments</h2>
         <p>
           {user?.name ? `${user.name} — ` : ""}
-          Patient queue for <strong>{todayLabel()}</strong>. Only today&apos;s scheduled visits are shown here.
+          Patient queue for <strong>{todayLabel()}</strong>. Tap Start / Complete to update visit status.
         </p>
       </div>
 
@@ -162,7 +242,8 @@ function DiagnosticTodayQueue() {
         </div>
       )}
 
-      <div className="crud-table-wrap">
+      {/* Desktop table */}
+      <div className="crud-table-wrap dtq-desktop-only">
         <table className="crud-table dtq-table">
           <thead>
             <tr>
@@ -180,105 +261,73 @@ function DiagnosticTodayQueue() {
               <tr><td colSpan={7} className="crud-empty">Loading queue…</td></tr>
             )}
             {!loading && queue.length === 0 && (
-              <tr><td colSpan={7} className="crud-empty">
-                No appointments for today. Orders must be assigned to you and booked or scheduled for today.
-              </td></tr>
+              <tr>
+                <td colSpan={7} className="crud-empty">
+                  No appointments for today. Orders must be assigned to you and booked or scheduled for today.
+                </td>
+              </tr>
             )}
-            {!loading && queue.map((item) => {
-              const busy = updatingId === item.id;
-              const canStart = ["booked", "scheduled", "not_present"].includes(item.status);
-              const canComplete = item.status === "in_progress";
-              const canAbsent = ["booked", "scheduled"].includes(item.status);
-              const canRecall = item.status === "not_present";
-
-              return (
-                <tr key={item.id} className={item.status === "in_progress" ? "dtq-row-active" : undefined}>
-                  <td>
-                    <span className="dtq-serial">{item.queue_serial ?? "—"}</span>
-                  </td>
-                  <td>{formatTime(item.scheduled_at)}</td>
-                  <td>
-                    <strong>{item.patient?.name || "—"}</strong>
-                    {item.patient?.phone && <div className="dtq-sub">{item.patient.phone}</div>}
-                  </td>
-                  <td>
-                    <strong>{item.test_type?.name || "—"}</strong>
-                    {item.test_type?.category?.name && (
-                      <div className="dtq-sub">{item.test_type.category.name}</div>
-                    )}
-                  </td>
-                  <td>
-                    <span className={`dgn-priority dgn-priority-${item.priority}`}>{item.priority}</span>
-                  </td>
-                  <td><StatusPill status={item.status} /></td>
-                  <td>
-                    <div className="crud-actions dtq-actions">
-                      {canStart && (
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--primary crud-btn--sm"
-                          disabled={busy}
-                          onClick={() => changeStatus(item.id, "in_progress")}
-                        >
-                          Start
-                        </button>
-                      )}
-                      {canComplete && (
-                        <>
-                          <button
-                            type="button"
-                            className="crud-btn crud-btn--primary crud-btn--sm"
-                            disabled={busy}
-                            onClick={() => openPrescription(item)}
-                          >
-                            Write Rx
-                          </button>
-                          <button
-                            type="button"
-                            className="crud-btn crud-btn--ghost crud-btn--sm"
-                            disabled={busy}
-                            onClick={() => changeStatus(item.id, "completed")}
-                          >
-                            Complete
-                          </button>
-                        </>
-                      )}
-                      {item.status === "completed" && item.report && (
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--ghost crud-btn--sm"
-                          onClick={() => handlePrintPrescription(item)}
-                        >
-                          Print Rx
-                        </button>
-                      )}
-                      {canAbsent && (
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--ghost crud-btn--sm"
-                          disabled={busy}
-                          onClick={() => changeStatus(item.id, "not_present")}
-                        >
-                          Not present
-                        </button>
-                      )}
-                      {canRecall && (
-                        <button
-                          type="button"
-                          className="crud-btn crud-btn--ghost crud-btn--sm"
-                          disabled={busy}
-                          onClick={() => changeStatus(item.id, "scheduled")}
-                        >
-                          Re-queue
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
+            {!loading && queue.map((item) => (
+              <tr key={item.id} className={item.status === "in_progress" ? "dtq-row-active" : undefined}>
+                <td>
+                  <span className="dtq-serial">{item.queue_serial ?? "—"}</span>
+                </td>
+                <td>{formatTime(item.scheduled_at)}</td>
+                <td>
+                  <strong>{item.patient?.name || "—"}</strong>
+                  {item.patient?.phone && <div className="dtq-sub">{item.patient.phone}</div>}
+                </td>
+                <td>
+                  <strong>{item.test_type?.name || "—"}</strong>
+                  {item.test_type?.category?.name && (
+                    <div className="dtq-sub">{item.test_type.category.name}</div>
+                  )}
+                </td>
+                <td>
+                  <span className={`dgn-priority dgn-priority-${item.priority}`}>{item.priority}</span>
+                </td>
+                <td><StatusPill status={item.status} /></td>
+                <td>{renderActions(item)}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile cards */}
+      <div className="dtq-mobile-list" aria-label="Today's patient queue">
+        {loading && <p className="crud-empty">Loading queue…</p>}
+        {!loading && queue.length === 0 && (
+          <p className="crud-empty">
+            No appointments for today. Orders must be assigned to you and booked or scheduled for today.
+          </p>
+        )}
+        {!loading && queue.map((item) => (
+          <article
+            key={item.id}
+            className={`dtq-card ${item.status === "in_progress" ? "is-active" : ""}`}
+          >
+            <div className="dtq-card-top">
+              <span className="dtq-serial">{item.queue_serial ?? "—"}</span>
+              <div className="dtq-card-meta">
+                <StatusPill status={item.status} />
+                <span className={`dgn-priority dgn-priority-${item.priority}`}>{item.priority}</span>
+              </div>
+            </div>
+            <h3 className="dtq-card-patient">{item.patient?.name || "—"}</h3>
+            {item.patient?.phone && (
+              <a className="dtq-card-phone" href={`tel:${item.patient.phone}`}>
+                {item.patient.phone}
+              </a>
+            )}
+            <div className="dtq-card-test">
+              <strong>{item.test_type?.name || "—"}</strong>
+              {item.test_type?.category?.name ? ` · ${item.test_type.category.name}` : ""}
+            </div>
+            <div className="dtq-card-time">Time: {formatTime(item.scheduled_at)}</div>
+            <div className="dtq-card-actions">{renderActions(item)}</div>
+          </article>
+        ))}
       </div>
 
       <DiagnosticPrescriptionModal

@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { getPlatformBranding } from "../../api/platformSettings";
+import { getHomePath } from "../../config/permissions";
 import { applyDocumentBranding } from "../../utils/branding";
 import { getApiErrorMessage } from "../../utils/apiError";
 import "./Login.css";
 
 function Login() {
-  const { login, isAuthenticated, loading: authLoading } = useAuth();
+  const { login, isAuthenticated, loading: authLoading, user } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -51,7 +52,7 @@ function Login() {
   }
 
   if (isAuthenticated) {
-    return <Navigate to="/" replace />;
+    return <Navigate to={getHomePath(user)} replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -59,8 +60,8 @@ function Login() {
     setLoading(true);
     setError("");
     try {
-      await login(email, password);
-      navigate("/");
+      const nextUser = await login(email, password);
+      navigate(getHomePath(nextUser));
     } catch (err) {
       setError(getApiErrorMessage(err, "Login failed."));
     } finally {

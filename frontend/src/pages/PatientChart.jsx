@@ -36,6 +36,17 @@ function resolveCompanyModules(patientCompany, userCompany) {
   return normalizeModules(modulesFromLegacyType(legacyType));
 }
 
+function calcAgeLabel(dateOfBirth) {
+  if (!dateOfBirth) return "—";
+  const birth = new Date(dateOfBirth);
+  if (Number.isNaN(birth.getTime())) return "—";
+  const today = new Date();
+  let age = today.getFullYear() - birth.getFullYear();
+  const m = today.getMonth() - birth.getMonth();
+  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age -= 1;
+  return age >= 0 ? `${age} yrs` : "—";
+}
+
 function getVisibleTabs(modules, permissions = []) {
   const enabled = new Set(modules);
   return ALL_TABS.filter((t) => {
@@ -562,7 +573,7 @@ function PatientChart() {
               <div><dt>Email</dt><dd>{patient.email}</dd></div>
               <div><dt>Phone</dt><dd>{patient.phone || "—"}</dd></div>
               <div><dt>Gender</dt><dd>{patient.gender || "—"}</dd></div>
-              <div><dt>Date of birth</dt><dd>{patient.date_of_birth?.slice(0, 10) || "—"}</dd></div>
+              <div><dt>Age</dt><dd>{calcAgeLabel(patient.date_of_birth)}</dd></div>
               <div><dt>Blood group</dt><dd>{patient.blood_group || "—"}</dd></div>
               <div><dt>Height</dt><dd>{patient.height != null ? `${patient.height} cm` : "—"}</dd></div>
               <div><dt>Weight</dt><dd>{patient.weight != null ? `${patient.weight} kg` : "—"}</dd></div>
