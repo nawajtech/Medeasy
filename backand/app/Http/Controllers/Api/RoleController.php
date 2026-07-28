@@ -23,15 +23,15 @@ class RoleController extends Controller
     {
         $this->assertTenantAdmin();
 
+        $tenantRoles = config('permissions.tenant_roles', []);
+
         $roles = Role::query()
             ->where('company_id', auth()->user()->company_id)
-            ->where(function ($q) {
-                $q->whereIn('name', User::TENANT_STAFF_ROLES)
-                    ->orWhere('is_system', false);
-            })
+            ->whereIn('name', $tenantRoles)
             ->withCount('permissions')
-            ->orderBy('name')
             ->get()
+            ->sortBy(fn (Role $role) => array_search($role->name, $tenantRoles, true))
+            ->values()
             ->map(fn (Role $role) => $this->rolePayload($role));
 
         return response()->json($roles);
@@ -145,8 +145,8 @@ class RoleController extends Controller
 
         $roles = Role::query()
             ->where('company_id', $companyId)
+            ->whereIn('name', config('permissions.tenant_roles', []))
             ->where('name', '!=', User::ROLE_SUPER_ADMIN)
-            ->whereIn('name', User::TENANT_STAFF_ROLES)
             ->when(! $user->isSuperAdmin(), fn ($q) => $q->whereNotIn('name', [
                 User::ROLE_COMPANY_ADMIN,
                 User::ROLE_DOCTOR,

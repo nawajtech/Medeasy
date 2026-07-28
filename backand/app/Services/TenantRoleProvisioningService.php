@@ -24,8 +24,7 @@ class TenantRoleProvisioningService
                 continue;
             }
 
-            // Keep hospital admin for tenant ownership; skip unused staff roles.
-            if (in_array($name, [User::ROLE_NURSE, User::ROLE_PHARMACIST, User::ROLE_RADIOLOGIST], true)) {
+            if (! in_array($name, config('permissions.tenant_roles', []), true)) {
                 continue;
             }
 

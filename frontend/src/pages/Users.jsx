@@ -27,7 +27,7 @@ const emptyForm = {
   status: true,
 };
 
-const ROLES = ["company_admin", "staff", "nurse", "lab_technician", "radiologist", "receptionist", "pharmacist", "accountant"];
+const ROLES = ["company_admin", "receptionist", "doctor", "accountant", "staff", "lab_technician"];
 
 function Users() {
   const { isSuperAdmin } = useAuth();
