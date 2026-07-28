@@ -116,8 +116,8 @@ class ReferralPartnerController extends Controller
         $rules = [
             'company_id'      => $this->companyIdRules(),
             'name'            => [$partial ? 'sometimes' : 'required', 'string', 'max:150'],
-            'mobile'          => ['nullable', 'string', 'max:20'],
-            'address'         => ['nullable', 'string'],
+            'mobile'          => [$partial ? 'sometimes' : 'required', 'string', 'max:20'],
+            'address'         => [$partial ? 'sometimes' : 'required', 'string'],
             'type'            => [$partial ? 'sometimes' : 'required', 'in:doctor,clinic,hospital,agent'],
             'surcharge_type'  => ['nullable', 'in:fixed,percentage'],
             'surcharge_value' => ['nullable', 'numeric', 'min:0'],
