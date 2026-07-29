@@ -38,6 +38,21 @@ class DoctorController extends Controller
             $query->where('branch_id', (int) $request->branch_id);
         }
 
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower(trim((string) $request->input('search'))).'%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(doctor_code) LIKE ?', [$term])
+                    ->orWhereHas('user', function ($userQuery) use ($term) {
+                        $userQuery->whereRaw('LOWER(name) LIKE ?', [$term])
+                            ->orWhereRaw('LOWER(phone) LIKE ?', [$term]);
+                    });
+            });
+        }
+
+        if ($request->filled('limit')) {
+            $query->limit((int) $request->input('limit'));
+        }
+
         return response()->json($query->get());
     }
 

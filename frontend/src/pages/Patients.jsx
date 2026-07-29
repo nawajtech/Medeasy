@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import "../App.css";
 import {
   createPatient,
@@ -79,6 +79,8 @@ function Patients() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") || "");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -105,6 +107,21 @@ function Patients() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) {
+      setSearchTerm(q);
+    }
+  }, [searchParams]);
+
+  const filteredItems = items.filter((patient) => {
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    const name = (patient.name || "").toLowerCase();
+    const phone = (patient.phone || "").toLowerCase();
+    return name.includes(term) || phone.includes(term);
+  });
 
   const openCreate = () => {
     setEditing(null);
@@ -269,7 +286,15 @@ function Patients() {
 
       <div className="crud-toolbar patients-toolbar">
         <div className="tenant-toolbar-left">
-          <span>{loading ? "Loading…" : `${items.length} patient(s)`}</span>
+          <span>{loading ? "Loading…" : `${filteredItems.length} patient(s)`}</span>
+          <input
+            type="search"
+            className="crud-search-input"
+            placeholder="Search by name or mobile number…"
+            aria-label="Search patients by name or mobile number"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           {isSuperAdmin && (
             <CompanySelect
               variant="inline"
@@ -365,14 +390,16 @@ function Patients() {
             </tr>
           </thead>
           <tbody>
-            {!loading && items.length === 0 && (
+            {!loading && filteredItems.length === 0 && (
               <tr>
                 <td colSpan={isSuperAdmin ? 10 : 9} className="crud-empty">
-                  No patients yet. Add one or import an Excel file.
+                  {items.length === 0
+                    ? "No patients yet. Add one or import an Excel file."
+                    : "No patients match your search."}
                 </td>
               </tr>
             )}
-            {items.map((patient) => (
+            {filteredItems.map((patient) => (
               <tr key={patient.id}>
                 <td>{patient.patient_code}</td>
                 {isSuperAdmin && (

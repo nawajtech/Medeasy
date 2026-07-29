@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import "../App.css";
 import { getCompaniesList } from "../api/companiesList";
 import { getDepartments } from "../api/departments";
@@ -53,6 +53,8 @@ function Doctors() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [searchParams] = useSearchParams();
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get("q") || "");
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
@@ -80,6 +82,22 @@ function Doctors() {
   useEffect(() => {
     load();
   }, [load]);
+
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q !== null) {
+      setSearchTerm(q);
+    }
+  }, [searchParams]);
+
+  const filteredItems = items.filter((doctor) => {
+    if (filterBranchId && String(doctor.branch_id) !== filterBranchId) return false;
+    const term = searchTerm.trim().toLowerCase();
+    if (!term) return true;
+    const name = (doctor.user?.name || "").toLowerCase();
+    const phone = (doctor.user?.phone || "").toLowerCase();
+    return name.includes(term) || phone.includes(term);
+  });
 
   useEffect(() => {
     if (!isSuperAdmin) return;
@@ -263,7 +281,15 @@ function Doctors() {
 
       <div className="crud-toolbar">
         <div className="tenant-toolbar-left">
-          <span>{loading ? "Loading…" : `${items.length} doctor(s)`}</span>
+          <span>{loading ? "Loading…" : `${filteredItems.length} doctor(s)`}</span>
+          <input
+            type="search"
+            className="crud-search-input"
+            placeholder="Search by name or mobile number…"
+            aria-label="Search doctors by name or mobile number"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
           {isSuperAdmin && (
             <CompanySelect
               variant="inline"
@@ -354,16 +380,16 @@ function Doctors() {
             </tr>
           </thead>
           <tbody>
-            {!loading && items.length === 0 && (
+            {!loading && filteredItems.length === 0 && (
               <tr>
                 <td colSpan={6} className="crud-empty">
-                  No doctors yet. Add one or import an Excel file.
+                  {items.length === 0
+                    ? "No doctors yet. Add one or import an Excel file."
+                    : "No doctors match your search."}
                 </td>
               </tr>
             )}
-            {items
-              .filter((d) => !filterBranchId || String(d.branch_id) === filterBranchId)
-              .map((doctor) => (
+            {filteredItems.map((doctor) => (
               <tr key={doctor.id}>
                 <td>{doctor.doctor_code}</td>
                 <td>
