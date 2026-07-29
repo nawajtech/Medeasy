@@ -60,6 +60,19 @@ class DiagnosticOrderController extends Controller
             $query->where('status', $request->status);
         }
 
+        if ($request->filled('status_not')) {
+            $query->where('status', '!=', $request->status_not);
+        }
+
+        if ($request->filled('payment_status')) {
+            $paymentFilter = $request->input('payment_status');
+            if ($paymentFilter === 'paid') {
+                $query->where('payment_status', 'paid');
+            } elseif ($paymentFilter === 'unpaid') {
+                $query->where('payment_status', '!=', 'paid');
+            }
+        }
+
         if ($request->filled('category_id')) {
             $query->whereHas(
                 'testType',

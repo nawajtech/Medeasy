@@ -144,6 +144,18 @@
   letter-spacing: 0.04em;
 }
 
+.dgn-schedule-date {
+  display: inline-block;
+  margin-top: 6px;
+  padding: 3px 9px;
+  border-radius: var(--me-radius-full);
+  background: #fef3c7;
+  color: #92400e;
+  font-size: 0.75rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .dgn-booked    { background: #f1f5f9; color: #64748b; }
 .dgn-scheduled { background: #e0f2fe; color: #0369a1; }
 .dgn-progress  { background: #ede9fe; color: #6d28d9; }
@@ -217,6 +229,36 @@
   background: var(--me-bg-subtle, #f8fafc);
   border-radius: var(--me-radius-md);
   margin-bottom: 8px;
+}
+
+.dgn-order-tabs {
+  margin-top: 16px;
+}
+
+.dgn-tab--pending {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+  box-shadow: var(--me-shadow-xs);
+}
+
+.dgn-tab--pending:hover {
+  background: #6d28d9;
+  border-color: #6d28d9;
+  color: #fff;
+}
+
+.dgn-tab--success {
+  background: var(--me-success);
+  border-color: var(--me-success);
+  color: #fff;
+  box-shadow: var(--me-shadow-xs);
+}
+
+.dgn-tab--success:hover {
+  background: #15803d;
+  border-color: #15803d;
+  color: #fff;
 }
 
 .dgn-category-block {
