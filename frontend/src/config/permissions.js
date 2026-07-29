@@ -114,6 +114,14 @@ export function isDiagnosticsOnlyDoctor(role, companyModules = null) {
   return role === "doctor" && modules.has("diagnostics") && !modules.has("clinic");
 }
 
+/** Post-login / home path for the signed-in user. */
+export function getHomePath(user) {
+  if (user?.role === "doctor") {
+    return "/diagnostics/today";
+  }
+  return "/";
+}
+
 /** Super admin and hospital admin always get the organisation dashboard. */
 export function isAdminRole(role) {
   return role === "super_admin" || role === "company_admin";

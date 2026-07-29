@@ -42,6 +42,7 @@ class PatientController extends Controller
         $companyId = $this->resolveCompanyId($request);
         $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
         $validated = $request->validate($this->rules(null, $companyId));
+        $validated = $this->applyAgeToDateOfBirth($validated);
 
         $company = \App\Models\Company::findOrFail($companyId);
         app(SubscriptionService::class)->assertUnderLimit(
@@ -54,6 +55,7 @@ class PatientController extends Controller
             ...$validated,
             'company_id' => $companyId,
             'patient_code' => $this->nextPatientCode($companyId),
+            'password' => $validated['password'] ?? 'Password@123',
             'status' => $request->boolean('status', true),
         ]);
 
@@ -226,10 +228,13 @@ class PatientController extends Controller
 
         $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
         $validated = $request->validate($this->rules($patient, $patient->company_id));
+        $validated = $this->applyAgeToDateOfBirth($validated);
 
         if (empty($validated['password'])) {
             unset($validated['password']);
         }
+
+        unset($validated['patient_code']);
 
         $patient->update([
             ...$validated,
@@ -564,11 +569,11 @@ class PatientController extends Controller
                 : ['prohibited'],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
-                'required',
+                'nullable',
                 'email',
                 Rule::unique('patients', 'email')->where('company_id', $companyId)->ignore($patientId),
             ],
-            'password' => [$patient ? 'nullable' : 'required', 'string', 'min:8'],
+            'password' => ['nullable', 'string', 'min:8'],
             'phone' => [
                 'required',
                 'string',
@@ -576,23 +581,32 @@ class PatientController extends Controller
                 Rule::unique('patients', 'phone')->where('company_id', $companyId)->ignore($patientId),
             ],
             'status' => ['boolean'],
-            'patient_code' => [
-                $patient ? 'required' : 'nullable',
-                'string',
-                'max:50',
-                Rule::unique('patients', 'patient_code')->where('company_id', $companyId)->ignore($patientId),
-            ],
-            'gender' => ['nullable', Rule::in(['male', 'female', 'other'])],
+            'patient_code' => ['nullable', 'string', 'max:50'],
+            'gender' => ['required', Rule::in(['male', 'female', 'other'])],
+            'age' => ['required', 'integer', 'min:0', 'max:150'],
             'date_of_birth' => ['nullable', 'date'],
             'blood_group' => ['nullable', 'string', 'max:10'],
             'height' => ['nullable', 'numeric', 'min:0'],
             'weight' => ['nullable', 'numeric', 'min:0'],
-            'address' => ['nullable', 'string'],
+            'address' => ['required', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
             'allergies' => ['nullable', 'string'],
             'medical_history' => ['nullable', 'string'],
         ];
+    }
+
+    private function applyAgeToDateOfBirth(array $validated): array
+    {
+        if (array_key_exists('age', $validated)) {
+            $age = (int) $validated['age'];
+            if ($age >= 0 && $age <= 150) {
+                $validated['date_of_birth'] = now()->subYears($age)->startOfYear()->toDateString();
+            }
+            unset($validated['age']);
+        }
+
+        return $validated;
     }
 
     private function nextPatientCode(int $companyId): string

@@ -9,21 +9,23 @@ use InvalidArgumentException;
 
 class DiagnosticPaymentService
 {
-    public const STATUSES = ['pending', 'partial', 'paid'];
+    public const STATUSES = ['pending', 'partial', 'paid', 'refunded'];
 
     public function payableAmount(DiagnosticOrder $order): float
     {
         return (float) ($order->grand_total ?: $order->net_amount ?: $order->amount ?: 0);
     }
 
-    public function compute(float $netAmount, float $paidAmount): array
+    public function compute(float $netAmount, float $paidAmount, bool $hasRefunds = false): array
     {
         $net = round(max(0, $netAmount), 2);
         $paid = round(min($net, max(0, $paidAmount)), 2);
         $due = round(max(0, $net - $paid), 2);
 
         $status = 'pending';
-        if ($net > 0 && $due <= 0) {
+        if ($hasRefunds && $paid <= 0) {
+            $status = 'refunded';
+        } elseif ($net > 0 && $due <= 0) {
             $status = 'paid';
         } elseif ($paid > 0 && $due > 0) {
             $status = 'partial';

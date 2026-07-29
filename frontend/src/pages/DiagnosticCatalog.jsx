@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   getDiagnosticCategories, createDiagnosticCategory, updateDiagnosticCategory, deleteDiagnosticCategory,
+  exportDiagnosticCategories, importDiagnosticCategories, downloadDiagnosticCategorySample,
   getDiagnosticTypes, createDiagnosticType, updateDiagnosticType, deleteDiagnosticType,
   getDiagnosticPackages, createDiagnosticPackage, updateDiagnosticPackage, deleteDiagnosticPackage,
 } from "../api/diagnostics";
@@ -50,6 +51,12 @@ function DiagnosticCatalog() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+  const [filterCompanyId, setFilterCompanyId] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [downloadingSample, setDownloadingSample] = useState(false);
+  const importInputRef = useRef(null);
 
   const [catModalOpen, setCatModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
@@ -76,14 +83,19 @@ function DiagnosticCatalog() {
     }
   }, []);
 
+  const catalogParams = useMemo(() => {
+    if (isSuperAdmin && filterCompanyId) return { company_id: filterCompanyId };
+    return {};
+  }, [isSuperAdmin, filterCompanyId]);
+
   const loadCatalog = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
       const [catRes, typeRes, pkgRes] = await Promise.all([
-        getDiagnosticCategories(),
-        getDiagnosticTypes(),
-        getDiagnosticPackages(),
+        getDiagnosticCategories(catalogParams),
+        getDiagnosticTypes(catalogParams),
+        getDiagnosticPackages(catalogParams),
       ]);
       setCategories(catRes.data);
       setTypes(typeRes.data);
@@ -93,12 +105,12 @@ function DiagnosticCatalog() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [catalogParams]);
 
   useEffect(() => {
     loadCatalog();
-    loadDoctors();
-  }, [loadCatalog, loadDoctors]);
+    loadDoctors(filterCompanyId);
+  }, [loadCatalog, loadDoctors, filterCompanyId]);
 
   const testsByCategory = useMemo(() => {
     const map = new Map();
@@ -186,6 +198,60 @@ function DiagnosticCatalog() {
       await loadCatalog();
     } catch (err) {
       setError(getApiErrorMessage(err, "Failed to delete category."));
+    }
+  };
+
+  const handleCategoryExport = async () => {
+    setExporting(true);
+    setError("");
+    try {
+      await exportDiagnosticCategories(catalogParams);
+    } catch (err) {
+      setError(err.message || "Export failed.");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  const handleCategoryImportClick = () => {
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing categories.");
+      return;
+    }
+    importInputRef.current?.click();
+  };
+
+  const handleCategoryImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (isSuperAdmin && !filterCompanyId) {
+      setError("Select a clinic before importing categories.");
+      return;
+    }
+    setImporting(true);
+    setError("");
+    setImportResult(null);
+    try {
+      const { data } = await importDiagnosticCategories(file, isSuperAdmin ? filterCompanyId : undefined);
+      setImportResult(data);
+      await loadCatalog();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Import failed."));
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleCategoryDownloadSample = async () => {
+    setDownloadingSample(true);
+    setError("");
+    try {
+      await downloadDiagnosticCategorySample();
+    } catch (err) {
+      setError(err.message || "Could not download sample file.");
+    } finally {
+      setDownloadingSample(false);
     }
   };
 
@@ -379,15 +445,79 @@ function DiagnosticCatalog() {
       {tab === "Categories" && (
         <>
           <div className="crud-toolbar">
-            <span>{loading ? "Loading…" : `${categories.length} category(ies)`}</span>
-            <button type="button" className="crud-btn crud-btn--primary" onClick={openCategoryCreate}>Add category</button>
+            <div className="tenant-toolbar-left">
+              <span>{loading ? "Loading…" : `${categories.length} category(ies)`}</span>
+              {isSuperAdmin && (
+                <CompanySelect
+                  variant="inline"
+                  allowAll
+                  label="Filter clinic"
+                  id="filter_company_id"
+                  value={filterCompanyId}
+                  onChange={(e) => setFilterCompanyId(e.target.value)}
+                  required={false}
+                />
+              )}
+            </div>
+            <div className="crud-toolbar-actions">
+              <button
+                type="button"
+                className="crud-btn crud-btn--export"
+                onClick={handleCategoryExport}
+                disabled={exporting}
+              >
+                {exporting ? "Exporting…" : "Export Excel"}
+              </button>
+              <div className="spreadsheet-import-compact">
+                <button
+                  type="button"
+                  className="crud-btn crud-btn--import"
+                  onClick={handleCategoryImportClick}
+                  disabled={importing}
+                >
+                  {importing ? "Importing…" : "Import Excel"}
+                </button>
+                <button
+                  type="button"
+                  className="spreadsheet-sample-link"
+                  onClick={handleCategoryDownloadSample}
+                  disabled={downloadingSample}
+                  title="Download .xls sample with columns: name, description, sort_order, status"
+                >
+                  {downloadingSample ? "Downloading…" : "Sample template"}
+                </button>
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel"
+                  className="spreadsheet-import-input"
+                  onChange={handleCategoryImportFile}
+                />
+              </div>
+              <button type="button" className="crud-btn crud-btn--primary" onClick={openCategoryCreate}>
+                Add category
+              </button>
+            </div>
           </div>
+          {importResult && (
+            <div className="spreadsheet-import-result">
+              {importResult.message}
+              {importResult.skipped > 0 && ` Skipped ${importResult.skipped} row(s).`}
+              {importResult.errors?.length > 0 && (
+                <ul className="spreadsheet-import-errors">
+                  {importResult.errors.map((msg) => (
+                    <li key={msg}>{msg}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           <div className="crud-table-wrap">
             <table className="crud-table">
               <thead><tr><th>Name</th><th>Tests</th><th>Sort</th><th>Status</th><th>Actions</th></tr></thead>
               <tbody>
                 {!loading && categories.length === 0 && (
-                  <tr><td colSpan={5} className="crud-empty">No categories yet. Add Homeopathy, Pathology, etc.</td></tr>
+                  <tr><td colSpan={5} className="crud-empty">No categories yet. Add one or import an Excel file.</td></tr>
                 )}
                 {categories.map((c) => (
                   <tr key={c.id}>

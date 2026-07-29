@@ -11,7 +11,7 @@ use App\Models\Patient;
 use App\Services\ClinicBrandingService;
 use App\Services\DoctorAvailabilityService;
 use App\Services\NotificationService;
-use App\Support\S3Storage;
+use App\Support\MediaStorage;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -227,13 +227,13 @@ class AppointmentController extends Controller
         ]);
 
         if ($appointment->prescription_file) {
-            S3Storage::delete($appointment->prescription_file);
+            MediaStorage::delete($appointment->prescription_file);
         }
 
-        $path = S3Storage::upload(
-            $validated['file'],
-            'prescriptions/'.$appointment->company_id
-        );
+        $path = MediaStorage::putFile('prescriptions/'.$appointment->company_id, $validated['file']);
+        if (! $path) {
+            abort(500, 'Failed to upload prescription file to storage.');
+        }
 
         $appointment->update([
             'prescription_type' => 'upload',
@@ -252,7 +252,7 @@ class AppointmentController extends Controller
         if ($type === 'handwritten' || $type === 'structured') {
             $appointmentData['prescription_file'] = null;
             if ($appointment->prescription_file) {
-                S3Storage::delete($appointment->prescription_file);
+                MediaStorage::delete($appointment->prescription_file);
             }
         }
 

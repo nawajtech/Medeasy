@@ -26,12 +26,10 @@ class UserController extends Controller
     private const STAFF_ROLES = [
         User::ROLE_COMPANY_ADMIN,
         User::ROLE_STAFF,
-        User::ROLE_NURSE,
         User::ROLE_LAB_TECHNICIAN,
-        User::ROLE_RADIOLOGIST,
         User::ROLE_RECEPTIONIST,
-        User::ROLE_PHARMACIST,
         User::ROLE_ACCOUNTANT,
+        User::ROLE_DOCTOR,
     ];
 
     public function index(Request $request): JsonResponse
@@ -143,6 +141,7 @@ class UserController extends Controller
 
         $roles = Role::query()
             ->where('company_id', $companyId)
+            ->whereIn('name', config('permissions.tenant_roles', []))
             ->where('name', '!=', User::ROLE_SUPER_ADMIN)
             ->when(! $actor->isSuperAdmin(), fn ($q) => $q->whereNotIn('name', [
                 User::ROLE_COMPANY_ADMIN,
@@ -197,6 +196,7 @@ class UserController extends Controller
 
         $query = Role::query()
             ->where('company_id', $companyId)
+            ->whereIn('name', config('permissions.tenant_roles', []))
             ->where('name', '!=', User::ROLE_SUPER_ADMIN);
 
         if (! auth()->user()->isSuperAdmin()) {

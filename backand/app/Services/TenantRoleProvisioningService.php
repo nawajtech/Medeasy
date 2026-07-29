@@ -24,6 +24,10 @@ class TenantRoleProvisioningService
                 continue;
             }
 
+            if (! in_array($name, config('permissions.tenant_roles', []), true)) {
+                continue;
+            }
+
             $role = Role::updateOrCreate(
                 [
                     'name' => $name,

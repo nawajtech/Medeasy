@@ -287,12 +287,12 @@ function ReferralPartners() {
               <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required placeholder="Partner name" />
             </div>
             <div className="crud-field">
-              <label>Mobile</label>
-              <input value={form.mobile} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} placeholder="+91…" />
+              <label>Mobile *</label>
+              <input value={form.mobile} onChange={(e) => setForm((p) => ({ ...p, mobile: e.target.value }))} required placeholder="+91…" />
             </div>
             <div className="crud-field crud-field--full">
-              <label>Address</label>
-              <textarea rows={2} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} placeholder="Address" />
+              <label>Address *</label>
+              <textarea rows={2} value={form.address} onChange={(e) => setForm((p) => ({ ...p, address: e.target.value }))} required placeholder="Address" />
             </div>
             <div className="crud-field">
               <label>Type *</label>
