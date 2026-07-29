@@ -195,6 +195,7 @@ function DoctorPerformanceTable({ rows, showCompanyCol, startRank = 1 }) {
             {showCompanyCol && <th>Clinic</th>}
             <th>Doctor</th>
             <th className="dashboard-doctor-num">Patients</th>
+            <th className="dashboard-doctor-num">Completed</th>
             <th className="dashboard-doctor-num">Revenue</th>
           </tr>
         </thead>
@@ -217,7 +218,8 @@ function DoctorPerformanceTable({ rows, showCompanyCol, startRank = 1 }) {
                     <span className="dashboard-doctor-badge">Top earner</span>
                   )}
                 </td>
-                <td className="dashboard-doctor-num">{row.patients}</td>
+                <td className="dashboard-doctor-num">{row.patients ?? 0}</td>
+                <td className="dashboard-doctor-num">{row.completed ?? 0}</td>
                 <td className="dashboard-doctor-num dashboard-doctor-revenue">
                   {formatRupee(row.revenue)}
                 </td>
@@ -305,7 +307,9 @@ function Dashboard() {
   const showCompaniesPaymentGrid =
     can(PERMISSIONS.BILLING_VIEW) && isSuperAdmin && !filterCompanyId && data.companies_payment?.length > 0;
 
-  const doctorPerformance = data.doctor_performance ?? [];
+  const doctorPerformance = (data.doctor_performance ?? []).filter(
+    (row) => (row.patients ?? 0) > 0 || (row.completed ?? 0) > 0 || (row.revenue ?? 0) > 0,
+  );
   const showDoctorCompanyCol = doctorPerformance.some((row) => row.company_name);
   const doctorPerformancePreview = doctorPerformance.slice(0, DOCTOR_PERFORMANCE_PREVIEW);
   const hasMoreDoctors = doctorPerformance.length > DOCTOR_PERFORMANCE_PREVIEW;
@@ -376,7 +380,7 @@ function Dashboard() {
       : []),
   ];
 
-  const paymentCards = payment_overview && can(PERMISSIONS.BILLING_VIEW)
+  const paymentCards = payment_overview
     ? [
         {
           key: "today",
@@ -413,7 +417,11 @@ function Dashboard() {
   const collections = patient_collections;
   const collectionTotals = collections?.totals;
   const collectionGrowth = collections?.growth;
-  const showCollectionMoney = !isDoctor && can(PERMISSIONS.BILLING_VIEW);
+  const showCollectionMoney = !isDoctor && (
+    can(PERMISSIONS.BILLING_VIEW)
+    || can(PERMISSIONS.DIAGNOSTIC_VIEW)
+    || can(PERMISSIONS.LAB_VIEW)
+  );
   const showPatientCollections = Boolean(collections && collectionTotals);
   const appointmentCollectionsChart = data.appointment_collections_by_month ?? [];
   const showAppointmentCollectionsChart = appointmentCollectionsChart.some(
@@ -634,24 +642,30 @@ function Dashboard() {
             ))}
           </div>
 
-          {(collections?.diagnostics || collections?.lab) && (
+          {(collections?.appointments || collections?.diagnostics || collections?.lab) && (
             <div className="dashboard-collection-breakdown">
               <h3>By service</h3>
-              <CollectionSourceRow
-                label="Appointments"
-                stats={collections.appointments}
-                showMoney={showCollectionMoney}
-              />
-              <CollectionSourceRow
-                label="Diagnostics"
-                stats={collections.diagnostics}
-                showMoney={showCollectionMoney}
-              />
-              <CollectionSourceRow
-                label="Lab"
-                stats={collections.lab}
-                showMoney={showCollectionMoney}
-              />
+              {collections.appointments && (
+                <CollectionSourceRow
+                  label="Appointments"
+                  stats={collections.appointments}
+                  showMoney={showCollectionMoney}
+                />
+              )}
+              {collections.diagnostics && (
+                <CollectionSourceRow
+                  label="Diagnostics"
+                  stats={collections.diagnostics}
+                  showMoney={showCollectionMoney}
+                />
+              )}
+              {collections.lab && (
+                <CollectionSourceRow
+                  label="Lab"
+                  stats={collections.lab}
+                  showMoney={showCollectionMoney}
+                />
+              )}
             </div>
           )}
         </section>
@@ -699,7 +713,7 @@ function Dashboard() {
               <p>
                 {hasMoreDoctors
                   ? `Top ${DOCTOR_PERFORMANCE_PREVIEW} by revenue · ${doctorRangeLabel}`
-                  : `Patients seen and revenue collected · ${doctorRangeLabel}`}
+                  : `Completed appointments & order collections · ${doctorRangeLabel}`}
               </p>
             </div>
             {hasMoreDoctors && (
