@@ -84,7 +84,7 @@ function Sidebar() {
             <span className="brand-tagline">
               {user?.company?.name && branding.name !== user.company.name
                 ? user.company.name
-                : branding.tagline || "Healthcare SaaS"}
+                : branding.tagline || "Healthcare Operations, Simplified"}
             </span>
           </div>
         </Link>

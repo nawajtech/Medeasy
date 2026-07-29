@@ -72,7 +72,7 @@ class ClinicBrandingService
                 'name' => $platform['name'] ?: 'ApnaMedi',
                 'logo' => $platform['logo'],
                 'favicon' => $platform['favicon'],
-                'tagline' => $platform['tagline'] ?? 'Healthcare SaaS',
+                'tagline' => $platform['tagline'] ?? 'Healthcare Operations, Simplified',
             ];
         }
 
@@ -82,7 +82,7 @@ class ClinicBrandingService
             'name' => $branding['name'] ?: 'ApnaMedi',
             'logo' => $branding['logo'],
             'favicon' => $branding['favicon'],
-            'tagline' => $branding['division'] ?: 'Healthcare SaaS',
+            'tagline' => $branding['division'] ?: 'Healthcare Operations, Simplified',
         ];
     }
 

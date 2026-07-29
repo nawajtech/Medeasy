@@ -139,7 +139,7 @@ class PlatformSettingController extends Controller
         $favicon = PublicStorageUrl::toUrl($values['favicon'] ?? null) ?: $logo;
         $tagline = filled($values['organisation_division'] ?? null)
             ? $values['organisation_division']
-            : ($definitions->get('organisation_division')['default'] ?? 'Healthcare SaaS');
+            : ($definitions->get('organisation_division')['default'] ?? 'Healthcare Operations, Simplified');
 
         return [
             'name' => $name,
