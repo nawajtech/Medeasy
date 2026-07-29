@@ -455,6 +455,12 @@
   font-size: 0.875rem;
 }
 
+.crud-inline-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .crud-checkbox input {
   width: auto;
 }
