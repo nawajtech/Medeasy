@@ -72,6 +72,30 @@
   gap: 16px;
 }
 
+.crud-search-input {
+  min-width: 240px;
+  padding: 8px 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--me-surface);
+  color: var(--me-text);
+  transition:
+    border-color var(--me-transition),
+    box-shadow var(--me-transition);
+}
+
+.crud-search-input::placeholder {
+  color: var(--me-placeholder);
+}
+
+.crud-search-input:focus {
+  outline: none;
+  border-color: var(--me-primary);
+  box-shadow: 0 0 0 3px var(--me-primary-ring);
+}
+
 /* ── branch pills and counts ── */
 .branch-count-badge {
   display: inline-block;
