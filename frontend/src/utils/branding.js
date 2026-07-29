@@ -2,7 +2,7 @@ import { resolveMediaUrl } from "./mediaUrl";
 
 const DEFAULT_FAVICON = "/favicon.svg";
 const DEFAULT_BRAND_NAME = "ApnaMedi";
-const DEFAULT_TAGLINE = "Healthcare SaaS";
+const DEFAULT_TAGLINE = "Healthcare Operations, Simplified";
 const FAVICON_LINK_ID = "app-dynamic-favicon";
 
 export function getBranding(user) {

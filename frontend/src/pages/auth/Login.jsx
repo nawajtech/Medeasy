@@ -17,7 +17,7 @@ function Login() {
   const [brand, setBrand] = useState({
     name: "ApnaMedi",
     logo: null,
-    tagline: "Healthcare SaaS — sign in to your account",
+    tagline: "Healthcare Operations, Simplified — sign in to your account",
   });
 
   useEffect(() => {
@@ -30,7 +30,7 @@ function Login() {
           logo: data.logo || null,
           tagline: data.tagline
             ? `${data.tagline} — sign in to your account`
-            : "Healthcare SaaS — sign in to your account",
+            : "Healthcare Operations, Simplified — sign in to your account",
         };
         setBrand(next);
         applyDocumentBranding({ name: next.name, favicon: data.favicon || data.logo });

@@ -78,8 +78,8 @@ class PlatformSettingDefinitions
                 'label' => 'Tagline',
                 'group' => 'general',
                 'type' => 'text',
-                'default' => 'Healthcare SaaS',
-                'placeholder' => 'e.g. Healthcare Management, Made Easy',
+                'default' => 'Healthcare Operations, Simplified',
+                'placeholder' => 'e.g. Healthcare Operations, Simplified',
             ],
         ];
     }
