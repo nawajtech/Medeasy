@@ -146,7 +146,9 @@ function DiagnosticOrders() {
   const [packages, setPackages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [ordersTab, setOrdersTab] = useState("pending");
   const [statusFilter, setStatusFilter] = useState("");
+  const [paymentFilter, setPaymentFilter] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
@@ -314,11 +316,14 @@ function DiagnosticOrders() {
     setError("");
     try {
       const { data } = await getDiagnosticOrders({
-        status: statusFilter || undefined,
+        status: ordersTab === "completed" ? "completed" : statusFilter || undefined,
+        status_not: ordersTab === "pending" && !statusFilter ? "completed" : undefined,
+        payment_status: paymentFilter || undefined,
         category_id: categoryFilter || undefined,
         date_from: dateFrom || undefined,
         date_to: dateTo || undefined,
         branch_id: branchFilter || undefined,
+        per_page: 100,
       });
       setOrders(data.data);
     } catch (err) {
@@ -326,7 +331,7 @@ function DiagnosticOrders() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, categoryFilter, dateFrom, dateTo, branchFilter]);
+  }, [ordersTab, statusFilter, paymentFilter, categoryFilter, dateFrom, dateTo, branchFilter]);
 
   useEffect(() => {
     loadOrders();
@@ -675,7 +680,16 @@ function DiagnosticOrders() {
 
   const walletBalance = (order) => Number(order?.patient?.wallet?.balance ?? 0);
 
-  const formatDate = (iso) => (iso ? new Date(iso).toLocaleDateString("en-IN") : "—");
+  const formatDateTime = (iso) =>
+    iso
+      ? new Date(iso).toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : null;
 
   return (
     <section className="page-card dgn-page">
@@ -686,11 +700,35 @@ function DiagnosticOrders() {
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
 
+      <div className="crud-inline-tabs dgn-order-tabs">
+        <button
+          type="button"
+          className={`crud-btn crud-btn--sm ${ordersTab === "pending" ? "dgn-tab--pending" : "crud-btn--ghost"}`}
+          onClick={() => { setOrdersTab("pending"); setStatusFilter(""); }}
+        >
+          Pending / Ongoing
+        </button>
+        <button
+          type="button"
+          className={`crud-btn crud-btn--sm ${ordersTab === "completed" ? "dgn-tab--success" : "crud-btn--ghost"}`}
+          onClick={() => { setOrdersTab("completed"); setStatusFilter(""); }}
+        >
+          Completed
+        </button>
+      </div>
+
       <div className="crud-toolbar lab-orders-toolbar">
         <div className="lab-orders-filters">
-          <select className="crud-btn crud-btn--ghost" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All statuses</option>
-            {Object.entries(STATUS_META).map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
+          {ordersTab === "pending" && (
+            <select className="crud-btn crud-btn--ghost" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+              <option value="">All statuses</option>
+              {Object.entries(STATUS_META).filter(([v]) => v !== "completed").map(([v, m]) => <option key={v} value={v}>{m.label}</option>)}
+            </select>
+          )}
+          <select className="crud-btn crud-btn--ghost" value={paymentFilter} onChange={(e) => setPaymentFilter(e.target.value)}>
+            <option value="">All payments</option>
+            <option value="paid">Paid</option>
+            <option value="unpaid">Unpaid</option>
           </select>
           <select className="crud-btn crud-btn--ghost" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
             <option value="">All categories</option>
@@ -709,7 +747,7 @@ function DiagnosticOrders() {
       <div className="crud-table-wrap">
         <table className="crud-table">
           <thead>
-            <tr><th>Order #</th><th>Patient</th><th>Test</th><th>Payable</th><th>Paid</th><th>Due</th><th>Payment</th><th>Status</th><th>Actions</th></tr>
+            <tr><th>Order #</th><th>Patient</th><th>Test</th><th>Payable</th><th>Paid</th><th>Due</th><th>Payment</th><th>Status / Schedule</th><th>Actions</th></tr>
           </thead>
           <tbody>
             {!loading && orders.length === 0 && (
@@ -729,7 +767,14 @@ function DiagnosticOrders() {
                 <td>{money(order.paid_amount)}</td>
                 <td className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(order.due_amount)}</td>
                 <td><PaymentBadge status={order.payment_status} refundedTotal={order.refunded_total} /></td>
-                <td><StatusBadge status={order.status} /></td>
+                <td>
+                  <StatusBadge status={order.status} />
+                  <div className="dgn-schedule-date">
+                    {order.scheduled_at
+                      ? formatDateTime(order.scheduled_at)
+                      : `Booked ${formatDateTime(order.created_at)}`}
+                  </div>
+                </td>
                 <td>
                   <div className="crud-actions">
                     <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => openDetail(order)}>View</button>
@@ -1134,6 +1179,10 @@ function DiagnosticOrders() {
                 <div><dt>Package</dt><dd>{detailOrder.package?.package_name || `#${detailOrder.package_id}`}</dd></div>
               )}
               <div><dt>Status</dt><dd><StatusBadge status={detailOrder.status} /></dd></div>
+              <div>
+                <dt>{detailOrder.scheduled_at ? "Scheduled for" : "Booked on"}</dt>
+                <dd>{formatDateTime(detailOrder.scheduled_at || detailOrder.created_at) || "—"}</dd>
+              </div>
               {detailOrder.referral_partner_name && (
                 <>
                   <div><dt>Referral by</dt><dd>{detailOrder.referral_partner_name} ({detailOrder.referral_partner_type})</dd></div>
