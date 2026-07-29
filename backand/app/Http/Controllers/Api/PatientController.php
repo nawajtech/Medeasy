@@ -34,6 +34,19 @@ class PatientController extends Controller
             $query->where('company_id', (int) $request->company_id);
         }
 
+        if ($request->filled('search')) {
+            $term = '%'.mb_strtolower(trim((string) $request->input('search'))).'%';
+            $query->where(function ($q) use ($term) {
+                $q->whereRaw('LOWER(name) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(phone) LIKE ?', [$term])
+                    ->orWhereRaw('LOWER(patient_code) LIKE ?', [$term]);
+            });
+        }
+
+        if ($request->filled('limit')) {
+            $query->limit((int) $request->input('limit'));
+        }
+
         return response()->json($query->get());
     }
 

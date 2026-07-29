@@ -1,12 +1,16 @@
-import { useEffect, useRef, useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { useNotifications } from "../notifications/NotificationContext";
+import { getPatients } from "../api/patients";
+import { getDoctors } from "../api/doctors";
 import "./Header.css";
 import "./NotificationToast.css";
 import { IconSearch, IconBell, IconChevronRight } from "./icons";
 import ProfileMenu from "./ProfileMenu";
 import { getRouteMeta } from "../routeConfig";
+
+const SEARCH_RESULT_LIMIT = 5;
 
 function formatTime(iso) {
   return new Date(iso).toLocaleString([], {
@@ -19,6 +23,7 @@ function formatTime(iso) {
 
 function Header() {
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const meta = getRouteMeta(pathname);
   const { user, branding } = useAuth();
   const {
@@ -36,6 +41,139 @@ function Header() {
   const [panelOpen, setPanelOpen] = useState(false);
   const [loadingList, setLoadingList] = useState(false);
   const panelRef = useRef(null);
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [searchResults, setSearchResults] = useState({ patients: [], doctors: [] });
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const searchDebounceRef = useRef(null);
+  const searchRequestIdRef = useRef(0);
+
+  const runGlobalSearch = useCallback(async (term) => {
+    const requestId = ++searchRequestIdRef.current;
+    setSearchLoading(true);
+    try {
+      const [patientsRes, doctorsRes] = await Promise.all([
+        getPatients({ search: term, limit: SEARCH_RESULT_LIMIT }),
+        getDoctors({ search: term, limit: SEARCH_RESULT_LIMIT }),
+      ]);
+      if (requestId !== searchRequestIdRef.current) return;
+      setSearchResults({
+        patients: patientsRes.data || [],
+        doctors: doctorsRes.data || [],
+      });
+    } catch (error) {
+      if (requestId !== searchRequestIdRef.current) return;
+      console.error("[GlobalSearch] Failed to search:", error);
+      setSearchResults({ patients: [], doctors: [] });
+    } finally {
+      if (requestId === searchRequestIdRef.current) {
+        setSearchLoading(false);
+      }
+    }
+  }, []);
+
+  const handleSearchChange = (e) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setSearchOpen(true);
+
+    if (searchDebounceRef.current) {
+      clearTimeout(searchDebounceRef.current);
+    }
+
+    const term = value.trim();
+    if (term.length < 2) {
+      searchRequestIdRef.current += 1;
+      setSearchLoading(false);
+      setSearchResults({ patients: [], doctors: [] });
+      return;
+    }
+
+    searchDebounceRef.current = setTimeout(() => runGlobalSearch(term), 300);
+  };
+
+  const goToPatients = useCallback(
+    (term) => {
+      navigate(`/patients?q=${encodeURIComponent(term)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+      setSearchResults({ patients: [], doctors: [] });
+    },
+    [navigate]
+  );
+
+  const goToDoctors = useCallback(
+    (term) => {
+      navigate(`/doctors?q=${encodeURIComponent(term)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+      setSearchResults({ patients: [], doctors: [] });
+    },
+    [navigate]
+  );
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === "Escape") {
+      setSearchOpen(false);
+      searchInputRef.current?.blur();
+      return;
+    }
+    if (e.key === "Enter") {
+      const term = searchQuery.trim();
+      if (!term) return;
+      if (searchResults.patients.length > 0) {
+        goToPatients(term);
+      } else if (searchResults.doctors.length > 0) {
+        goToDoctors(term);
+      } else {
+        goToPatients(term);
+      }
+    }
+  };
+
+  useEffect(() => {
+    function handleGlobalKeydown(event) {
+      if (event.key !== "/" || searchOpen) return;
+      const active = document.activeElement;
+      const isTyping =
+        active &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA" || active.isContentEditable);
+      if (isTyping) return;
+      event.preventDefault();
+      searchInputRef.current?.focus();
+    }
+
+    document.addEventListener("keydown", handleGlobalKeydown);
+    return () => document.removeEventListener("keydown", handleGlobalKeydown);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    function handleClickOutsideSearch(event) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        setSearchOpen(false);
+      }
+    }
+
+    if (searchOpen) {
+      document.addEventListener("mousedown", handleClickOutsideSearch);
+    }
+
+    return () => document.removeEventListener("mousedown", handleClickOutsideSearch);
+  }, [searchOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
+    };
+  }, []);
+
+  const trimmedQuery = searchQuery.trim();
+  const hasSearchResults = searchResults.patients.length > 0 || searchResults.doctors.length > 0;
 
   useEffect(() => {
     if (!panelOpen) {
@@ -85,15 +223,96 @@ function Header() {
       </div>
 
       <div className="header-right">
-        <label className="search-field">
-          <span className="search-icon">
-            <IconSearch />
-          </span>
-          <input type="search" placeholder="Search patients, doctors..." aria-label="Search" />
-          <kbd className="search-shortcut" aria-hidden="true">
-            /
-          </kbd>
-        </label>
+        <div className="search-field-wrap" ref={searchRef}>
+          <label className="search-field">
+            <span className="search-icon">
+              <IconSearch />
+            </span>
+            <input
+              ref={searchInputRef}
+              type="search"
+              placeholder="Search patients, doctors..."
+              aria-label="Search patients or doctors by name or mobile number"
+              value={searchQuery}
+              onChange={handleSearchChange}
+              onFocus={() => setSearchOpen(true)}
+              onKeyDown={handleSearchKeyDown}
+            />
+            {!searchQuery && (
+              <kbd className="search-shortcut" aria-hidden="true">
+                /
+              </kbd>
+            )}
+          </label>
+
+          {searchOpen && trimmedQuery.length >= 2 ? (
+            <div className="global-search-panel">
+              {searchLoading ? (
+                <p className="global-search-empty">Searching…</p>
+              ) : !hasSearchResults ? (
+                <p className="global-search-empty">
+                  No patients or doctors matched &ldquo;{trimmedQuery}&rdquo;.
+                </p>
+              ) : (
+                <>
+                  {searchResults.patients.length > 0 && (
+                    <div className="global-search-section">
+                      <div className="global-search-section-title">Patients</div>
+                      {searchResults.patients.map((patient) => (
+                        <button
+                          type="button"
+                          key={`patient-${patient.id}`}
+                          className="global-search-result"
+                          onClick={() => goToPatients(trimmedQuery)}
+                        >
+                          <span className="global-search-result-name">{patient.name}</span>
+                          <span className="global-search-result-meta">
+                            {patient.phone || "—"}
+                            {patient.patient_code ? ` · ${patient.patient_code}` : ""}
+                          </span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="global-search-viewall"
+                        onClick={() => goToPatients(trimmedQuery)}
+                      >
+                        View all patients matching &ldquo;{trimmedQuery}&rdquo;
+                      </button>
+                    </div>
+                  )}
+
+                  {searchResults.doctors.length > 0 && (
+                    <div className="global-search-section">
+                      <div className="global-search-section-title">Doctors</div>
+                      {searchResults.doctors.map((doctor) => (
+                        <button
+                          type="button"
+                          key={`doctor-${doctor.id}`}
+                          className="global-search-result"
+                          onClick={() => goToDoctors(trimmedQuery)}
+                        >
+                          <span className="global-search-result-name">{doctor.user?.name}</span>
+                          <span className="global-search-result-meta">
+                            {doctor.user?.phone || "—"}
+                            {doctor.department?.name ? ` · ${doctor.department.name}` : ""}
+                          </span>
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        className="global-search-viewall"
+                        onClick={() => goToDoctors(trimmedQuery)}
+                      >
+                        View all doctors matching &ldquo;{trimmedQuery}&rdquo;
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : null}
+        </div>
 
         <div className="notification-btn-wrap" ref={panelRef}>
           <button
