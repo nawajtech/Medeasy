@@ -5,6 +5,7 @@ import { getPlatformBranding } from "../../api/platformSettings";
 import { getHomePath } from "../../config/permissions";
 import { applyDocumentBranding } from "../../utils/branding";
 import { getApiErrorMessage } from "../../utils/apiError";
+import { IconHeartPulse, IconLock, IconUser } from "../../components/icons";
 import "./Login.css";
 
 function Login() {
@@ -17,7 +18,7 @@ function Login() {
   const [brand, setBrand] = useState({
     name: "ApnaMedi",
     logo: null,
-    tagline: "Healthcare Operations, Simplified — sign in to your account",
+    tagline: "Healthcare Operations, Simplified",
   });
 
   useEffect(() => {
@@ -28,9 +29,7 @@ function Login() {
         const next = {
           name: data.name || "ApnaMedi",
           logo: data.logo || null,
-          tagline: data.tagline
-            ? `${data.tagline} — sign in to your account`
-            : "Healthcare Operations, Simplified — sign in to your account",
+          tagline: data.tagline || "Healthcare Operations, Simplified",
         };
         setBrand(next);
         applyDocumentBranding({ name: next.name, favicon: data.favicon || data.logo });
@@ -44,8 +43,12 @@ function Login() {
   if (authLoading) {
     return (
       <div className="login-page">
-        <div className="login-card">
-          <p>Restoring session…</p>
+        <div className="login-backdrop" aria-hidden="true" />
+        <div className="login-shell">
+          <div className="login-card login-card--loading">
+            <div className="login-spinner" aria-hidden="true" />
+            <p>Restoring session…</p>
+          </div>
         </div>
       </div>
     );
@@ -71,42 +74,72 @@ function Login() {
 
   return (
     <div className="login-page">
-      <div className="login-card">
-        {brand.logo ? (
-          <div className="login-brand-logo">
-            <img src={brand.logo} alt={brand.name} />
+      <div className="login-backdrop" aria-hidden="true" />
+
+      <div className="login-shell">
+        <div className="login-card">
+          <div className="login-brand">
+            {brand.logo ? (
+              <div className="login-brand-logo">
+                <img src={brand.logo} alt="" />
+              </div>
+            ) : (
+              <div className="login-brand-mark" aria-hidden="true">
+                <IconHeartPulse size={28} />
+              </div>
+            )}
+            <h1 className="login-brand-name">{brand.name}</h1>
+            <p className="login-brand-tagline">{brand.tagline}</p>
           </div>
-        ) : null}
-        <h1>{brand.name}</h1>
-        <p>{brand.tagline}</p>
-        {error && <div className="login-error">{error}</div>}
-        <form onSubmit={handleSubmit}>
-          <label>
-            Email
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              required
-              autoComplete="username"
-            />
-          </label>
-          <label>
-            Password
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Enter your password"
-              required
-              autoComplete="current-password"
-            />
-          </label>
-          <button type="submit" disabled={loading}>
-            {loading ? "Signing in…" : "Sign in"}
-          </button>
-        </form>
+
+          <div className="login-divider">
+            <span>Sign in to continue</span>
+          </div>
+
+          {error ? <div className="login-error" role="alert">{error}</div> : null}
+
+          <form className="login-form" onSubmit={handleSubmit}>
+            <label className="login-field">
+              <span className="login-field-label">Email</span>
+              <span className="login-input-wrap">
+                <span className="login-input-icon" aria-hidden="true">
+                  <IconUser size={18} />
+                </span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@clinic.com"
+                  required
+                  autoComplete="username"
+                />
+              </span>
+            </label>
+
+            <label className="login-field">
+              <span className="login-field-label">Password</span>
+              <span className="login-input-wrap">
+                <span className="login-input-icon" aria-hidden="true">
+                  <IconLock size={18} />
+                </span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                  autoComplete="current-password"
+                />
+              </span>
+            </label>
+
+            <button type="submit" className="login-submit" disabled={loading}>
+              {loading ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
+        </div>
+
+        <p className="login-footer">Secure clinic access · {brand.name}</p>
       </div>
     </div>
   );

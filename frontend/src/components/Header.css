@@ -16,6 +16,25 @@
 
 .header-left {
   min-width: 0;
+  flex: 1;
+}
+
+.header-title-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--me-space-3);
+  min-width: 0;
+}
+
+.header-titles {
+  min-width: 0;
+  flex: 1;
+}
+
+.header-menu-btn {
+  display: none;
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .breadcrumb {
@@ -26,6 +45,13 @@
   font-size: var(--me-text-xs);
   font-weight: 500;
   color: var(--me-text-muted);
+  min-width: 0;
+}
+
+.breadcrumb span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .breadcrumb-current {
@@ -76,8 +102,9 @@
   top: calc(100% + 8px);
   left: 0;
   right: 0;
-  min-width: 320px;
-  max-height: 420px;
+  min-width: 280px;
+  max-width: min(420px, calc(100vw - 24px));
+  max-height: min(420px, 60vh);
   overflow-y: auto;
   background: var(--me-surface);
   border: 1px solid var(--me-border);
@@ -345,37 +372,104 @@
   color: var(--me-text-secondary);
 }
 
+@media (max-width: 1024px) {
+  .header-menu-btn {
+    display: inline-flex;
+  }
+}
+
 @media (max-width: 900px) {
   .top-header {
-    flex-direction: column;
-    align-items: stretch;
-    padding: var(--me-space-4) var(--me-space-5);
+    flex-wrap: wrap;
+    align-items: center;
+    padding: var(--me-space-3) var(--me-space-4);
+    gap: var(--me-space-3);
+  }
+
+  .header-left {
+    flex: 1 1 auto;
+    min-width: 0;
   }
 
   .header-right {
-    flex-wrap: wrap;
+    flex: 1 1 100%;
+    gap: var(--me-space-2);
+  }
+
+  .search-field-wrap {
+    flex: 1;
+    min-width: 0;
   }
 
   .search-field {
-    flex: 1;
-    min-width: 200px;
+    width: 100%;
   }
 
   .search-field input {
     width: 100%;
   }
 
+  .global-search-panel {
+    left: 0;
+    right: auto;
+    width: min(100vw - 24px, 420px);
+    min-width: 0;
+  }
+
+  .header-greeting p {
+    display: none;
+  }
+
   .profile-meta {
+    display: none;
+  }
+
+  .profile {
+    padding: var(--me-space-1);
+  }
+
+  .profile-chevron {
     display: none;
   }
 }
 
 @media (max-width: 560px) {
+  .top-header {
+    padding: var(--me-space-3);
+  }
+
+  .header-greeting h1 {
+    font-size: 1.0625rem;
+  }
+
+  .breadcrumb {
+    display: none;
+  }
+
   .search-shortcut {
     display: none;
   }
 
   .header-divider {
     display: none;
+  }
+
+  .icon-btn,
+  .header-menu-btn {
+    width: 40px;
+    height: 40px;
+  }
+
+  .search-field input {
+    height: 40px;
+    font-size: 0.8125rem;
+  }
+
+  .global-search-panel {
+    left: 0;
+    right: 0;
+    width: auto;
+    min-width: 0;
+    max-width: none;
   }
 }
