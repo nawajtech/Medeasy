@@ -6,7 +6,7 @@ import { getPatients } from "../api/patients";
 import { getDoctors } from "../api/doctors";
 import "./Header.css";
 import "./NotificationToast.css";
-import { IconSearch, IconBell, IconChevronRight } from "./icons";
+import { IconSearch, IconBell, IconChevronRight, IconMenu, IconX } from "./icons";
 import ProfileMenu from "./ProfileMenu";
 import { getRouteMeta } from "../routeConfig";
 
@@ -21,7 +21,7 @@ function formatTime(iso) {
   });
 }
 
-function Header() {
+function Header({ onMenuClick, navOpen = false }) {
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const meta = getRouteMeta(pathname);
@@ -203,22 +203,39 @@ function Header() {
   return (
     <header className="top-header">
       <div className="header-left">
-        <nav className="breadcrumb" aria-label="Breadcrumb">
-          <span>{branding?.name || "ApnaMedi"}</span>
-          <IconChevronRight />
-          <span className="breadcrumb-current">{meta.breadcrumb}</span>
-        </nav>
-        <div className="header-greeting">
-          <h1>{meta.title}</h1>
-          <p>
-            {pathname === "/" ? (
-              <>
-                Welcome back, <strong>{user?.name || "User"}</strong> — here&apos;s your clinic overview.
-              </>
-            ) : (
-              meta.description
-            )}
-          </p>
+        <div className="header-title-row">
+          {typeof onMenuClick === "function" ? (
+            <button
+              type="button"
+              className="icon-btn header-menu-btn"
+              aria-label={navOpen ? "Close navigation" : "Open navigation"}
+              aria-expanded={navOpen}
+              aria-controls="main-navigation"
+              onClick={onMenuClick}
+            >
+              {navOpen ? <IconX /> : <IconMenu />}
+            </button>
+          ) : null}
+
+          <div className="header-titles">
+            <nav className="breadcrumb" aria-label="Breadcrumb">
+              <span>{branding?.name || "ApnaMedi"}</span>
+              <IconChevronRight />
+              <span className="breadcrumb-current">{meta.breadcrumb}</span>
+            </nav>
+            <div className="header-greeting">
+              <h1>{meta.title}</h1>
+              <p>
+                {pathname === "/" ? (
+                  <>
+                    Welcome back, <strong>{user?.name || "User"}</strong> — here&apos;s your clinic overview.
+                  </>
+                ) : (
+                  meta.description
+                )}
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 

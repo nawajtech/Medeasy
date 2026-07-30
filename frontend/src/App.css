@@ -5,8 +5,18 @@
   border: 1px solid var(--me-border);
   border-radius: var(--me-radius-lg);
   box-shadow: var(--me-shadow-md);
+  max-width: 100%;
+  min-width: 0;
 }
 
 .welcome-card h1 {
   margin-bottom: 8px;
+}
+
+@media (max-width: 640px) {
+  .page-card,
+  .welcome-card {
+    padding: 16px;
+    border-radius: var(--me-radius-md);
+  }
 }
