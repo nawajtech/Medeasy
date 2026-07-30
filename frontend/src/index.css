@@ -13,6 +13,7 @@ html {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   scroll-behavior: smooth;
+  overflow-x: clip;
 }
 
 body {
@@ -22,11 +23,14 @@ body {
   line-height: 1.5;
   color: var(--me-text);
   background: var(--me-canvas);
+  overflow-x: clip;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 a {

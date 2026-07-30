@@ -119,3 +119,30 @@
   color: #0f766e;
   text-decoration: underline;
 }
+
+@media (max-width: 640px) {
+  .patients-table-wrap {
+    -webkit-overflow-scrolling: touch;
+    margin-inline: -4px;
+  }
+
+  .patients-toolbar-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .company-select-inline {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .company-select-inline select {
+    min-width: 0;
+    flex: 1;
+  }
+
+  .patients-actions {
+    flex-wrap: wrap;
+  }
+}

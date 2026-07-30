@@ -243,3 +243,14 @@
   color: var(--me-text-muted);
   line-height: 1.3;
 }
+
+@media (max-width: 640px) {
+  .appointments-table-wrap {
+    -webkit-overflow-scrolling: touch;
+    margin-inline: -4px;
+  }
+
+  .crud-actions--stack {
+    max-width: none;
+  }
+}

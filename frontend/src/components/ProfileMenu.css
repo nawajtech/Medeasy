@@ -125,5 +125,17 @@
   .profile-dropdown {
     right: 0;
     left: auto;
+    min-width: min(240px, calc(100vw - 24px));
+  }
+}
+
+@media (max-width: 560px) {
+  .profile-dropdown {
+    position: fixed;
+    top: auto;
+    right: 12px;
+    left: 12px;
+    min-width: 0;
+    width: auto;
   }
 }

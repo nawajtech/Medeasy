@@ -21,6 +21,7 @@ import {
   IconReferral,
   IconLayers,
   IconPalette,
+  IconX,
 } from "./icons";
 
 const iconMap = {
@@ -63,31 +64,46 @@ const sectionIconMap = {
   admin: IconSettings,
 };
 
-function Sidebar() {
+function Sidebar({ open = false, onClose }) {
   const { user, branding } = useAuth();
   const items = filterMenuByPermissions(user?.permissions, user?.role, user?.company?.modules);
   const groups = groupMenuItems(items);
 
   return (
-    <aside className="sidebar" aria-label="Main navigation">
+    <aside
+      id="main-navigation"
+      className={`sidebar${open ? " is-open" : ""}`}
+      aria-label="Main navigation"
+    >
       <div className="sidebar-inner">
-        <Link to="/" className="brand">
-          <div className={`brand-icon${branding.logo ? " brand-icon--image" : ""}`}>
-            {branding.logo ? (
-              <img src={branding.logo} alt="" className="brand-logo" />
-            ) : (
-              <IconHeartPulse size={22} />
-            )}
-          </div>
-          <div className="brand-text">
-            <span className="brand-name">{branding.name || "ApnaMedi"}</span>
-            <span className="brand-tagline">
-              {user?.company?.name && branding.name !== user.company.name
-                ? user.company.name
-                : branding.tagline || "Healthcare Operations, Simplified"}
-            </span>
-          </div>
-        </Link>
+        <div className="sidebar-brand-row">
+          <Link to="/" className="brand" onClick={onClose}>
+            <div className={`brand-icon${branding.logo ? " brand-icon--image" : ""}`}>
+              {branding.logo ? (
+                <img src={branding.logo} alt="" className="brand-logo" />
+              ) : (
+                <IconHeartPulse size={22} />
+              )}
+            </div>
+            <div className="brand-text">
+              <span className="brand-name">{branding.name || "ApnaMedi"}</span>
+              <span className="brand-tagline">
+                {user?.company?.name && branding.name !== user.company.name
+                  ? user.company.name
+                  : branding.tagline || "Healthcare Operations, Simplified"}
+              </span>
+            </div>
+          </Link>
+
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            aria-label="Close navigation"
+            onClick={onClose}
+          >
+            <IconX size={18} />
+          </button>
+        </div>
 
         <nav className="menu">
           {groups.map((group) => {
@@ -117,6 +133,7 @@ function Sidebar() {
                           to={item.to}
                           end={item.end}
                           className={({ isActive }) => (isActive ? "active" : undefined)}
+                          onClick={onClose}
                         >
                           <span className="menu-icon"><Icon size={20} /></span>
                           <span className="menu-text">{item.label}</span>
