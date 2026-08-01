@@ -16,6 +16,7 @@ import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 import "./Patients.css";
 
 const emptyForm = {
@@ -183,6 +184,16 @@ function Patients() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const phoneMsg = phoneError(form.phone);
+    const mailMsg = emailError(form.email, { required: false });
+    const emergencyMsg = phoneError(form.emergency_contact_phone, {
+      required: false,
+      label: "Emergency contact phone",
+    });
+    if (phoneMsg || mailMsg || emergencyMsg) {
+      setError([phoneMsg, mailMsg, emergencyMsg].filter(Boolean).join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {

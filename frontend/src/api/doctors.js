@@ -7,10 +7,13 @@ export const createDoctor = (data) => api.post("/doctors", data);
 export const updateDoctor = (id, data) => api.put(`/doctors/${id}`, data);
 export const deleteDoctor = (id) => api.delete(`/doctors/${id}`);
 
-export const importDoctors = (file, companyId) =>
-  api.post("/doctors/import", buildImportFormData(file, companyId), {
+export const importDoctors = (file, companyId, doctorType) => {
+  const formData = buildImportFormData(file, companyId);
+  if (doctorType) formData.append("doctor_type", doctorType);
+  return api.post("/doctors/import", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+};
 
 export const exportDoctors = (params) => downloadSpreadsheetExport("/doctors/export", params);
 

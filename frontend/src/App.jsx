@@ -71,9 +71,11 @@ function App() {
                 <Route path="settings" element={<Settings />} />
                 <Route path="appearance" element={<ThemeSettings />} />
                 {/* Lab module */}
+                <Route path="lab/doctors" element={<Doctors />} />
                 <Route path="lab/tests" element={<LabTests />} />
                 <Route path="lab/orders" element={<LabOrders />} />
                 {/* Diagnostics module */}
+                <Route path="diagnostics/doctors" element={<Doctors />} />
                 <Route path="diagnostics" element={<DiagnosticCatalog />} />
                 <Route path="diagnostics/orders" element={<DiagnosticOrders />} />
                 <Route path="diagnostics/referrals" element={<ReferralPartners />} />

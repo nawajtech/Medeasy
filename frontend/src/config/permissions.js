@@ -48,7 +48,7 @@ export const PERMISSIONS = {
 export const MENU_SECTIONS = [
   { id: "overview", label: "Overview" },
   { id: "clinic", label: "Clinic", description: "Patients, appointments & prescriptions" },
-  { id: "directory", label: "Directory", description: "Departments, doctors & referrals" },
+  { id: "directory", label: "Directory", description: "Departments & referrals" },
   { id: "laboratory", label: "Laboratory", description: "Tests, catalog & orders" },
   { id: "diagnostics", label: "Diagnostics", description: "Imaging & diagnostic orders" },
   { id: "reports", label: "Reports & Finance", description: "Analytics, profit & loss" },
@@ -64,20 +64,22 @@ export const menuItems = [
   { to: "/appointments", label: "Appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, section: "clinic", tenantModule: "clinic" },
   { to: "/appointments", label: "My appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
   { to: "/patients", label: "My patients", permission: PERMISSIONS.PATIENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
+  { to: "/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "clinic", tenantModule: "clinic" },
   { to: "/my-schedule", label: "My schedule", permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
   { to: "/pharmacy/medicines", label: "Medicine Master", permission: PERMISSIONS.MEDICINE_VIEW, section: "clinic", tenantModule: "clinic" },
 
-  // Directory — departments, doctors & referral partners
+  // Directory — departments & referral partners
   { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "directory", tenantModule: ["clinic", "diagnostics"] },
-  { to: "/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "directory", tenantModule: ["clinic", "diagnostics"] },
   { to: "/diagnostics/referrals", label: "Referral By", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "directory", tenantModule: "diagnostics" },
 
   // Laboratory
+  { to: "/lab/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "laboratory", tenantModule: "laboratory" },
   { to: "/lab/tests", label: "Lab Catalog", permission: PERMISSIONS.LAB_VIEW, section: "laboratory", tenantModule: "laboratory" },
   { to: "/lab/orders", label: "Lab Orders", permission: PERMISSIONS.LAB_VIEW, section: "laboratory", tenantModule: "laboratory" },
 
   // Diagnostics
   { to: "/diagnostics/today", label: "Today's appointments", permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor", section: "diagnostics", tenantModule: "diagnostics" },
+  { to: "/diagnostics/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
   { to: "/diagnostics", label: "Diagnostic Catalog", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics", end: true },
   { to: "/diagnostics/orders", label: "Diagnostic Orders", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
 
@@ -187,6 +189,8 @@ const routeRules = [
   { pattern: /^\/my-schedule$/, permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor" },
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
   { pattern: /^\/doctors\/\d+\/availability$/, permission: PERMISSIONS.DOCTOR_VIEW },
+  { pattern: /^\/diagnostics\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },
+  { pattern: /^\/lab\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/roles\/\d+$/, permission: PERMISSIONS.ROLE_VIEW },
   { pattern: /^\/audit-trail$/, permission: PERMISSIONS.AUDIT_VIEW },
   { pattern: /^\/appearance$/, roleOnly: "super_admin" },

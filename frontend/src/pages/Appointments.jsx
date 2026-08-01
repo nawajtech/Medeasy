@@ -189,7 +189,7 @@ function Appointments() {
       const [apptRes, patientRes, doctorRes] = await Promise.all([
         getAppointments(params),
         getPatients(params),
-        getDoctors(params),
+        getDoctors({ ...params, doctor_type: "clinic" }),
       ]);
       setItems(apptRes.data);
       setPatients(patientRes.data);
@@ -1137,61 +1137,6 @@ function Appointments() {
               <label htmlFor="reason">Reason</label>
               <input id="reason" name="reason" value={form.reason} onChange={handleChange} placeholder="Enter reason" />
             </div>
-            <div className="crud-field crud-field--full">
-              <span className="crud-field-label">Prescription type</span>
-              <div className="prescription-type-options">
-                <label>
-                  <input
-                    type="radio"
-                    name="prescription_type"
-                    value="handwritten"
-                    checked={form.prescription_type === "handwritten"}
-                    onChange={handleChange}
-                  />
-                  Handwritten
-                </label>
-                <label>
-                  <input
-                    type="radio"
-                    name="prescription_type"
-                    value="upload"
-                    checked={form.prescription_type === "upload"}
-                    onChange={handleChange}
-                  />
-                  Upload file
-                </label>
-              </div>
-            </div>
-            {form.prescription_type === "handwritten" ? (
-              <div className="crud-field crud-field--full">
-                <label htmlFor="prescription">Handwritten prescription</label>
-                <textarea
-                  id="prescription"
-                  name="prescription"
-                  value={form.prescription}
-                  onChange={handleChange}
-                  placeholder="Enter medicines, dosage, and instructions…"
-                />
-              </div>
-            ) : (
-              <div className="crud-field crud-field--full">
-                <label htmlFor="prescription_file">Upload prescription (image or PDF)</label>
-                <input
-                  id="prescription_file"
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,application/pdf"
-                  onChange={(e) => setPrescriptionFile(e.target.files?.[0] || null)}
-                />
-                {existingPrescriptionFileUrl && !prescriptionFile && (
-                  <p className="field-hint">
-                    Current file:{" "}
-                    <a href={existingPrescriptionFileUrl} target="_blank" rel="noreferrer">
-                      View uploaded prescription
-                    </a>
-                  </p>
-                )}
-              </div>
-            )}
             <div className="crud-field crud-field--full">
               <label htmlFor="notes">Notes</label>
               <textarea id="notes" name="notes" value={form.notes} onChange={handleChange} placeholder="Enter notes…" />

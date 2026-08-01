@@ -14,6 +14,7 @@ import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 import "./Users.css";
 
 const emptyForm = {
@@ -130,6 +131,12 @@ function Users() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const phoneMsg = phoneError(form.phone, { required: false });
+    const mailMsg = emailError(form.email);
+    if (phoneMsg || mailMsg) {
+      setError([phoneMsg, mailMsg].filter(Boolean).join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     const payload = { ...form };
@@ -183,6 +190,7 @@ function Users() {
         <table className="crud-table">
           <thead>
             <tr>
+              <th>Code</th>
               <th>Name</th>
               <th>Email</th>
               <th>Role</th>
@@ -194,13 +202,14 @@ function Users() {
           <tbody>
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={6} className="crud-empty">
+                <td colSpan={7} className="crud-empty">
                   No users yet. Click &quot;Add user&quot; to create one.
                 </td>
               </tr>
             )}
             {items.map((user) => (
               <tr key={user.id}>
+                <td>{user.user_code || "—"}</td>
                 <td>
                   <div>{user.name}</div>
                   <div style={{ fontSize: "0.8rem", color: "var(--me-text-muted)" }}>{user.phone || ""}</div>

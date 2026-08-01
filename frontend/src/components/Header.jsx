@@ -4,6 +4,7 @@ import { useAuth } from "../auth/AuthContext";
 import { useNotifications } from "../notifications/NotificationContext";
 import { getPatients } from "../api/patients";
 import { getDoctors } from "../api/doctors";
+import { DOCTOR_TYPE_LABELS, doctorsPathForType } from "../config/doctorTypes";
 import "./Header.css";
 import "./NotificationToast.css";
 import { IconSearch, IconBell, IconChevronRight, IconMenu, IconX } from "./icons";
@@ -106,8 +107,8 @@ function Header({ onMenuClick, navOpen = false }) {
   );
 
   const goToDoctors = useCallback(
-    (term) => {
-      navigate(`/doctors?q=${encodeURIComponent(term)}`);
+    (term, doctorType = "clinic") => {
+      navigate(`${doctorsPathForType(doctorType)}?q=${encodeURIComponent(term)}`);
       setSearchOpen(false);
       setSearchQuery("");
       setSearchResults({ patients: [], doctors: [] });
@@ -127,7 +128,7 @@ function Header({ onMenuClick, navOpen = false }) {
       if (searchResults.patients.length > 0) {
         goToPatients(term);
       } else if (searchResults.doctors.length > 0) {
-        goToDoctors(term);
+        goToDoctors(term, searchResults.doctors[0]?.doctor_type);
       } else {
         goToPatients(term);
       }
@@ -307,11 +308,12 @@ function Header({ onMenuClick, navOpen = false }) {
                           type="button"
                           key={`doctor-${doctor.id}`}
                           className="global-search-result"
-                          onClick={() => goToDoctors(trimmedQuery)}
+                          onClick={() => goToDoctors(trimmedQuery, doctor.doctor_type)}
                         >
                           <span className="global-search-result-name">{doctor.user?.name}</span>
                           <span className="global-search-result-meta">
-                            {doctor.user?.phone || "—"}
+                            {DOCTOR_TYPE_LABELS[doctor.doctor_type] || "Clinic"}
+                            {doctor.user?.phone ? ` · ${doctor.user.phone}` : ""}
                             {doctor.department?.name ? ` · ${doctor.department.name}` : ""}
                           </span>
                         </button>
@@ -319,7 +321,7 @@ function Header({ onMenuClick, navOpen = false }) {
                       <button
                         type="button"
                         className="global-search-viewall"
-                        onClick={() => goToDoctors(trimmedQuery)}
+                        onClick={() => goToDoctors(trimmedQuery, searchResults.doctors[0]?.doctor_type)}
                       >
                         View all doctors matching &ldquo;{trimmedQuery}&rdquo;
                       </button>

@@ -205,7 +205,8 @@ function DiagnosticOrders() {
 
   const loadDoctors = useCallback(async (companyId = "") => {
     try {
-      const params = companyId ? { company_id: companyId } : {};
+      const params = { doctor_type: "diagnostic" };
+      if (companyId) params.company_id = companyId;
       const { data } = await getDoctors(params);
       setDoctors(data || []);
     } catch {
