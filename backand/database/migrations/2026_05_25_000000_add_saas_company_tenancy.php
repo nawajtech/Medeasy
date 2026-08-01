@@ -1,6 +1,5 @@
 <?php
 
-use App\Models\Company;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -21,29 +20,33 @@ return new class extends Migration
             });
         }
 
-        $defaultCompanyId = Company::query()->orderBy('id')->value('id');
+        // Use the query builder (not Eloquent) so model events like audit logging
+        // cannot abort this PostgreSQL transaction before audit_logs exists.
+        $defaultCompanyId = DB::table('companies')->orderBy('id')->value('id');
         if (! $defaultCompanyId) {
-            $defaultCompanyId = Company::create([
+            $defaultCompanyId = DB::table('companies')->insertGetId([
                 'name' => 'Default Clinic',
                 'code' => 'DEFAULT',
                 'is_active' => true,
-            ])->id;
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
         }
 
-        // foreach ($tables as $tableName) {
-        //     DB::table($tableName)->whereNull('company_id')->update(['company_id' => $defaultCompanyId]);
-        // }
+        foreach ($tables as $tableName) {
+            DB::table($tableName)->whereNull('company_id')->update(['company_id' => $defaultCompanyId]);
+        }
 
         DB::table('users')
             ->whereNull('company_id')
             ->where('role', '!=', 'super_admin')
             ->update(['company_id' => $defaultCompanyId]);
 
-        // foreach ($tables as $tableName) {
-        //     if (Schema::hasColumn($tableName, 'company_id')) {
-        //         DB::statement("ALTER TABLE {$tableName} ALTER COLUMN company_id SET NOT NULL");
-        //     }
-        // }
+        foreach ($tables as $tableName) {
+            if (Schema::hasColumn($tableName, 'company_id')) {
+                DB::statement("ALTER TABLE {$tableName} ALTER COLUMN company_id SET NOT NULL");
+            }
+        }
 
         $this->swapPatientUniques();
         $this->swapDoctorUniques();
@@ -57,11 +60,11 @@ return new class extends Migration
             $table->dropConstrainedForeignId('company_id');
         });
 
-        // foreach (['reports', 'settings', 'departments', 'billings', 'appointments', 'patients', 'doctors'] as $tableName) {
-        //     Schema::table($tableName, function (Blueprint $table) {
-        //         $table->dropConstrainedForeignId('company_id');
-        //     });
-        // }
+        foreach (['reports', 'settings', 'departments', 'billings', 'appointments', 'patients', 'doctors'] as $tableName) {
+            Schema::table($tableName, function (Blueprint $table) {
+                $table->dropConstrainedForeignId('company_id');
+            });
+        }
     }
 
     private function swapPatientUniques(): void
