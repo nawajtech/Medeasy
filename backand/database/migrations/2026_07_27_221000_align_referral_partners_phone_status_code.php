@@ -56,17 +56,15 @@ return new class extends Migration
             });
         }
 
-        try {
+        if (! $this->hasUniqueIndex('referral_partners', 'referral_partners_referral_code_unique')) {
             Schema::table('referral_partners', function (Blueprint $table) {
                 $table->unique('referral_code');
             });
-        } catch (\Throwable) {
-            // Unique index may already exist
         }
 
         $partners = DB::table('referral_partners')
             ->where(function ($q) {
-                $q->whereNull('referral_code')->orWhere('referral_code', '');
+                $q->whereNull('referral_code')->orWhere('referral_code', '=', '');
             })
             ->get();
 
@@ -129,5 +127,23 @@ return new class extends Migration
         $prefix = substr($slug, 0, 4) ?: 'REF';
 
         return $prefix.str_pad((string) random_int(1, 9999), 4, '0', STR_PAD_LEFT);
+    }
+
+    private function hasUniqueIndex(string $table, string $indexName): bool
+    {
+        $schema = DB::getDatabaseName();
+
+        if (Schema::getConnection()->getDriverName() === 'pgsql') {
+            return DB::table('pg_indexes')
+                ->where('tablename', $table)
+                ->where('indexname', $indexName)
+                ->exists();
+        }
+
+        return DB::table('information_schema.statistics')
+            ->where('table_schema', $schema)
+            ->where('table_name', $table)
+            ->where('index_name', $indexName)
+            ->exists();
     }
 };
