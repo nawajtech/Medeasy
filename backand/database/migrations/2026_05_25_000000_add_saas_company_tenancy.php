@@ -30,20 +30,20 @@ return new class extends Migration
             ])->id;
         }
 
-        foreach ($tables as $tableName) {
-            DB::table($tableName)->whereNull('company_id')->update(['company_id' => $defaultCompanyId]);
-        }
+        // foreach ($tables as $tableName) {
+        //     DB::table($tableName)->whereNull('company_id')->update(['company_id' => $defaultCompanyId]);
+        // }
 
         DB::table('users')
             ->whereNull('company_id')
             ->where('role', '!=', 'super_admin')
             ->update(['company_id' => $defaultCompanyId]);
 
-        foreach ($tables as $tableName) {
-            if (Schema::hasColumn($tableName, 'company_id')) {
-                DB::statement("ALTER TABLE {$tableName} ALTER COLUMN company_id SET NOT NULL");
-            }
-        }
+        // foreach ($tables as $tableName) {
+        //     if (Schema::hasColumn($tableName, 'company_id')) {
+        //         DB::statement("ALTER TABLE {$tableName} ALTER COLUMN company_id SET NOT NULL");
+        //     }
+        // }
 
         $this->swapPatientUniques();
         $this->swapDoctorUniques();
@@ -57,11 +57,11 @@ return new class extends Migration
             $table->dropConstrainedForeignId('company_id');
         });
 
-        foreach (['reports', 'settings', 'departments', 'billings', 'appointments', 'patients', 'doctors'] as $tableName) {
-            Schema::table($tableName, function (Blueprint $table) {
-                $table->dropConstrainedForeignId('company_id');
-            });
-        }
+        // foreach (['reports', 'settings', 'departments', 'billings', 'appointments', 'patients', 'doctors'] as $tableName) {
+        //     Schema::table($tableName, function (Blueprint $table) {
+        //         $table->dropConstrainedForeignId('company_id');
+        //     });
+        // }
     }
 
     private function swapPatientUniques(): void
