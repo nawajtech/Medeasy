@@ -9,7 +9,9 @@ use App\Models\Role;
 use App\Models\User;
 use App\Models\PlanLimit;
 use App\Services\SubscriptionService;
+use App\Services\UniqueCodeGenerator;
 use App\Services\UserRoleService;
+use App\Support\ContactRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
@@ -68,8 +70,13 @@ class UserController extends Controller
         );
 
         $user = User::create([
-            ...collect($validated)->except('role')->all(),
+            ...collect($validated)->except(['role', 'user_code'])->all(),
             'role' => $validated['role'],
+            'user_code' => app(UniqueCodeGenerator::class)->forUser(
+                (string) $validated['name'],
+                (string) $company->name,
+                $companyId
+            ),
             'company_id' => $companyId,
             'branch_id'  => $validated['branch_id'] ?? null,
             'status'     => $request->boolean('status', true),
@@ -105,7 +112,7 @@ class UserController extends Controller
         }
 
         $role = $validated['role'] ?? $user->role;
-        unset($validated['role']);
+        unset($validated['role'], $validated['user_code']);
         $previousRole = $user->role;
 
         $user->update($validated);
@@ -216,8 +223,8 @@ class UserController extends Controller
                 : ['prohibited'],
             'branch_id' => ['nullable', 'exists:branches,id'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
-            'phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($userId)],
+            'email' => [...ContactRules::email(), Rule::unique('users', 'email')->ignore($userId)],
+            'phone' => [...ContactRules::phone(required: false), Rule::unique('users', 'phone')->ignore($userId)],
             'password' => [$userId ? 'nullable' : 'required', 'string', 'min:8'],
             'role' => ['required', Rule::in($allowedRoles)],
             'status' => ['boolean'],

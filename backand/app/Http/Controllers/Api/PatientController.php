@@ -11,6 +11,8 @@ use App\Models\Appointment;
 use App\Models\PlanLimit;
 use App\Services\PatientWalletService;
 use App\Services\SubscriptionService;
+use App\Services\UniqueCodeGenerator;
+use App\Support\ContactRules;
 use App\Support\SpreadsheetIO;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -67,7 +69,8 @@ class PatientController extends Controller
         $patient = Patient::create([
             ...$validated,
             'company_id' => $companyId,
-            'patient_code' => $this->nextPatientCode($companyId),
+            'patient_code' => app(UniqueCodeGenerator::class)
+                ->forPatient((string) $validated['name'], (string) $company->name, $companyId),
             'password' => $validated['password'] ?? 'Password@123',
             'status' => $request->boolean('status', true),
         ]);
@@ -413,8 +416,8 @@ class PatientController extends Controller
             'medical_history' => ['medical_history', 'history'],
         ]);
 
-        if (! isset($columnMap['name'], $columnMap['email'], $columnMap['phone'])) {
-            return response()->json(['message' => 'Spreadsheet must include name, email, and phone columns.'], 422);
+        if (! isset($columnMap['name'], $columnMap['phone'])) {
+            return response()->json(['message' => 'Spreadsheet must include name and phone columns.'], 422);
         }
 
         $imported = 0;
@@ -436,15 +439,33 @@ class PatientController extends Controller
             $email = SpreadsheetIO::cell($row, $columnMap, 'email');
             $phone = SpreadsheetIO::cell($row, $columnMap, 'phone');
 
-            if ($name === '' || $email === '' || $phone === '') {
+            if ($name === '' || $phone === '') {
                 $skipped++;
                 if (count($errors) < 20) {
-                    $errors[] = "Line {$line}: name, email, and phone are required.";
+                    $errors[] = "Line {$line}: name and phone are required.";
                 }
                 continue;
             }
 
-            $existing = Patient::where('company_id', $companyId)->where('email', $email)->first();
+            if ($email !== '' && ! ContactRules::isValidEmail($email)) {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: invalid email format.";
+                }
+                continue;
+            }
+
+            if (! ContactRules::isValidPhone($phone)) {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: invalid phone format (10–15 digits).";
+                }
+                continue;
+            }
+
+            $existing = $email !== ''
+                ? Patient::where('company_id', $companyId)->where('email', $email)->first()
+                : null;
             $password = SpreadsheetIO::cell($row, $columnMap, 'password');
 
             if (! $existing) {
@@ -463,7 +484,7 @@ class PatientController extends Controller
 
             $payload = [
                 'name' => $name,
-                'email' => $email,
+                'email' => $email !== '' ? $email : null,
                 'phone' => $phone,
                 'status' => $this->parseStatus(SpreadsheetIO::cell($row, $columnMap, 'status'), true),
                 'gender' => $this->nullableValue(SpreadsheetIO::cell($row, $columnMap, 'gender'), ['male', 'female', 'other']),
@@ -495,7 +516,13 @@ class PatientController extends Controller
                     $patient = Patient::create([
                         ...$payload,
                         'company_id' => $companyId,
-                        'patient_code' => $patientCode !== '' ? $patientCode : $this->nextPatientCode($companyId),
+                        'patient_code' => $patientCode !== ''
+                            ? $patientCode
+                            : app(UniqueCodeGenerator::class)->forPatient(
+                                (string) ($payload['name'] ?? 'XX'),
+                                (string) $company->name,
+                                $companyId
+                            ),
                     ]);
                     $walletService->ensureWallet($patient);
                     $imported++;
@@ -582,15 +609,12 @@ class PatientController extends Controller
                 : ['prohibited'],
             'name' => ['required', 'string', 'max:255'],
             'email' => [
-                'nullable',
-                'email',
+                ...ContactRules::email(required: false),
                 Rule::unique('patients', 'email')->where('company_id', $companyId)->ignore($patientId),
             ],
             'password' => ['nullable', 'string', 'min:8'],
             'phone' => [
-                'required',
-                'string',
-                'max:20',
+                ...ContactRules::phone(),
                 Rule::unique('patients', 'phone')->where('company_id', $companyId)->ignore($patientId),
             ],
             'status' => ['boolean'],
@@ -603,7 +627,7 @@ class PatientController extends Controller
             'weight' => ['nullable', 'numeric', 'min:0'],
             'address' => ['required', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
-            'emergency_contact_phone' => ['nullable', 'string', 'max:20'],
+            'emergency_contact_phone' => ContactRules::phone(required: false),
             'allergies' => ['nullable', 'string'],
             'medical_history' => ['nullable', 'string'],
         ];
@@ -622,10 +646,4 @@ class PatientController extends Controller
         return $validated;
     }
 
-    private function nextPatientCode(int $companyId): string
-    {
-        $num = Patient::withTrashed()->where('company_id', $companyId)->count() + 1;
-
-        return 'PAT-'.str_pad((string) $num, 5, '0', STR_PAD_LEFT);
-    }
 }

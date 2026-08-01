@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\PublicStorageUrl;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -64,6 +65,19 @@ class Company extends Model
             'is_active' => 'boolean',
             'modules' => 'array',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::deleting(function (Company $company) {
+            $company->users()->update(['status' => false]);
+        });
+
+        static::updated(function (Company $company) {
+            if ($company->wasChanged('is_active') && ! $company->is_active) {
+                $company->users()->update(['status' => false]);
+            }
+        });
     }
 
     public static function normalizeModules(array $modules): array
@@ -131,6 +145,13 @@ class Company extends Model
     protected function typeLabel(): Attribute
     {
         return Attribute::get(fn (): string => $this->modules_label);
+    }
+
+    protected function logoUrl(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value) => PublicStorageUrl::toUrl($value) ?? $value,
+        );
     }
 
     public function users()

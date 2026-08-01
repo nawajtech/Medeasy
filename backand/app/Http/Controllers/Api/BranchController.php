@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Branch;
 use App\Models\PlanLimit;
 use App\Services\SubscriptionService;
+use App\Support\ContactRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -38,8 +39,8 @@ class BranchController extends Controller
             'code'       => ['nullable', 'string', 'max:20'],
             'address'    => ['nullable', 'string'],
             'city'       => ['nullable', 'string', 'max:80'],
-            'phone'      => ['nullable', 'string', 'max:30'],
-            'email'      => ['nullable', 'email'],
+            'phone'      => ContactRules::phone(required: false),
+            'email'      => ContactRules::email(required: false),
             'is_main'    => ['boolean'],
             'is_active'  => ['boolean'],
         ]);
@@ -67,8 +68,8 @@ class BranchController extends Controller
             'code'      => ['nullable', 'string', 'max:20'],
             'address'   => ['nullable', 'string'],
             'city'      => ['nullable', 'string', 'max:80'],
-            'phone'     => ['nullable', 'string', 'max:30'],
-            'email'     => ['nullable', 'email'],
+            'phone'     => ContactRules::phone(required: false),
+            'email'     => ContactRules::email(required: false),
             'is_main'   => ['boolean'],
             'is_active' => ['boolean'],
         ]);

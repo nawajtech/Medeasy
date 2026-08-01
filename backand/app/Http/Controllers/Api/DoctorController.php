@@ -10,7 +10,9 @@ use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\User;
 use App\Services\DoctorAvailabilityService;
+use App\Services\UniqueCodeGenerator;
 use App\Services\UserRoleService;
+use App\Support\ContactRules;
 use App\Support\SpreadsheetIO;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,6 +38,13 @@ class DoctorController extends Controller
 
         if ($request->filled('branch_id')) {
             $query->where('branch_id', (int) $request->branch_id);
+        }
+
+        if ($request->filled('doctor_type')) {
+            $type = $this->normalizeDoctorType($request->input('doctor_type'));
+            if ($type) {
+                $query->where('doctor_type', $type);
+            }
         }
 
         if ($request->filled('search')) {
@@ -64,17 +73,23 @@ class DoctorController extends Controller
 
         $companyId = $this->resolveCompanyId($request);
         $validated = $request->validate($this->rules(null, $companyId));
-        $validated = $this->applyConsultationFeeForCompany($validated, $companyId);
+        $doctorType = $validated['doctor_type'];
+        $validated = $this->applyConsultationFeeForCompany($validated, $companyId, $doctorType);
 
         $this->assertDepartmentInCompany($validated['department_id'], $companyId);
 
-        $doctor = DB::transaction(function () use ($validated, $request, $companyId) {
+        $doctor = DB::transaction(function () use ($validated, $request, $companyId, $doctorType) {
+            $company = Company::findOrFail($companyId);
+            $codes = app(UniqueCodeGenerator::class);
+            $personName = (string) $validated['name'];
+
             $user = User::create([
                 'name' => $validated['name'],
                 'email' => $validated['email'],
                 'password' => $validated['password'],
                 'phone' => $validated['phone'] ?? null,
                 'role' => User::ROLE_DOCTOR,
+                'user_code' => $codes->forUser($personName, (string) $company->name, $companyId),
                 'company_id' => $companyId,
                 'status' => $request->boolean('status', true),
             ]);
@@ -86,7 +101,8 @@ class DoctorController extends Controller
                 'branch_id' => $validated['branch_id'] ?? null,
                 'user_id' => $user->id,
                 'department_id' => $validated['department_id'],
-                'doctor_code' => $validated['doctor_code'] ?? $this->nextDoctorCode($companyId),
+                'doctor_type' => $doctorType,
+                'doctor_code' => $codes->forDoctor($personName, (string) $company->name, $companyId),
                 'qualification' => $validated['qualification'] ?? null,
                 'experience_years' => $validated['experience_years'] ?? null,
                 'license_number' => $validated['license_number'] ?? null,
@@ -124,10 +140,12 @@ class DoctorController extends Controller
         }
 
         $validated = $request->validate($this->rules($doctor, $doctor->company_id));
-        $validated = $this->applyConsultationFeeForCompany($validated, $doctor->company_id);
+        // doctor_type is immutable after create — always keep the stored value.
+        $doctorType = $doctor->doctor_type ?: Doctor::TYPE_CLINIC;
+        $validated = $this->applyConsultationFeeForCompany($validated, $doctor->company_id, $doctorType);
         $this->assertDepartmentInCompany($validated['department_id'], $doctor->company_id);
 
-        DB::transaction(function () use ($doctor, $validated, $request) {
+        DB::transaction(function () use ($doctor, $validated, $request, $doctorType) {
             $userData = [
                 'name' => $validated['name'],
                 'email' => $validated['email'],
@@ -144,7 +162,7 @@ class DoctorController extends Controller
             $doctor->update([
                 'branch_id' => $validated['branch_id'] ?? null,
                 'department_id' => $validated['department_id'],
-                'doctor_code' => $validated['doctor_code'],
+                'doctor_type' => $doctorType,
                 'qualification' => $validated['qualification'] ?? null,
                 'experience_years' => $validated['experience_years'] ?? null,
                 'license_number' => $validated['license_number'] ?? null,
@@ -185,6 +203,7 @@ class DoctorController extends Controller
             ->leftJoin('branches', 'doctors.branch_id', '=', 'branches.id')
             ->select([
                 'doctors.doctor_code',
+                'doctors.doctor_type',
                 'users.name',
                 'users.email',
                 'users.phone',
@@ -210,8 +229,16 @@ class DoctorController extends Controller
             $query->where('doctors.branch_id', (int) $request->branch_id);
         }
 
+        if ($request->filled('doctor_type')) {
+            $type = $this->normalizeDoctorType($request->input('doctor_type'));
+            if ($type) {
+                $query->where('doctors.doctor_type', $type);
+            }
+        }
+
         $headers = [
             'doctor_code',
+            'doctor_type',
             'name',
             'email',
             'phone',
@@ -230,6 +257,7 @@ class DoctorController extends Controller
             foreach ($query->cursor() as $doctor) {
                 yield [
                     $doctor->doctor_code,
+                    $doctor->doctor_type ?: Doctor::TYPE_CLINIC,
                     $doctor->name,
                     $doctor->email,
                     $doctor->phone,
@@ -253,6 +281,7 @@ class DoctorController extends Controller
 
         $headers = [
             'doctor_code',
+            'doctor_type',
             'name',
             'email',
             'phone',
@@ -268,6 +297,7 @@ class DoctorController extends Controller
 
         $sampleRows = [[
             '',
+            'clinic',
             'Dr. Jane Smith',
             'jane.smith@example.com',
             '9876500001',
@@ -293,10 +323,12 @@ class DoctorController extends Controller
         $request->validate([
             'file' => ['required', 'file', 'mimes:csv,txt,xls', 'max:2048'],
             'company_id' => $this->companyIdRules(),
+            'doctor_type' => ['nullable', Rule::in(Doctor::TYPES)],
         ]);
 
         $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
+        $importDoctorType = $this->normalizeDoctorType($request->input('doctor_type')) ?: Doctor::TYPE_CLINIC;
 
         try {
             $sheet = SpreadsheetIO::readUploadedFile($request->file('file'));
@@ -310,6 +342,7 @@ class DoctorController extends Controller
             'phone' => ['phone', 'mobile', 'phone_number', 'contact'],
             'password' => ['password', 'pass'],
             'doctor_code' => ['doctor_code', 'code', 'doctor_id'],
+            'doctor_type' => ['doctor_type', 'type', 'module'],
             'status' => ['status', 'active'],
             'department' => ['department', 'department_name', 'specialization'],
             'branch' => ['branch', 'branch_name'],
@@ -351,6 +384,23 @@ class DoctorController extends Controller
                 continue;
             }
 
+            if (! ContactRules::isValidEmail($email)) {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: invalid email format.";
+                }
+                continue;
+            }
+
+            $phoneValue = SpreadsheetIO::cell($row, $columnMap, 'phone');
+            if ($phoneValue === '' || ! ContactRules::isValidPhone($phoneValue)) {
+                $skipped++;
+                if (count($errors) < 20) {
+                    $errors[] = "Line {$line}: phone is required and must be 10–15 digits.";
+                }
+                continue;
+            }
+
             $department = $departments->get(strtolower($departmentName));
             if (! $department) {
                 $skipped++;
@@ -386,16 +436,20 @@ class DoctorController extends Controller
                 $password = null;
             }
 
+            $rowDoctorType = $this->normalizeDoctorType(SpreadsheetIO::cell($row, $columnMap, 'doctor_type'))
+                ?: $importDoctorType;
+
             $doctorPayload = [
                 'branch_id' => $branchId,
                 'department_id' => $department->id,
+                'doctor_type' => $rowDoctorType,
                 'qualification' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'qualification')),
                 'experience_years' => $this->nullableInt(SpreadsheetIO::cell($row, $columnMap, 'experience_years')),
                 'license_number' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'license_number')),
                 'bio' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'bio')),
             ];
 
-            if (! $company->hasModule(Company::MODULE_CLINIC)) {
+            if ($rowDoctorType !== Doctor::TYPE_CLINIC || ! $company->hasModule(Company::MODULE_CLINIC)) {
                 $doctorPayload['consultation_fee'] = 0;
             }
 
@@ -405,7 +459,7 @@ class DoctorController extends Controller
             }
 
             $status = $this->parseStatus(SpreadsheetIO::cell($row, $columnMap, 'status'), true);
-            $phone = $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'phone'));
+            $phone = $phoneValue;
 
             try {
                 if ($existingDoctor) {
@@ -420,17 +474,22 @@ class DoctorController extends Controller
                             $userData['password'] = $password;
                         }
                         $existingDoctor->user->update($userData);
+                        // Keep original doctor_type on update imports.
+                        unset($doctorPayload['doctor_type']);
                         $existingDoctor->update($doctorPayload);
                     });
                     $updated++;
                 } else {
-                    DB::transaction(function () use ($name, $email, $phone, $password, $status, $doctorPayload, $companyId, $doctorCode) {
+                    DB::transaction(function () use ($name, $email, $phone, $password, $status, $doctorPayload, $companyId, $doctorCode, $company) {
+                        $codes = app(UniqueCodeGenerator::class);
+
                         $user = User::create([
                             'name' => $name,
                             'email' => $email,
                             'password' => $password,
                             'phone' => $phone,
                             'role' => User::ROLE_DOCTOR,
+                            'user_code' => $codes->forUser($name, (string) $company->name, $companyId),
                             'company_id' => $companyId,
                             'status' => $status,
                         ]);
@@ -441,7 +500,9 @@ class DoctorController extends Controller
                             ...$doctorPayload,
                             'company_id' => $companyId,
                             'user_id' => $user->id,
-                            'doctor_code' => $doctorCode !== '' ? $doctorCode : $this->nextDoctorCode($companyId),
+                            'doctor_code' => $doctorCode !== ''
+                                ? $doctorCode
+                                : $codes->forDoctor($name, (string) $company->name, $companyId),
                         ]);
 
                         app(DoctorAvailabilityService::class)->seedDefaultWeek($doctor);
@@ -520,18 +581,16 @@ class DoctorController extends Controller
                 ? ['required', 'exists:companies,id']
                 : ['prohibited'],
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($userId)],
+            'email' => [...ContactRules::email(), Rule::unique('users', 'email')->ignore($userId)],
             'password' => [$doctor ? 'nullable' : 'required', 'string', 'min:8'],
-            'phone' => ['required', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($userId)],
+            'phone' => [...ContactRules::phone(), Rule::unique('users', 'phone')->ignore($userId)],
             'status' => ['boolean'],
             'department_id' => ['required', 'exists:departments,id'],
-            'doctor_code' => [
-                $doctor ? 'required' : 'nullable',
-                'string',
-                'max:50',
-                Rule::unique('doctors', 'doctor_code')->where('company_id', $companyId)->ignore($doctorId),
-            ],
             'branch_id' => ['nullable', 'exists:branches,id'],
+            // Required on create (from module sidebar). On update, ignored — type is preserved.
+            'doctor_type' => $doctor
+                ? ['nullable', Rule::in(Doctor::TYPES)]
+                : ['required', Rule::in(Doctor::TYPES)],
             'qualification' => ['required', 'string', 'max:255'],
             'experience_years' => ['required', 'integer', 'min:0'],
             'license_number' => [
@@ -545,20 +604,30 @@ class DoctorController extends Controller
         ];
     }
 
-    private function applyConsultationFeeForCompany(array $validated, int $companyId): array
+    private function applyConsultationFeeForCompany(array $validated, int $companyId, string $doctorType = Doctor::TYPE_CLINIC): array
     {
         $company = Company::find($companyId);
-        if ($company && ! $company->hasModule(Company::MODULE_CLINIC)) {
+        if ($doctorType !== Doctor::TYPE_CLINIC || ($company && ! $company->hasModule(Company::MODULE_CLINIC))) {
             $validated['consultation_fee'] = 0;
         }
 
         return $validated;
     }
 
-    private function nextDoctorCode(int $companyId): string
+    private function normalizeDoctorType(mixed $value): ?string
     {
-        $num = Doctor::withTrashed()->where('company_id', $companyId)->count() + 1;
+        $type = strtolower(trim((string) $value));
 
-        return 'DOC-'.str_pad((string) $num, 5, '0', STR_PAD_LEFT);
+        // Accept company module keys as aliases.
+        $aliases = [
+            'clinic' => Doctor::TYPE_CLINIC,
+            'diagnostic' => Doctor::TYPE_DIAGNOSTIC,
+            'diagnostics' => Doctor::TYPE_DIAGNOSTIC,
+            'lab' => Doctor::TYPE_LAB,
+            'laboratory' => Doctor::TYPE_LAB,
+        ];
+
+        return $aliases[$type] ?? null;
     }
+
 }

@@ -10,11 +10,22 @@ class Doctor extends Model
 {
     use BelongsToCompany, SoftDeletes;
 
+    public const TYPE_CLINIC = 'clinic';
+    public const TYPE_DIAGNOSTIC = 'diagnostic';
+    public const TYPE_LAB = 'lab';
+
+    public const TYPES = [
+        self::TYPE_CLINIC,
+        self::TYPE_DIAGNOSTIC,
+        self::TYPE_LAB,
+    ];
+
     protected $fillable = [
         'company_id',
         'branch_id',
         'user_id',
         'department_id',
+        'doctor_type',
         'doctor_code',
         'qualification',
         'experience_years',

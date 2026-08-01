@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Setting;
 use App\Services\CompanySetupService;
+use App\Support\ContactRules;
 use App\Support\MediaStorage;
 use App\Support\PublicStorageUrl;
 use App\Support\SettingDefinitions;
@@ -128,6 +129,18 @@ class SettingController extends Controller
         foreach ($validated['settings'] as $item) {
             $definition = $definitions->get($item['key']);
             $value = array_key_exists('value', $item) ? (string) ($item['value'] ?? '') : '';
+
+            if ($value !== '' && ($definition['type'] ?? null) === 'email' && ! ContactRules::isValidEmail($value)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'settings' => ["{$definition['label']} must be a valid email address."],
+                ]);
+            }
+
+            if ($value !== '' && ($definition['type'] ?? null) === 'tel' && ! ContactRules::isValidPhone($value)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'settings' => ["{$definition['label']} must be a valid phone number (10–15 digits)."],
+                ]);
+            }
 
             if ($definition['type'] === 'image') {
                 $existing = Setting::withoutGlobalScopes()

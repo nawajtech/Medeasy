@@ -10,6 +10,7 @@ use App\Services\ClinicBrandingService;
 use App\Services\SubscriptionService;
 use App\Services\TenantRoleProvisioningService;
 use App\Services\UserRoleService;
+use App\Support\ContactRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -21,7 +22,7 @@ class AuthController extends Controller
     public function login(Request $request, UserRoleService $userRoles): JsonResponse
     {
         $credentials = $request->validate([
-            'email' => ['required', 'email'],
+            'email' => ContactRules::email(),
             'password' => ['required', 'string'],
         ]);
 
@@ -79,8 +80,8 @@ class AuthController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', Rule::unique('users', 'email')->ignore($user->id)],
-            'phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')->ignore($user->id)],
+            'email' => [...ContactRules::email(), Rule::unique('users', 'email')->ignore($user->id)],
+            'phone' => [...ContactRules::phone(required: false), Rule::unique('users', 'phone')->ignore($user->id)],
         ]);
 
         $user->update($validated);
