@@ -10,6 +10,7 @@ use App\Models\DiagnosticOrderRefund;
 use App\Models\DiagnosticPackage;
 use App\Models\DiagnosticReport;
 use App\Models\DiagnosticTestType;
+use App\Models\Doctor;
 use App\Models\ReferralPartner;
 use App\Services\ClinicBrandingService;
 use App\Services\DiagnosticOrderBillingService;
@@ -113,7 +114,9 @@ class DiagnosticOrderController extends Controller
             'patient_id'        => ['required', 'exists:patients,id'],
             'doctor_id'         => [
                 'nullable',
-                Rule::exists('doctors', 'id')->where(fn ($q) => $q->where('company_id', $this->resolveCompanyId($request))),
+                Rule::exists('doctors', 'id')->where(fn ($q) => $q
+                    ->where('company_id', $this->resolveCompanyId($request))
+                    ->where('doctor_type', Doctor::TYPE_DIAGNOSTIC)),
             ],
             'test_type_id'      => ['required_without:package_id', 'nullable', 'exists:diagnostic_test_types,id'],
             'package_id'        => ['required_without:test_type_id', 'nullable', 'exists:diago_package,id'],

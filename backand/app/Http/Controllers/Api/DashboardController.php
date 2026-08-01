@@ -206,7 +206,10 @@ class DashboardController extends Controller
             return Doctor::where('id', $doctorId);
         }
 
-        $query = Doctor::query();
+        $query = Doctor::query()->whereHas(
+            'user',
+            fn ($q) => $q->where('status', true)
+        );
         if ($companyId) {
             $query->where('company_id', $companyId);
         }
@@ -501,7 +504,9 @@ class DashboardController extends Controller
                     'id' => $company->id,
                     'name' => $company->name,
                     'patients' => Patient::where('company_id', $company->id)->count(),
-                    'doctors' => Doctor::where('company_id', $company->id)->count(),
+                    'doctors' => Doctor::where('company_id', $company->id)
+                        ->whereHas('user', fn ($q) => $q->where('status', true))
+                        ->count(),
                     'appointments' => Appointment::where('company_id', $company->id)
                         ->whereBetween('appointment_date', [$from, $to])
                         ->count(),

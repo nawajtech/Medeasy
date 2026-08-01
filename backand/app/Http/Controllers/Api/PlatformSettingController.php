@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PlatformSetting;
+use App\Support\ContactRules;
 use App\Support\MediaStorage;
 use App\Support\PlatformSettingDefinitions;
 use App\Support\PublicStorageUrl;
@@ -88,6 +89,18 @@ class PlatformSettingController extends Controller
         foreach ($validated['settings'] as $item) {
             $definition = $definitions->get($item['key']);
             $value = array_key_exists('value', $item) ? (string) ($item['value'] ?? '') : '';
+
+            if ($value !== '' && ($definition['type'] ?? null) === 'email' && ! ContactRules::isValidEmail($value)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'settings' => ["{$definition['label']} must be a valid email address."],
+                ]);
+            }
+
+            if ($value !== '' && ($definition['type'] ?? null) === 'tel' && ! ContactRules::isValidPhone($value)) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'settings' => ["{$definition['label']} must be a valid phone number (10–15 digits)."],
+                ]);
+            }
 
             if ($definition['type'] === 'image') {
                 $existing = $values[$item['key']] ?? null;

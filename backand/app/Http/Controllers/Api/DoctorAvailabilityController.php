@@ -128,6 +128,7 @@ class DoctorAvailabilityController extends Controller
         return [
             'id' => $doctor->id,
             'doctor_code' => $doctor->doctor_code,
+            'doctor_type' => $doctor->doctor_type ?: Doctor::TYPE_CLINIC,
             'name' => $doctor->user?->name,
             'department' => $doctor->department?->name,
             'company_id' => $doctor->company_id,

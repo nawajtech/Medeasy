@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
 use App\Models\DiagnosticTestType;
+use App\Models\Doctor;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -51,7 +52,9 @@ class DiagnosticTestTypeController extends Controller
             'is_active'                => ['boolean'],
             'doctor_ids'               => ['nullable', 'array'],
             'doctor_ids.*'             => [
-                Rule::exists('doctors', 'id')->where('company_id', $companyId),
+                Rule::exists('doctors', 'id')->where(function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId)->where('doctor_type', Doctor::TYPE_DIAGNOSTIC);
+                }),
             ],
         ]);
 
@@ -89,7 +92,10 @@ class DiagnosticTestTypeController extends Controller
             'is_active'                => ['boolean'],
             'doctor_ids'               => ['nullable', 'array'],
             'doctor_ids.*'             => [
-                Rule::exists('doctors', 'id')->where('company_id', $type->company_id),
+                Rule::exists('doctors', 'id')->where(function ($q) use ($type) {
+                    $q->where('company_id', $type->company_id)
+                        ->where('doctor_type', Doctor::TYPE_DIAGNOSTIC);
+                }),
             ],
         ]);
 

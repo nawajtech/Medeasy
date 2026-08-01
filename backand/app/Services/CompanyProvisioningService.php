@@ -15,6 +15,7 @@ class CompanyProvisioningService
         private readonly UserRoleService $userRoles,
         private readonly TenantRoleProvisioningService $tenantRoles,
         private readonly SubscriptionService $subscriptions,
+        private readonly UniqueCodeGenerator $codes,
     ) {}
 
     /**
@@ -23,6 +24,9 @@ class CompanyProvisioningService
     public function provision(array $companyData, array $adminData, ?Plan $plan = null): Company
     {
         return DB::transaction(function () use ($companyData, $adminData, $plan) {
+            $companyName = (string) ($companyData['name'] ?? 'XX');
+            $companyData['code'] = $this->codes->forCompany($companyName);
+
             $company = Company::create($companyData);
             $this->setup->bootstrap($company);
             $this->subscriptions->ensureForCompany($company, $plan);
@@ -33,12 +37,14 @@ class CompanyProvisioningService
                 ->where('is_main', true)
                 ->value('id');
 
+            $adminName = (string) ($adminData['name'] ?? 'XX');
             $admin = User::create([
                 'name' => $adminData['name'],
                 'email' => $adminData['email'],
                 'password' => $adminData['password'],
                 'phone' => $adminData['phone'] ?? null,
                 'role' => User::ROLE_COMPANY_ADMIN,
+                'user_code' => $this->codes->forUser($adminName, $company->name, (int) $company->id),
                 'company_id' => $company->id,
                 'branch_id' => $mainBranchId,
                 'status' => true,

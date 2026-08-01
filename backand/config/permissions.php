@@ -15,7 +15,7 @@ return [
             'dashboard', 'branches', 'departments', 'patients', 'appointments',
             'doctors', 'prescriptions', 'billing', 'reports', 'medicine',
         ],
-        'laboratory' => ['lab'],
+        'laboratory' => ['lab', 'doctors'],
         'diagnostics' => ['diagnostics', 'doctors', 'departments'],
     ],
 

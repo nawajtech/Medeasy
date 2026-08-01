@@ -4,10 +4,12 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
+use App\Models\Doctor;
 use App\Models\LabOrder;
 use App\Services\LabOrderService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class LabOrderController extends Controller
 {
@@ -40,7 +42,10 @@ class LabOrderController extends Controller
             'company_id'                => $this->companyIdRules(),
             'branch_id'                 => ['nullable', 'exists:branches,id'],
             'patient_id'                => ['required', 'exists:patients,id'],
-            'doctor_id'                 => ['nullable', 'exists:doctors,id'],
+            'doctor_id'                 => [
+                'nullable',
+                Rule::exists('doctors', 'id')->where('doctor_type', Doctor::TYPE_LAB),
+            ],
             'collection_type'           => ['in:walk_in,home'],
             'home_address'              => ['nullable', 'string'],
             'collection_scheduled_at'   => ['nullable', 'date'],
