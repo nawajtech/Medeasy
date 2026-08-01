@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import "../App.css";
 import { getCompaniesList } from "../api/companiesList";
 import { getDepartments } from "../api/departments";
@@ -18,7 +18,9 @@ import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
+import { DOCTOR_TYPE_LABELS, DOCTOR_TYPES, doctorTypeFromPath } from "../config/doctorTypes";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 import "./Doctors.css";
 
 const emptyForm = {
@@ -40,6 +42,9 @@ const emptyForm = {
 
 function Doctors() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const doctorType = doctorTypeFromPath(location.pathname);
+  const moduleLabel = DOCTOR_TYPE_LABELS[doctorType] || "Clinic";
   const { isDoctor, isSuperAdmin, isCompanyAdmin, user } = useAuth();
   const canManageSchedule = isSuperAdmin || isCompanyAdmin;
   const [items, setItems] = useState([]);
@@ -65,7 +70,7 @@ function Doctors() {
     setLoading(true);
     setError("");
     try {
-      const params = {};
+      const params = { doctor_type: doctorType };
       if (isSuperAdmin && filterCompanyId) {
         params.company_id = filterCompanyId;
       }
@@ -77,7 +82,7 @@ function Doctors() {
     } finally {
       setLoading(false);
     }
-  }, [isSuperAdmin, filterCompanyId]);
+  }, [isSuperAdmin, filterCompanyId, doctorType]);
 
   useEffect(() => {
     load();
@@ -116,7 +121,7 @@ function Doctors() {
     return normalizeModules(modulesFromLegacyType(user?.company?.type));
   }, [isSuperAdmin, form.company_id, companies, user]);
 
-  const hideConsultationFee = !formCompanyModules.includes("clinic");
+  const hideConsultationFee = doctorType !== DOCTOR_TYPES.CLINIC || !formCompanyModules.includes("clinic");
 
   const openCreate = () => {
     setEditing(null);
@@ -167,6 +172,12 @@ function Doctors() {
     if (!isSuperAdmin) delete payload.company_id;
     payload.department_id = Number(payload.department_id);
     payload.experience_years = Number(payload.experience_years);
+    // Module is implied by the sidebar route — never chosen manually.
+    if (!editing) {
+      payload.doctor_type = doctorType;
+    } else {
+      delete payload.doctor_type;
+    }
     if (hideConsultationFee) {
       payload.consultation_fee = 0;
     } else if (!payload.consultation_fee && payload.consultation_fee !== 0) {
@@ -179,6 +190,12 @@ function Doctors() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const phoneMsg = phoneError(form.phone);
+    const mailMsg = emailError(form.email);
+    if (phoneMsg || mailMsg) {
+      setError([phoneMsg, mailMsg].filter(Boolean).join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {
@@ -214,7 +231,7 @@ function Doctors() {
     setError("");
     setImportResult(null);
     try {
-      const params = {};
+      const params = { doctor_type: doctorType };
       if (isSuperAdmin && filterCompanyId) {
         params.company_id = filterCompanyId;
       }
@@ -250,7 +267,7 @@ function Doctors() {
     setError("");
     setImportResult(null);
     try {
-      const { data } = await importDoctors(file, isSuperAdmin ? filterCompanyId : undefined);
+      const { data } = await importDoctors(file, isSuperAdmin ? filterCompanyId : undefined, doctorType);
       setImportResult(data);
       await load();
     } catch (err) {
@@ -275,8 +292,8 @@ function Doctors() {
   return (
     <section className="page-card doctors-page">
       <div className="page-card-header">
-        <h2>Doctor records</h2>
-        <p>Manage doctor accounts and professional details.</p>
+        <h2>{moduleLabel} doctor records</h2>
+        <p>Manage {moduleLabel.toLowerCase()} doctor accounts and professional details.</p>
       </div>
 
       <div className="crud-toolbar">

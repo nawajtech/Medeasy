@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthContext";
 import { changePassword, updateProfile } from "../api/auth";
 import Modal from "./crud/Modal";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 import { IconChevronDown, IconLock, IconLogOut, IconUser } from "./icons";
 import "./ProfileMenu.css";
 import "./crud/crud.css";
@@ -78,6 +79,12 @@ function ProfileMenu() {
 
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
+    const mailMsg = emailError(profileForm.email);
+    const phoneMsg = phoneError(profileForm.phone, { required: false });
+    if (mailMsg || phoneMsg) {
+      setError([mailMsg, phoneMsg].filter(Boolean).join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     setSuccess("");

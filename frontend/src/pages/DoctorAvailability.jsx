@@ -6,6 +6,7 @@ import {
   saveDoctorAvailabilities,
 } from "../api/doctorAvailabilities";
 import { useAuth } from "../auth/AuthContext";
+import { doctorsPathForType } from "../config/doctorTypes";
 import { ROLES } from "../config/roles";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
@@ -80,6 +81,8 @@ function DoctorAvailability() {
     }
   };
 
+  const doctorsListPath = doctorsPathForType(doctor?.doctor_type);
+
   if (loading) {
     return <div className="page-card">Loading schedule…</div>;
   }
@@ -88,7 +91,7 @@ function DoctorAvailability() {
     <section className="availability-page">
       <header className="availability-header">
         <div>
-          <Link to="/doctors" className="crud-btn crud-btn--ghost crud-btn--sm">
+          <Link to={doctorsListPath} className="crud-btn crud-btn--ghost crud-btn--sm">
             ← Back to doctors
           </Link>
           <h2>Doctor availability</h2>
@@ -196,7 +199,7 @@ function DoctorAvailability() {
       </div>
 
       <div className="availability-actions-bar">
-        <button type="button" className="crud-btn crud-btn--ghost" onClick={() => navigate("/doctors")}>
+        <button type="button" className="crud-btn crud-btn--ghost" onClick={() => navigate(doctorsListPath)}>
           Cancel
         </button>
         {canManage && (
