@@ -278,7 +278,10 @@ class AppointmentController extends Controller
     {
         return [
             'patient_id' => ['required', 'exists:patients,id'],
-            'doctor_id' => ['required', 'exists:doctors,id'],
+            'doctor_id' => [
+                'required',
+                Rule::exists('doctors', 'id')->where('doctor_type', Doctor::TYPE_CLINIC),
+            ],
             'branch_id' => ['nullable', 'exists:branches,id'],
             'appointment_date' => ['required', 'date'],
             'duration_minutes' => ['nullable', 'integer', 'min:5', 'max:480'],

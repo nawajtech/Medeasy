@@ -107,6 +107,7 @@ class SaasSeeder extends Seeder
                 [
                     'company_id' => $company->id,
                     'department_id' => $departmentId,
+                    'doctor_type' => Doctor::TYPE_CLINIC,
                     'doctor_code' => strtoupper($row['code']).'-DOC-001',
                     'consultation_fee' => 1500,
                     'qualification' => 'MBBS',

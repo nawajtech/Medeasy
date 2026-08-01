@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
 use App\Models\ReferralPartner;
+use App\Rules\PhoneNumber;
 use App\Services\ReferralPartnerLedgerService;
+use App\Support\ContactRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -116,7 +118,9 @@ class ReferralPartnerController extends Controller
         $rules = [
             'company_id'      => $this->companyIdRules(),
             'name'            => [$partial ? 'sometimes' : 'required', 'string', 'max:150'],
-            'mobile'          => [$partial ? 'sometimes' : 'required', 'string', 'max:20'],
+            'mobile'          => $partial
+                ? ['sometimes', 'string', 'max:20', new PhoneNumber]
+                : ContactRules::phone(),
             'address'         => [$partial ? 'sometimes' : 'required', 'string'],
             'type'            => [$partial ? 'sometimes' : 'required', 'in:doctor,clinic,hospital,agent'],
             'surcharge_type'  => ['nullable', 'in:fixed,percentage'],

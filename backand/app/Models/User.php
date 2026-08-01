@@ -51,6 +51,7 @@ class User extends Authenticatable
         'phone',
         'password',
         'role',
+        'user_code',
         'company_id',
         'branch_id',
         'status',

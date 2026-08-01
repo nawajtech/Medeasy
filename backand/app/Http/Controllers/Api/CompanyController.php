@@ -7,8 +7,8 @@ use App\Models\Company;
 use App\Models\Plan;
 use App\Services\CompanyProvisioningService;
 use App\Services\TenantRoleProvisioningService;
+use App\Support\ContactRules;
 use App\Support\MediaStorage;
-use App\Support\PublicStorageUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -26,6 +26,13 @@ class CompanyController extends Controller
 
     public function store(Request $request, CompanyProvisioningService $provisioning): JsonResponse
     {
+        $this->nullEmptyStrings($request, [
+            'code', 'website', 'state', 'gst_number', 'registration_number',
+            'description', 'admin_phone', 'logo_base64', 'plan_id',
+        ]);
+        // Code is always auto-generated — never accept client value on create.
+        $request->request->remove('code');
+
         $data = $request->validate($this->rules());
         $adminData = $request->validate($this->adminRules());
         $data = $this->normalizeModulesPayload($data);
@@ -62,7 +69,14 @@ class CompanyController extends Controller
     {
         $company = Company::findOrFail($id);
         $previousModules = $company->modules ?? [];
+        $this->nullEmptyStrings($request, [
+            'website', 'state', 'gst_number', 'registration_number',
+            'description', 'logo_base64', 'plan_id',
+        ]);
+        $request->request->remove('code');
+
         $data = $request->validate($this->rules($company->id, isUpdate: true));
+        unset($data['code']);
         $data = $this->normalizeModulesPayload($data);
         $data = $this->handleLogo($request, $data, $company);
 
@@ -99,8 +113,8 @@ class CompanyController extends Controller
                 $this->deleteLogo($existing->logo_url);
             }
 
-            $path = MediaStorage::putBase64Image($request->logo_base64, 'logos');
-            $data['logo_url'] = PublicStorageUrl::toUrl($path);
+            // Store the relative disk key; API responses resolve it to /api/media/...
+            $data['logo_url'] = MediaStorage::putBase64Image($request->logo_base64, 'logos');
         } catch (\InvalidArgumentException) {
             // Silently ignore bad input; validation catches required cases
         }
@@ -133,16 +147,12 @@ class CompanyController extends Controller
                 'required', 'string', 'max:255',
                 Rule::unique('companies', 'name')->ignore($companyId)->whereNull('deleted_at'),
             ],
-            'code' => [
-                'nullable', 'string', 'max:50',
-                Rule::unique('companies', 'code')->ignore($companyId)->whereNull('deleted_at'),
-            ],
             'type' => ['nullable', 'string', 'max:50'],
             'modules' => ['required', 'array', 'min:1'],
             'modules.*' => ['string', Rule::in(array_keys(Company::MODULES))],
             'logo_base64' => $logoRule,
-            'phone' => ['required', 'string', 'max:30'],
-            'email' => ['required', 'email', 'max:255'],
+            'phone' => ContactRules::phone(),
+            'email' => ContactRules::email(),
             'address' => ['required', 'string', 'max:500'],
             'city' => ['required', 'string', 'max:100'],
             'state' => ['nullable', 'string', 'max:100'],
@@ -161,9 +171,19 @@ class CompanyController extends Controller
     {
         return [
             'admin_name' => ['required', 'string', 'max:255'],
-            'admin_email' => ['required', 'email', 'max:255', Rule::unique('users', 'email')],
+            'admin_email' => [...ContactRules::email(), Rule::unique('users', 'email')],
             'admin_password' => ['required', 'string', 'min:8'],
-            'admin_phone' => ['nullable', 'string', 'max:20', Rule::unique('users', 'phone')],
+            'admin_phone' => [...ContactRules::phone(required: false), Rule::unique('users', 'phone')],
         ];
+    }
+
+    /** Convert "" to null so nullable|url / unique rules do not 422. */
+    private function nullEmptyStrings(Request $request, array $keys): void
+    {
+        foreach ($keys as $key) {
+            if ($request->exists($key) && $request->input($key) === '') {
+                $request->merge([$key => null]);
+            }
+        }
     }
 }
