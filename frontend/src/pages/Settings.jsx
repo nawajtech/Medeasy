@@ -11,6 +11,7 @@ import { useAuth } from "../auth/AuthContext";
 import RichTextEditor from "../components/RichTextEditor";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import "./Settings.css";
 
@@ -412,7 +413,6 @@ function Settings() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSaving(true);
     setError("");
     setSuccess("");
 
@@ -423,6 +423,28 @@ function Settings() {
         nextValues[key] = { ...nextValues[key], value: editor.getHtml() };
       }
     });
+
+    const allFields = Object.values(groups || {}).flat();
+    for (const field of allFields) {
+      const value = nextValues[field.key]?.value ?? "";
+      if (!value) continue;
+      if (field.type === "email") {
+        const msg = emailError(value, { label: field.label || "Email" });
+        if (msg) {
+          setError(msg);
+          return;
+        }
+      }
+      if (field.type === "tel") {
+        const msg = phoneError(value, { label: field.label || "Phone" });
+        if (msg) {
+          setError(msg);
+          return;
+        }
+      }
+    }
+
+    setSaving(true);
 
     const payload = {
       settings: Object.entries(nextValues).map(([key, entry]) => ({

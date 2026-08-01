@@ -17,11 +17,13 @@ const clinicMenu = [
 ];
 
 const labMenu = [
+  { to: "/lab/doctors", label: "Doctors" },
   { to: "/lab/tests", label: "Lab Catalog" },
   { to: "/lab/orders", label: "Lab Orders" },
 ];
 
 const diagnosticsMenu = [
+  { to: "/diagnostics/doctors", label: "Doctors" },
   { to: "/diagnostics", label: "Diagnostic Catalog" },
   { to: "/diagnostics/orders", label: "Diagnostic Orders" },
 ];

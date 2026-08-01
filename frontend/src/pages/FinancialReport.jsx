@@ -93,7 +93,7 @@ function FinancialReport() {
       setDoctors([]);
       return;
     }
-    getDoctors({ company_id: effectiveCompanyId })
+    getDoctors({ company_id: effectiveCompanyId, doctor_type: "clinic" })
       .then((res) => setDoctors(res.data || []))
       .catch(() => setDoctors([]));
   }, [effectiveCompanyId]);

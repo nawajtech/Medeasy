@@ -30,9 +30,19 @@ export const routeMeta = {
     description: "Manage doctor departments and specialities master.",
   },
   "/doctors": {
-    title: "Doctors",
+    title: "Clinic Doctors",
     breadcrumb: "Doctors",
-    description: "View and manage doctors mapped to departments.",
+    description: "View and manage clinic doctors mapped to departments.",
+  },
+  "/diagnostics/doctors": {
+    title: "Diagnostic Doctors",
+    breadcrumb: "Doctors",
+    description: "View and manage diagnostic doctors mapped to departments.",
+  },
+  "/lab/doctors": {
+    title: "Lab Doctors",
+    breadcrumb: "Doctors",
+    description: "View and manage laboratory doctors mapped to departments.",
   },
   "/appointments": {
     title: "Appointments",

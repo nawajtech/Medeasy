@@ -1,7 +1,7 @@
 # ApnaMedi — Project Documentation
 
-**Version:** 2.0  
-**Date:** July 2026  
+**Version:** 2.1  
+**Date:** August 2026  
 **Document type:** Client overview & feature documentation  
 **Audience:** Business stakeholders, clinic owners, project sponsors, development team
 
@@ -16,12 +16,16 @@ The platform is built as a **multi-tenant SaaS system**: one ApnaMedi installati
 **Key capabilities in the current release:**
 
 - Full clinic operations (patients, doctors, appointments, prescriptions, billing)
+- **Module-scoped doctors** — separate Clinic, Laboratory, and Diagnostics doctor lists
 - Laboratory catalog and order workflow (tests, packages, results, verification)
 - Diagnostics module with **packages**, referral partners, payments, refunds, and today's queue
+- **Auto-generated unique codes** for companies, patients, doctors, and staff users
 - **Subscription plans** with feature gating, checkout, and platform admin tools
 - **Finance & P&L** reporting with gains vs expenses
 - **Patient wallets** for refund credits and diagnostic payments
 - **Custom roles & permissions** per organization
+- **Audit trail** with export and related activity timelines
+- Shared **email / phone validation** across forms and APIs
 - **Push notifications** (Firebase) and in-app notification inbox
 - **Platform theme** customization (Super Admin)
 
@@ -57,7 +61,7 @@ ApnaMedi centralizes these workflows into one modern web application with role-b
 | **Patient Management** | Store patient profiles, demographics, medical history, allergies, emergency contacts, and patient chart. |
 | **Patient Wallets** | Credit balance from refunds; pay for diagnostic orders from wallet. |
 | **Department Management** | Organize clinical departments (e.g. General Medicine, Cardiology, Pediatrics). |
-| **Doctor Management** | Manage doctor profiles, qualifications, fees, departments, weekly availability, and diagnostic test mapping. |
+| **Doctor Management** | Module-scoped doctor lists (clinic / lab / diagnostics), profiles, qualifications, fees, departments, weekly availability, and diagnostic test mapping. |
 | **Appointment Scheduling** | Book, confirm, complete, or cancel appointments; record vitals and prescriptions. |
 | **Billing & Invoicing** | Track charges, payments, dues, and generate printable invoices per appointment. |
 | **Finance & P&L** | Profit/loss summary — appointment, lab, and diagnostic gains vs commissions and expenses. |
@@ -68,7 +72,8 @@ ApnaMedi centralizes these workflows into one modern web application with role-b
 | **Medicine Master** | Global medicine catalog shared across all clinics (import/export CSV). |
 | **Analytics Dashboard** | Visual overview of appointments, billing trends, and doctor performance. |
 | **Reports** | Saved report records for appointments, billing, patients, doctors, and custom periods. |
-| **User & Role Management** | Create staff accounts, custom roles, and granular permissions per organization. |
+| **User & Role Management** | Create staff accounts (with auto `user_code`), custom roles, and granular permissions per organization. |
+| **Audit Trail** | Searchable change history with filters, detail view, CSV export, and related timelines on key records. |
 | **Company Settings & Branding** | Per-organization configuration: logo, favicon, contact details, billing/tax preferences, and appointment defaults. |
 | **Theme / Appearance** | Platform-wide color palette (Super Admin). |
 | **Notifications** | In-app notification inbox and Firebase push notification support. |
@@ -93,9 +98,9 @@ Each organization is enabled for one or more **operational modules**:
 
 | Module | Enables |
 |--------|---------|
-| `clinic` | Patients, doctors, appointments, prescriptions, billing |
-| `laboratory` | Lab catalog and lab orders |
-| `diagnostics` | Diagnostic catalog, orders, referrals, today's queue |
+| `clinic` | Patients, clinic doctors, appointments, prescriptions, billing |
+| `laboratory` | Lab catalog, lab orders, and lab doctors |
+| `diagnostics` | Diagnostic catalog, orders, referrals, today's queue, and diagnostic doctors |
 
 When a new organization is created, the system automatically provisions:
 
@@ -145,7 +150,7 @@ Effective Access = Role Permissions
 - **Diagnostics-only doctor:** May see only today's diagnostic queue  
 - **Expired subscription:** Operational routes blocked; user can still access Settings and Subscription upgrade  
 
-### 5.3 Permission Modules (17 groups)
+### 5.3 Permission Modules (18 groups)
 
 | Module | Covers |
 |--------|--------|
@@ -155,7 +160,7 @@ Effective Access = Role Permissions
 | departments | Department master |
 | patients | Patient records |
 | appointments | Appointment scheduling |
-| doctors | Doctor profiles and availability |
+| doctors | Doctor profiles and availability (shared across clinic / lab / diagnostics lists) |
 | prescriptions | Prescription documents |
 | medicine | Medicine master |
 | billing | Appointment billing |
@@ -166,6 +171,7 @@ Effective Access = Role Permissions
 | settings | Organization settings |
 | users | Staff user management |
 | roles | Custom roles and permissions |
+| audit | Audit trail view and export |
 
 ### 5.4 Menu Access by Role (Summary)
 
@@ -178,22 +184,25 @@ Effective Access = Role Permissions
 | Patients | ✓ | ✓ | ✓ | Own* | ✓ | ✓ | ✓ |
 | Patient Chart | ✓ | ✓ | ✓ | Own* | ✓ | ✓ | ✓ |
 | Departments | ✓ | ✓ | ✓ | — | — | — | — |
-| Doctors | ✓ | ✓ | ✓ | — | — | — | — |
+| Clinic Doctors | ✓ | ✓ | ✓ | — | — | — | — |
 | Appointments | ✓ | ✓ | ✓ | Own* | ✓ | — | — |
 | Lab Catalog & Orders | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Lab Doctors | ✓ | ✓ | ✓ | — | — | ✓ | — |
 | Diagnostics | ✓ | ✓ | ✓ | ✓ | ✓ | — | ✓ |
+| Diagnostic Doctors | ✓ | ✓ | ✓ | — | — | — | ✓ |
 | Referral Partners | ✓ | ✓ | ✓ | — | ✓ | — | ✓ |
 | Today's Queue | — | — | — | ✓ | — | — | ✓ |
 | Finance & P&L | ✓ | ✓ | — | — | — | — | — |
 | Medicine Master | ✓ | ✓ | ✓ | ✓ | ✓ | — | — |
 | Reports | ✓ | ✓ | — | — | — | — | — |
 | Users / Roles | ✓ | ✓ | — | — | — | — | — |
+| Audit Trail | ✓ | ✓ | — | — | — | — | — |
 | Settings | ✓ | ✓ | — | — | — | — | — |
 | Subscription | ✓ | ✓ | — | — | — | — | — |
 | Appearance (Theme) | ✓ | — | — | — | — | — | — |
 | My Schedule | — | — | — | ✓ | — | — | — |
 
-\* *Doctors see only their own appointments and patients linked through their appointments. Branch access requires subscription `multi_branch` feature.*
+\* *Doctors see only their own appointments and patients linked through their appointments. Branch access requires subscription `multi_branch` feature. Doctor list menus appear only when the matching company module is enabled.*
 
 ### 5.5 Security Features
 
@@ -204,6 +213,7 @@ Effective Access = Role Permissions
 - Disabled accounts cannot log in  
 - Permission checks on every API route  
 - Subscription middleware blocks expired tenants from operational features  
+- Shared contact validation on API and UI: email (RFC) and phone (10–15 digits, optional `+` country code; max 20 characters)  
 
 ---
 
@@ -229,7 +239,8 @@ The dashboard provides an at-a-glance view of clinic operations:
 **Available to:** Super Admin only
 
 - Create, edit, and deactivate healthcare organizations  
-- Set organization type, short code, contact details, address, website  
+- Set organization type, contact details, address, website  
+- **Auto-generated company code** on create: `{NAME2}/{AUTO}` (e.g. `AP/0042` — first two letters of the name + 4-digit suffix)  
 - Enable modules: clinic, laboratory, diagnostics  
 - Upload organization logo  
 - Business details: GST number, registration number, currency  
@@ -304,7 +315,8 @@ The dashboard provides an at-a-glance view of clinic operations:
 - Full patient profile: name, code, contact, date of birth, gender, blood group  
 - Medical history, allergies, height, weight  
 - Emergency contact details  
-- Unique patient code and contact per organization  
+- **Auto-generated patient code** per organization: `{COMPANY2}/{NAME2}/{AUTO}` (e.g. `AP/JO/0042`)  
+- Contact uniqueness and format validation (email / phone) per organization  
 - Search and filter; Super Admin can filter by organization  
 
 #### Patient Chart (`/patients/:id`)
@@ -337,10 +349,23 @@ Unified view of a patient's history:
 
 ### 6.7 Doctors
 
-- Doctor profile linked to a user account  
-- Department assignment, qualification, consultation fee, doctor code, license number  
-- Branch assignment  
-- **Weekly availability / schedule** — define working hours and appointment slots  
+Doctors are **module-scoped**. Each doctor record has a `doctor_type` of `clinic`, `lab`, or `diagnostic`, and appears only in the matching module menu:
+
+| Type | Route | Menu section | Notes |
+|------|-------|--------------|-------|
+| Clinic | `/doctors` | Clinic | Consultation fee applicable; weekly availability for appointments |
+| Lab | `/lab/doctors` | Laboratory | No consultation fee |
+| Diagnostic | `/diagnostics/doctors` | Diagnostics | No consultation fee; used with diagnostic test mapping / queue |
+
+**Behaviour:**
+
+- Type is set from the screen used to create the doctor and is **immutable** after create (including CSV import updates)  
+- Creating a doctor also creates a linked **doctor user** account with an auto `user_code`  
+- **Auto-generated doctor code:** `{COMPANY2}/{NAME2}/{AUTO}` (same pattern as patients/users)  
+- Department, qualification, license number, and branch assignment  
+- List, import, and export are filtered by `doctor_type` for the current screen  
+- Existing records were backfilled: clinic by default; diagnostics-only or lab-only companies mapped accordingly  
+- **Weekly availability / schedule** — working hours and appointment slots (clinic workflow)  
 - Slot availability checking when booking appointments  
 - **Diagnostic test mapping** — assign which doctors can perform which diagnostic tests  
 
@@ -567,8 +592,10 @@ Booked → Scheduled → In Progress → Completed
 #### Users (`/users`)
 
 - Create and manage staff user accounts  
+- **Auto-generated `user_code`** on create: `{COMPANY2}/{NAME2}/{AUTO}` (unique per company; shown in the Users UI)  
 - Assign roles and optional branch  
 - Enable or disable accounts  
+- Email and phone validated with shared contact rules  
 
 #### Roles (`/roles`)
 
@@ -584,7 +611,23 @@ Booked → Scheduled → In Progress → Completed
 
 ---
 
-### 6.16 Settings (Organization Configuration)
+### 6.16 Unique Codes
+
+ApnaMedi auto-generates short reference codes for organizations and people:
+
+| Entity | Format | Example | Scope |
+|--------|--------|---------|-------|
+| Company | `{NAME2}/{AUTO}` | `AP/0042` | Global |
+| Patient | `{COMPANY2}/{NAME2}/{AUTO}` | `AP/JO/0042` | Per company |
+| Doctor | `{COMPANY2}/{NAME2}/{AUTO}` | `AP/RA/0187` | Per company (`doctor_code`) |
+| User | `{COMPANY2}/{NAME2}/{AUTO}` | `AP/SA/0031` | Per company (`user_code`) |
+
+- `{NAME2}` / `{COMPANY2}` = first two letters of the name (letters only; padded with `X` if needed)  
+- `{AUTO}` = random 4-digit suffix (0001–9999), retried until unique (soft-deleted rows count)  
+
+---
+
+### 6.17 Settings (Organization Configuration)
 
 **Available to:** Super Admin, Company Admin
 
@@ -627,7 +670,7 @@ Settings are **company-specific** — each organization has its own values.
 
 ---
 
-### 6.17 Theme / Appearance
+### 6.18 Theme / Appearance
 
 **Available to:** Super Admin only
 
@@ -640,12 +683,26 @@ Settings are **company-specific** — each organization has its own values.
 
 ---
 
-### 6.18 Notifications
+### 6.19 Notifications
 
 - **In-app inbox** — view, mark read, delete notifications  
 - **Firebase Cloud Messaging (FCM)** — push notifications to registered devices  
 - Token registration on login; removal on logout  
 - Test notification endpoint for development  
+
+---
+
+### 6.20 Audit Trail
+
+**Available to:** users with `audit.view` (typically Super Admin and Company Admin)
+
+**Route:** `/audit-trail`
+
+- Searchable log of create / update / delete (and related) actions across the platform  
+- Filters: company (Super Admin), branch, action, actor, date range, free-text search  
+- Detail view with before/after field diffs  
+- **CSV export** when `audit.export` is granted  
+- Related activity timelines embedded on key screens (e.g. patient chart, lab orders, diagnostic orders)  
 
 ---
 
@@ -708,22 +765,25 @@ The frontend and backend communicate over a secure JSON REST API. The applicatio
 | Patients | `/patients` | Patient records |
 | Patient Chart | `/patients/:id` | Full patient history, wallet, orders |
 | Departments | `/departments` | Department master |
-| Doctors | `/doctors` | Doctor management |
+| Clinic Doctors | `/doctors` | Clinic doctor management (`doctor_type=clinic`) |
 | Doctor Availability | `/doctors/:id/availability` | Weekly schedule |
 | My Schedule | `/my-schedule` | Doctor's own schedule shortcut |
 | Appointments | `/appointments` | Scheduling, vitals, billing, prescriptions |
 | Medicine Master | `/pharmacy/medicines` | Global medicine catalog |
 | Lab Catalog | `/lab/tests` | Categories, tests, packages |
 | Lab Orders | `/lab/orders` | Lab order workflow |
+| Lab Doctors | `/lab/doctors` | Lab doctor management (`doctor_type=lab`) |
 | Diagnostic Catalog | `/diagnostics` | Categories, tests, packages |
 | Diagnostic Orders | `/diagnostics/orders` | Book, schedule, pay, report |
+| Diagnostic Doctors | `/diagnostics/doctors` | Diagnostic doctor management (`doctor_type=diagnostic`) |
 | Referral Partners | `/diagnostics/referrals` | Referral partner master and ledger |
 | Today's Queue | `/diagnostics/today` | Doctor's diagnostic appointment queue |
 | Finance & P&L | `/finance` | Profit/loss summary |
 | Reports | `/reports` | Saved reports |
-| Users | `/users` | User management |
+| Users | `/users` | User management (includes `user_code`) |
 | Roles | `/roles` | Role management |
 | Role Permissions | `/roles/:id` | Permission matrix |
+| Audit Trail | `/audit-trail` | Change history, filters, and CSV export |
 | Subscription | `/subscription` | Tenant plan view and checkout |
 | Settings | `/settings` | Organization configuration |
 | Appearance | `/appearance` | Platform theme (Super Admin) |
@@ -734,15 +794,16 @@ The frontend and backend communicate over a secure JSON REST API. The applicatio
 
 | Area | Tables |
 |------|--------|
-| Core | users, companies, branches, settings |
+| Core | users (`user_code`), companies (`code`), branches, settings |
 | RBAC | permissions, roles, role/permission pivots |
 | Subscription | plans, features, plan_features, plan_limits, subscriptions, subscription_payments |
-| Clinical | patients, departments, doctors, doctor_availabilities, appointments, appointment_vitals, billings |
+| Clinical | patients (`patient_code`), departments, doctors (`doctor_code`, `doctor_type`), doctor_availabilities, appointments, appointment_vitals, billings |
 | Laboratory | lab_test_categories, lab_tests, lab_test_packages, lab_orders, lab_order_items, lab_samples, lab_results |
 | Diagnostics | diagnostic_categories, diagnostic_test_types, diago_package, diagnostic_orders, diagnostic_reports, diagnostic_order_payments, diagnostic_order_refunds |
 | Referrals | referral_partners, referral_commission_payouts |
 | Wallets | patient_wallets, patient_wallet_transactions |
 | Finance | expenses |
+| Audit | audit_logs |
 | Other | medicines, reports, theme_settings, fcm_tokens, app_notifications |
 
 ---
@@ -777,17 +838,19 @@ The following demo accounts are available after running the database seeder:
 - Push notifications (FCM) and in-app notification inbox  
 
 **Clinic**
-- Full patient, doctor, department, and appointment modules  
+- Full patient, clinic doctor, department, and appointment modules  
 - Patient chart with unified history  
 - Vitals, prescriptions (structured + file upload), and appointment-linked billing  
 - Printable invoices and prescriptions  
 - Medicine master with CSV import/export  
 - Doctor weekly availability and schedule management  
 - Auto-provisioning of new organizations  
+- Auto-generated unique codes for companies, patients, doctors, and users  
 
 **Laboratory**
 - Lab catalog (categories, tests, packages)  
 - Full lab order workflow (collect → results → verify → approve)  
+- Dedicated lab doctors list (`/lab/doctors`)  
 
 **Diagnostics**
 - Diagnostic catalog (categories, test types, packages)  
@@ -798,6 +861,7 @@ The following demo accounts are available after running the database seeder:
 - Partial/full payments and refunds (cash, online, wallet)  
 - Patient wallets (refund credit, wallet payments)  
 - Printable diagnostic invoices and prescriptions  
+- Dedicated diagnostic doctors list (`/diagnostics/doctors`)  
 - Doctor-to-test mapping  
 - Report upload and radiologist approval  
 
@@ -805,11 +869,13 @@ The following demo accounts are available after running the database seeder:
 - Finance & P&L module (gains vs expenses)  
 - Analytics dashboard with charts  
 - Saved reports  
+- Audit trail (filters, detail diffs, CSV export, related timelines)  
 
 **Security**
 - Role-based navigation and API permission checks  
 - Subscription middleware (expired tenants blocked from operations)  
 - Tenant data isolation  
+- Shared email / phone validation on API and frontend forms  
 
 ### 🔶 Partial / Not in Main Navigation
 
@@ -888,6 +954,9 @@ This documentation covers the **ApnaMedi healthcare management platform** as imp
 | **Today's queue** | Serial-ordered list of today's diagnostic appointments for a doctor |
 | **Plan feature** | Subscription capability that unlocks permission modules |
 | **Plan limit** | Usage cap (users, branches, patients, etc.) per subscription |
+| **doctor_type** | Module scope for a doctor: `clinic`, `lab`, or `diagnostic` |
+| **user_code** | Auto-generated staff reference code, unique per company |
+| **Audit trail** | Persistent log of data changes with actor, action, and field diffs |
 
 ---
 
@@ -897,6 +966,7 @@ This documentation covers the **ApnaMedi healthcare management platform** as imp
 |---------|------|---------|
 | 1.0 | June 2026 | Initial client documentation — platform overview, modules, roles, settings |
 | 2.0 | July 2026 | Full update: subscriptions, diagnostic packages & booking, referral partners, patient wallets, finance/P&L, custom roles, medicine master, theme, notifications, today's queue, complete screen list, delivery status |
+| 2.1 | August 2026 | Module-scoped doctors (clinic / lab / diagnostics routes); unique code formats for company/patient/doctor/user; contact validation rules; audit trail screen & permissions; menu and database notes updated |
 
 ---
 

@@ -5,6 +5,7 @@ import CompanySelect from "../components/CompanySelect";
 import { useAuth } from "../auth/AuthContext";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
 
 const emptyForm = {
   company_id: "",
@@ -74,6 +75,12 @@ function Branches() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const phoneMsg = phoneError(form.phone, { required: false });
+    const mailMsg = emailError(form.email, { required: false });
+    if (phoneMsg || mailMsg) {
+      setError([phoneMsg, mailMsg].filter(Boolean).join(" "));
+      return;
+    }
     setSaving(true);
     setError("");
     try {

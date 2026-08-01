@@ -12,6 +12,7 @@ import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { phoneError } from "../utils/contactValidation";
 import { withCompanyScope } from "../utils/tenantPayload";
 import "./Referrals.css";
 
@@ -146,6 +147,11 @@ function ReferralPartners() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const mobileMsg = phoneError(form.mobile, { label: "Mobile" });
+    if (mobileMsg) {
+      setError(mobileMsg);
+      return;
+    }
     setSaving(true);
     setError("");
     try {

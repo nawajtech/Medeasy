@@ -11,6 +11,8 @@ import {
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
 import { getApiErrorMessage } from "../utils/apiError";
+import { emailError, phoneError } from "../utils/contactValidation";
+import { resolveMediaUrl } from "../utils/mediaUrl";
 import "./Companies.css";
 
 const emptyForm = {
@@ -51,9 +53,10 @@ function validate(form, isCreate) {
   const errors = {};
   if (!form.name.trim()) errors.name = "Organization name is required.";
   if (!form.modules?.length) errors.modules = "Select at least one service module.";
-  if (!form.phone.trim()) errors.phone = "Phone is required.";
-  if (!form.email.trim()) errors.email = "Email is required.";
-  else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = "Enter a valid email address.";
+  const phoneMsg = phoneError(form.phone);
+  if (phoneMsg) errors.phone = phoneMsg;
+  const emailMsg = emailError(form.email);
+  if (emailMsg) errors.email = emailMsg;
   if (!form.address.trim()) errors.address = "Address is required.";
   if (!form.city.trim()) errors.city = "City is required.";
   if (!form.country.trim()) errors.country = "Country is required.";
@@ -61,8 +64,10 @@ function validate(form, isCreate) {
   if (form.website && !/^https?:\/\/.+/.test(form.website)) errors.website = "Must be a valid URL (http/https).";
   if (isCreate) {
     if (!form.admin_name.trim()) errors.admin_name = "Administrator name is required.";
-    if (!form.admin_email.trim()) errors.admin_email = "Administrator email is required.";
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.admin_email)) errors.admin_email = "Enter a valid email address.";
+    const adminEmailMsg = emailError(form.admin_email, { label: "Administrator email" });
+    if (adminEmailMsg) errors.admin_email = adminEmailMsg;
+    const adminPhoneMsg = phoneError(form.admin_phone, { required: false, label: "Administrator phone" });
+    if (adminPhoneMsg) errors.admin_phone = adminPhoneMsg;
     if (!form.admin_password || form.admin_password.length < 8) errors.admin_password = "Password must be at least 8 characters.";
   }
   return errors;
@@ -129,7 +134,7 @@ function Companies() {
       logo_base64:         "",   // don't re-send existing logo unless changed
     });
     setFieldErrors({});
-    setLogoPreview(row.logo_url || "");
+    setLogoPreview(resolveMediaUrl(row.logo_url) || "");
     setModalOpen(true);
   };
 
@@ -199,6 +204,11 @@ function Companies() {
     setError("");
     try {
       const payload = { ...form, modules: normalizeModules(form.modules) };
+      delete payload.code; // always auto-generated on create; immutable after
+      // Empty optional strings → omit (avoids Laravel nullable|url 422)
+      for (const key of ["website", "state", "gst_number", "registration_number", "description", "admin_phone", "logo_base64"]) {
+        if (payload[key] === "") delete payload[key];
+      }
       if (editing) {
         delete payload.admin_name;
         delete payload.admin_email;
@@ -290,7 +300,7 @@ function Companies() {
               <tr key={row.id}>
                 <td>
                   {row.logo_url
-                    ? <img src={row.logo_url} alt={row.name} className="company-logo-thumb" />
+                    ? <img src={resolveMediaUrl(row.logo_url)} alt={row.name} className="company-logo-thumb" />
                     : <span className="company-logo-placeholder">{row.name.charAt(0).toUpperCase()}</span>
                   }
                 </td>
@@ -428,13 +438,22 @@ function Companies() {
               <FieldError msg={fieldErrors.modules} />
             </div>
 
-            {/* Short code */}
+            {/* Short code — auto-generated on create */}
             <div className="crud-field">
               <label htmlFor="co_code">Short code</label>
               <input
-                id="co_code" name="code" value={form.code} onChange={handleChange}
-                placeholder="e.g. APOLLO"
+                id="co_code"
+                name="code"
+                value={editing ? (form.code || "—") : ""}
+                readOnly
+                disabled
+                placeholder="Auto: company letters / number (e.g. AP/4821)"
               />
+              {!editing && (
+                <small style={{ color: "var(--me-text-muted)" }}>
+                  Generated automatically from the company name when you save.
+                </small>
+              )}
             </div>
 
             {/* Currency */}
