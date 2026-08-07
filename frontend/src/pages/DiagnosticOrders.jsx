@@ -93,9 +93,11 @@ function calcReferralBill(gross, testCommission, partner, deductCommission) {
   const normalCommission = partner ? Math.max(0, Number(testCommission) || 0) : 0;
   const extraCommission = partner ? extraCommissionAmount(grossAmount, partner) : 0;
   const totalCommission = Math.min(grossAmount, Math.round((normalCommission + extraCommission) * 100) / 100);
+  // Deduct from bill = patient discount only; partner does not earn commission.
   const discount = partner && deductCommission ? totalCommission : 0;
+  const earnedCommission = partner && !deductCommission ? totalCommission : 0;
   const net = Math.max(0, Math.round((grossAmount - discount) * 100) / 100);
-  return { grossAmount, normalCommission, extraCommission, totalCommission, discount, net };
+  return { grossAmount, normalCommission, extraCommission, totalCommission, earnedCommission, discount, net };
 }
 
 function calcPackageTestBill(testPrice, testCommission, offerPercentage, partner, deductCommission) {
@@ -118,8 +120,9 @@ function calcPackageBill(tests, offerPercentage, partner, deductCommission) {
   const packageDiscount = lines.reduce((sum, line) => sum + line.packageDiscount, 0);
   const referralDiscount = lines.reduce((sum, line) => sum + line.discount, 0);
   const totalCommission = lines.reduce((sum, line) => sum + line.totalCommission, 0);
+  const earnedCommission = lines.reduce((sum, line) => sum + line.earnedCommission, 0);
   const net = lines.reduce((sum, line) => sum + line.net, 0);
-  return { lines, grossAmount, packageDiscount, referralDiscount, totalCommission, net };
+  return { lines, grossAmount, packageDiscount, referralDiscount, totalCommission, earnedCommission, net };
 }
 
 const STATUS_META = {
@@ -940,11 +943,24 @@ function DiagnosticOrders() {
               label="Referral By"
               options={referralPartners}
               value={orderForm.referral_partner_id}
-              onChange={(id) => setOrderForm((p) => ({
-                ...p,
-                referral_partner_id: id,
-                deduct_commission_from_bill: id ? p.deduct_commission_from_bill : false,
-              }))}
+              onChange={(id) => setOrderForm((p) => {
+                const partner = referralPartners.find((r) => r.id === Number(id));
+                const deduct = id ? p.deduct_commission_from_bill : false;
+                let paid_amount = p.paid_amount;
+                if (p.booking_type === "package" && selectedPackage) {
+                  const base = calcPackageBill(packageTests, selectedPackage.offer_percentage, partner, deduct);
+                  paid_amount = String(withTax(base, taxSettings).grand_total);
+                } else if (selectedTest) {
+                  const base = calcReferralBill(selectedTest.price, selectedTest.referral_commission, partner, deduct);
+                  paid_amount = String(withTax(base, taxSettings).grand_total);
+                }
+                return {
+                  ...p,
+                  referral_partner_id: id,
+                  deduct_commission_from_bill: deduct,
+                  paid_amount,
+                };
+              })}
               placeholder="Search referral partner…"
               emptyLabel="No referral partners found"
               getOptionLabel={(p) => `${p.name}${p.mobile ? ` — ${p.mobile}` : ""} (${p.type})`}
@@ -965,7 +981,21 @@ function DiagnosticOrders() {
                     <input
                       type="checkbox"
                       checked={orderForm.deduct_commission_from_bill}
-                      onChange={(e) => setOrderForm((p) => ({ ...p, deduct_commission_from_bill: e.target.checked }))}
+                      onChange={(e) => {
+                        const deduct = e.target.checked;
+                        setOrderForm((p) => {
+                          const partner = referralPartners.find((r) => r.id === Number(p.referral_partner_id));
+                          let paid_amount = p.paid_amount;
+                          if (p.booking_type === "package" && selectedPackage) {
+                            const base = calcPackageBill(packageTests, selectedPackage.offer_percentage, partner, deduct);
+                            paid_amount = String(withTax(base, taxSettings).grand_total);
+                          } else if (selectedTest) {
+                            const base = calcReferralBill(selectedTest.price, selectedTest.referral_commission, partner, deduct);
+                            paid_amount = String(withTax(base, taxSettings).grand_total);
+                          }
+                          return { ...p, deduct_commission_from_bill: deduct, paid_amount };
+                        });
+                      }}
                     />
                     Deduct Referral Commission from Bill
                   </label>
@@ -976,7 +1006,9 @@ function DiagnosticOrders() {
                         <> + ₹{billPreview.extraCommission.toLocaleString("en-IN")} extra</>
                       )}
                       {" "}= ₹{billPreview.totalCommission.toLocaleString("en-IN")}
-                      {!orderForm.deduct_commission_from_bill && " (not deducted from bill)"}
+                      {orderForm.deduct_commission_from_bill
+                        ? " — deducted from bill (not paid to referral partner)"
+                        : " (not deducted from bill; partner earns payout)"}
                     </p>
                   )}
                 </div>
@@ -1044,6 +1076,11 @@ function DiagnosticOrders() {
                   {!orderForm.deduct_commission_from_bill && billPreview.totalCommission > 0 && (
                     <p className="ref-bill-note" style={{ marginTop: 8 }}>
                       Patient pays full amount — commission recorded for partner payout.
+                    </p>
+                  )}
+                  {orderForm.deduct_commission_from_bill && billPreview.discount > 0 && (
+                    <p className="ref-bill-note" style={{ marginTop: 8 }}>
+                      Patient discount only — referral partner does not earn commission on this order.
                     </p>
                   )}
                   {billPreview.tax_enabled && (

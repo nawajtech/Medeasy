@@ -510,7 +510,7 @@ Each order stores:
 - `package_id` — links to the package (null for single-test orders)  
 - `package_discount` — discount amount applied to that test  
 - `gross_amount` — original test price  
-- `referral_discount` — referral commission deducted from bill (if enabled)  
+- `referral_discount` — amount removed from patient bill when “deduct from bill” is enabled (partner earns ₹0 in that case)  
 - `net_amount` — final payable amount  
 
 **Order workflow:**
@@ -559,7 +559,8 @@ Booked → Scheduled → In Progress → Completed
 
 - Auto-generated referral codes  
 - Normal commission per test + optional surcharge (fixed or percentage)  
-- Option to deduct commission from patient bill  
+- Option to deduct commission from patient bill (patient discount only — partner does **not** earn payout when deducted)  
+- When not deducted: patient pays full price and commission accrues on the partner ledger  
 - Commission ledger: earned, paid, balance  
 - Record payouts against partner balance  
 
