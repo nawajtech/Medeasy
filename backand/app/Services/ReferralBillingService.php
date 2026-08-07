@@ -7,8 +7,9 @@ use App\Models\ReferralPartner;
 class ReferralBillingService
 {
     /**
-     * Commission is earned by the referral partner (normal + extra).
-     * When deduct is enabled, total commission is subtracted from the bill — never added.
+     * Referral commission modes:
+     * - Deduct from bill OFF: patient pays full price; partner earns commission (payout ledger).
+     * - Deduct from bill ON: patient gets that amount as a bill discount; partner earns nothing.
      * Total commission is capped at the original test price.
      *
      * @return array{
@@ -26,13 +27,16 @@ class ReferralBillingService
         $extra = $partner ? $this->extraCommissionAmount($gross, $partner) : 0.0;
         $totalCommission = round(min($gross, $normal + $extra), 2);
         $discount = ($partner && $deductCommission) ? $totalCommission : 0.0;
+        // When deducted from the bill, do not accrue partner commission.
+        $earnedCommission = ($partner && ! $deductCommission) ? $totalCommission : 0.0;
+        $earnedExtra = ($partner && ! $deductCommission) ? $extra : 0.0;
         $net = round(max(0, $gross - $discount), 2);
 
         return [
             'gross_amount' => $gross,
-            'referral_commission_amount' => $totalCommission,
+            'referral_commission_amount' => $earnedCommission,
             'referral_discount' => $discount,
-            'surcharge_amount' => $extra,
+            'surcharge_amount' => $earnedExtra,
             'net_amount' => $net,
         ];
     }
