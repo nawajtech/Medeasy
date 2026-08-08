@@ -125,6 +125,7 @@ class DiagnosticOrderController extends Controller
             'notes'                       => ['nullable', 'string'],
             'referral_partner_id'         => ['nullable', 'exists:referral_partners,id'],
             'deduct_commission_from_bill' => ['boolean'],
+            'extra_discount'              => ['nullable', 'numeric', 'min:0'],
             'paid_amount'                 => ['nullable', 'numeric', 'min:0'],
             'payment_method'              => ['nullable', 'string', 'max:40'],
             'payment_reference'           => ['nullable', 'string', 'max:80'],
@@ -148,12 +149,14 @@ class DiagnosticOrderController extends Controller
 
         $partner = $this->resolveReferralPartner($data);
         $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
+        $extraDiscount = round(max(0, (float) ($data['extra_discount'] ?? 0)), 2);
         $billing = app(DiagnosticOrderBillingService::class)->calculate(
             (float) $testType->price,
             (float) ($testType->referral_commission ?? 0),
             $partner,
             $deductCommission,
             (int) $data['company_id'],
+            $extraDiscount,
         );
 
         $data = $this->mergeReferralSnapshot($data, $partner);
@@ -197,6 +200,7 @@ class DiagnosticOrderController extends Controller
 
         $partner = $this->resolveReferralPartner($data);
         $deductCommission = (bool) ($data['deduct_commission_from_bill'] ?? false);
+        $extraDiscountTotal = round(max(0, (float) ($data['extra_discount'] ?? 0)), 2);
         $referralService = app(DiagnosticOrderBillingService::class);
         $paymentService = app(DiagnosticPaymentService::class);
 
@@ -206,31 +210,72 @@ class DiagnosticOrderController extends Controller
         $paymentNotes = $data['payment_notes'] ?? null;
 
         $base = $this->mergeReferralSnapshot($data, $partner);
-        unset($base['paid_amount'], $base['payment_method'], $base['payment_reference'], $base['payment_notes'], $base['test_type_id']);
+        unset(
+            $base['paid_amount'],
+            $base['payment_method'],
+            $base['payment_reference'],
+            $base['payment_notes'],
+            $base['test_type_id'],
+            $base['extra_discount'],
+        );
 
-        $prepared = [];
+        $lineInputs = [];
         foreach ($tests as $testType) {
             $this->assertDoctorMappedToTest($base['doctor_id'] ?? null, $testType);
 
             $originalGross = (float) $testType->price;
             $packageDiscount = $package->discountForTestPrice($originalGross);
             $discountedGross = $package->discountedPriceForTest($originalGross);
-
-            $billing = $referralService->calculate(
+            $preview = $referralService->calculate(
                 $discountedGross,
                 (float) ($testType->referral_commission ?? 0),
                 $partner,
                 $deductCommission,
                 $companyId,
+                0,
+            );
+            // Amount after package + referral discounts, before extra discount / tax.
+            $preExtraNet = round(max(0, (float) $preview['gross_amount'] - (float) $preview['referral_discount']), 2);
+
+            $lineInputs[] = [
+                'testType' => $testType,
+                'originalGross' => $originalGross,
+                'packageDiscount' => $packageDiscount,
+                'discountedGross' => $discountedGross,
+                'preExtraNet' => $preExtraNet,
+            ];
+        }
+
+        $totalPreExtraNet = round(collect($lineInputs)->sum('preExtraNet'), 2);
+        $extraDiscountTotal = round(min($extraDiscountTotal, $totalPreExtraNet), 2);
+        $remainingExtra = $extraDiscountTotal;
+
+        $prepared = [];
+        foreach ($lineInputs as $index => $line) {
+            $isLast = $index === count($lineInputs) - 1;
+            $lineExtra = $isLast
+                ? round(max(0, $remainingExtra), 2)
+                : ($totalPreExtraNet > 0
+                    ? round($extraDiscountTotal * ($line['preExtraNet'] / $totalPreExtraNet), 2)
+                    : 0);
+            $remainingExtra = round($remainingExtra - $lineExtra, 2);
+
+            $billing = $referralService->calculate(
+                $line['discountedGross'],
+                (float) ($line['testType']->referral_commission ?? 0),
+                $partner,
+                $deductCommission,
+                $companyId,
+                $lineExtra,
             );
 
             $prepared[] = array_merge($base, $billing, [
                 'company_id' => $companyId,
-                'test_type_id' => $testType->id,
+                'test_type_id' => $line['testType']->id,
                 'package_id' => $package->id,
-                'package_discount' => $packageDiscount,
-                'gross_amount' => $originalGross,
-                'doctor_commission_amount' => round((float) ($testType->doctor_commission ?? 0), 2),
+                'package_discount' => $line['packageDiscount'],
+                'gross_amount' => $line['originalGross'],
+                'doctor_commission_amount' => round((float) ($line['testType']->doctor_commission ?? 0), 2),
                 'status' => 'booked',
             ]);
         }
@@ -327,6 +372,7 @@ class DiagnosticOrderController extends Controller
         $gross = (float) ($order->gross_amount ?: $order->amount ?: 0);
         $packageAdjusted = (float) ($order->package_discount ?: 0);
         $adjusted = (float) ($order->referral_discount ?: 0);
+        $extraDiscount = (float) ($order->extra_discount ?: 0);
         $payable = (float) ($order->grand_total ?: $order->net_amount ?: $order->amount ?: 0);
         $taxable = (float) ($order->taxable_amount ?: $order->net_amount ?: $payable);
         $paid = (float) ($order->paid_amount ?? 0);
@@ -363,6 +409,7 @@ class DiagnosticOrderController extends Controller
             'packageAdjusted' => $packageAdjusted,
             'packageName' => $order->package?->package_name,
             'adjusted' => $adjusted,
+            'extraDiscount' => $extraDiscount,
             'payable' => $payable,
             'taxable' => $taxable,
             'tax' => [

@@ -13,7 +13,7 @@ class DiagnosticOrderBillingService
     ) {}
 
     /**
-     * Referral/package discounts first, then GST (CGST+SGST or IGST).
+     * Referral/package discounts first, then optional extra discount, then GST (CGST+SGST or IGST).
      *
      * @return array<string, float|bool|string|null>
      */
@@ -23,6 +23,7 @@ class DiagnosticOrderBillingService
         ?ReferralPartner $partner,
         bool $deductCommission,
         int $companyId,
+        float $extraDiscount = 0,
     ): array {
         $referral = $this->referralBilling->calculate(
             $grossAmount,
@@ -31,12 +32,17 @@ class DiagnosticOrderBillingService
             $deductCommission
         );
 
+        $preExtraNet = (float) $referral['net_amount'];
+        $extra = round(min(max(0, $extraDiscount), $preExtraNet), 2);
+        $afterExtra = round(max(0, $preExtraNet - $extra), 2);
+
         $tax = TaxCalculator::apply(
-            (float) $referral['net_amount'],
+            $afterExtra,
             $this->taxSettings->forCompany($companyId)
         );
 
         return array_merge($referral, $tax, [
+            'extra_discount' => $extra,
             'net_amount' => $tax['taxable_amount'],
             'amount' => $tax['grand_total'],
         ]);

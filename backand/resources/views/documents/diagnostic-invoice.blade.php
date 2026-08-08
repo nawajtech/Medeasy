@@ -287,6 +287,12 @@
                         <td class="num">{{ number_format($adjusted, 2) }}</td>
                     </tr>
                 @endif
+                @if(($extraDiscount ?? 0) > 0)
+                    <tr>
+                        <th>Extra discount</th>
+                        <td class="num">−{{ number_format($extraDiscount, 2) }}</td>
+                    </tr>
+                @endif
                 @if(($taxable ?? $payable) != $payable || !empty($tax['enabled']))
                     <tr>
                         <th>Taxable Amount</th>
