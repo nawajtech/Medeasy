@@ -79,6 +79,20 @@ function withTax(bill, taxSettings) {
   return { ...bill, ...tax };
 }
 
+function applyExtraDiscount(bill, extraDiscount) {
+  const baseNet = Math.max(0, Number(bill?.net) || 0);
+  const discount = Math.min(baseNet, Math.max(0, Math.round((Number(extraDiscount) || 0) * 100) / 100));
+  return {
+    ...bill,
+    extraDiscount: discount,
+    net: Math.max(0, Math.round((baseNet - discount) * 100) / 100),
+  };
+}
+
+function billWithExtras(bill, taxSettings, extraDiscount = 0) {
+  return withTax(applyExtraDiscount(bill, extraDiscount), taxSettings);
+}
+
 function extraCommissionAmount(gross, partner) {
   if (!partner?.surcharge_type || Number(partner.surcharge_value) <= 0) return 0;
   const grossAmount = Math.max(0, Number(gross) || 0);
@@ -166,7 +180,7 @@ function DiagnosticOrders() {
     category_id: "", test_type_id: "", package_id: "", doctor_id: "",
     referral_partner_id: "", deduct_commission_from_bill: false,
     priority: "routine", clinical_notes: "", notes: "",
-    paid_amount: "", payment_method: "cash",
+    extra_discount: "", paid_amount: "", payment_method: "cash",
   });
   const [referralPartners, setReferralPartners] = useState([]);
   const [doctors, setDoctors] = useState([]);
@@ -255,7 +269,7 @@ function DiagnosticOrders() {
         orderForm.deduct_commission_from_bill
       );
     }
-    return withTax(base, taxSettings);
+    return billWithExtras(base, taxSettings, orderForm.extra_discount);
   }, [
     orderForm.booking_type,
     selectedPackage,
@@ -263,6 +277,7 @@ function DiagnosticOrders() {
     selectedTest,
     selectedPartner,
     orderForm.deduct_commission_from_bill,
+    orderForm.extra_discount,
     taxSettings,
   ]);
 
@@ -371,7 +386,7 @@ function DiagnosticOrders() {
       category_id: "", test_type_id: "", package_id: "", doctor_id: "",
       referral_partner_id: "", deduct_commission_from_bill: false,
       priority: "routine", clinical_notes: "", notes: "",
-      paid_amount: "", payment_method: "cash",
+      extra_discount: "", paid_amount: "", payment_method: "cash",
     });
     setCreateOpen(true);
     await Promise.allSettled([loadCreatePatients(""), loadCatalog(), loadDoctors(), loadReferralPartners(), loadTaxSettings()]);
@@ -410,6 +425,7 @@ function DiagnosticOrders() {
       test_type_id: "",
       package_id: "",
       doctor_id: "",
+      extra_discount: "",
       paid_amount: "",
     }));
   };
@@ -420,6 +436,7 @@ function DiagnosticOrders() {
       category_id: e.target.value,
       test_type_id: "",
       doctor_id: "",
+      extra_discount: "",
       paid_amount: "",
     }));
   };
@@ -436,7 +453,7 @@ function DiagnosticOrders() {
       const base = test
         ? calcReferralBill(test.price, test.referral_commission, partner, p.deduct_commission_from_bill)
         : { net: 0 };
-      const grand = withTax(base, taxSettings).grand_total;
+      const grand = billWithExtras(base, taxSettings, p.extra_discount).grand_total;
       return {
         ...p,
         test_type_id: testTypeId,
@@ -454,13 +471,32 @@ function DiagnosticOrders() {
     const base = pkg
       ? calcPackageBill(tests, pkg.offer_percentage, partner, orderForm.deduct_commission_from_bill)
       : { net: 0 };
-    const grand = withTax(base, taxSettings).grand_total;
+    const grand = billWithExtras(base, taxSettings, orderForm.extra_discount).grand_total;
     setOrderForm((p) => ({
       ...p,
       package_id: packageId,
       doctor_id: "",
       paid_amount: pkg ? String(grand) : "",
     }));
+  };
+
+  const syncPaidToGrand = (formPatch = {}) => {
+    setOrderForm((p) => {
+      const next = { ...p, ...formPatch };
+      const partner = referralPartners.find((r) => r.id === Number(next.referral_partner_id));
+      let paid_amount = next.paid_amount;
+      if (next.booking_type === "package" && selectedPackage) {
+        const tests = (selectedPackage.test_ids || [])
+          .map((id) => types.find((t) => t.id === Number(id)))
+          .filter(Boolean);
+        const base = calcPackageBill(tests, selectedPackage.offer_percentage, partner, next.deduct_commission_from_bill);
+        paid_amount = String(billWithExtras(base, taxSettings, next.extra_discount).grand_total);
+      } else if (selectedTest) {
+        const base = calcReferralBill(selectedTest.price, selectedTest.referral_commission, partner, next.deduct_commission_from_bill);
+        paid_amount = String(billWithExtras(base, taxSettings, next.extra_discount).grand_total);
+      }
+      return { ...next, paid_amount };
+    });
   };
 
   const handleOpenBill = async (order) => {
@@ -483,6 +519,7 @@ function DiagnosticOrders() {
         package_id: orderForm.booking_type === "package" ? orderForm.package_id : undefined,
         referral_partner_id: orderForm.referral_partner_id || undefined,
         deduct_commission_from_bill: Boolean(orderForm.referral_partner_id && orderForm.deduct_commission_from_bill),
+        extra_discount: Number(orderForm.extra_discount) || 0,
         paid_amount: Number(orderForm.paid_amount) || 0,
         payment_method: Number(orderForm.paid_amount) > 0 ? orderForm.payment_method : undefined,
       };
@@ -943,24 +980,13 @@ function DiagnosticOrders() {
               label="Referral By"
               options={referralPartners}
               value={orderForm.referral_partner_id}
-              onChange={(id) => setOrderForm((p) => {
-                const partner = referralPartners.find((r) => r.id === Number(id));
-                const deduct = id ? p.deduct_commission_from_bill : false;
-                let paid_amount = p.paid_amount;
-                if (p.booking_type === "package" && selectedPackage) {
-                  const base = calcPackageBill(packageTests, selectedPackage.offer_percentage, partner, deduct);
-                  paid_amount = String(withTax(base, taxSettings).grand_total);
-                } else if (selectedTest) {
-                  const base = calcReferralBill(selectedTest.price, selectedTest.referral_commission, partner, deduct);
-                  paid_amount = String(withTax(base, taxSettings).grand_total);
-                }
-                return {
-                  ...p,
+              onChange={(id) => {
+                const deduct = id ? orderForm.deduct_commission_from_bill : false;
+                syncPaidToGrand({
                   referral_partner_id: id,
                   deduct_commission_from_bill: deduct,
-                  paid_amount,
-                };
-              })}
+                });
+              }}
               placeholder="Search referral partner…"
               emptyLabel="No referral partners found"
               getOptionLabel={(p) => `${p.name}${p.mobile ? ` — ${p.mobile}` : ""} (${p.type})`}
@@ -982,19 +1008,7 @@ function DiagnosticOrders() {
                       type="checkbox"
                       checked={orderForm.deduct_commission_from_bill}
                       onChange={(e) => {
-                        const deduct = e.target.checked;
-                        setOrderForm((p) => {
-                          const partner = referralPartners.find((r) => r.id === Number(p.referral_partner_id));
-                          let paid_amount = p.paid_amount;
-                          if (p.booking_type === "package" && selectedPackage) {
-                            const base = calcPackageBill(packageTests, selectedPackage.offer_percentage, partner, deduct);
-                            paid_amount = String(withTax(base, taxSettings).grand_total);
-                          } else if (selectedTest) {
-                            const base = calcReferralBill(selectedTest.price, selectedTest.referral_commission, partner, deduct);
-                            paid_amount = String(withTax(base, taxSettings).grand_total);
-                          }
-                          return { ...p, deduct_commission_from_bill: deduct, paid_amount };
-                        });
+                        syncPaidToGrand({ deduct_commission_from_bill: e.target.checked });
                       }}
                     />
                     Deduct Referral Commission from Bill
@@ -1073,6 +1087,12 @@ function DiagnosticOrders() {
                       <span>−₹{(billPreview.referralDiscount ?? billPreview.discount).toLocaleString("en-IN")}</span>
                     </div>
                   )}
+                  {(billPreview.extraDiscount ?? 0) > 0 && (
+                    <div className="lo-bill-row" style={{ color: "var(--me-success)" }}>
+                      <span>Extra discount</span>
+                      <span>−₹{billPreview.extraDiscount.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   {!orderForm.deduct_commission_from_bill && billPreview.totalCommission > 0 && (
                     <p className="ref-bill-note" style={{ marginTop: 8 }}>
                       Patient pays full amount — commission recorded for partner payout.
@@ -1133,6 +1153,20 @@ function DiagnosticOrders() {
             )}
             {(selectedTest || selectedPackage) && (
               <>
+                <div className="crud-field">
+                  <label htmlFor="do_extra_discount">Extra discount (₹)</label>
+                  <input
+                    id="do_extra_discount"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    max={Math.max(0, (billPreview.net ?? 0) + (billPreview.extraDiscount ?? 0))}
+                    value={orderForm.extra_discount}
+                    onChange={(e) => syncPaidToGrand({ extra_discount: e.target.value })}
+                    placeholder="0"
+                  />
+                  <p className="company-modules-hint">Optional amount deducted from the bill before tax.</p>
+                </div>
                 <div className="crud-field">
                   <label htmlFor="do_paid">Paid amount (₹)</label>
                   <input
@@ -1233,6 +1267,9 @@ function DiagnosticOrders() {
               )}
               {Number(detailOrder.referral_discount) > 0 && (
                 <div><dt>Referral discount</dt><dd>−₹{Number(detailOrder.referral_discount).toLocaleString("en-IN")}</dd></div>
+              )}
+              {Number(detailOrder.extra_discount) > 0 && (
+                <div><dt>Extra discount</dt><dd>−₹{Number(detailOrder.extra_discount).toLocaleString("en-IN")}</dd></div>
               )}
               {Number(detailOrder.surcharge_amount) > 0 && (
                 <div><dt>Extra commission</dt><dd>₹{Number(detailOrder.surcharge_amount).toLocaleString("en-IN")}</dd></div>
