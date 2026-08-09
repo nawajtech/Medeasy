@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\DiagnosticOrder;
 use App\Services\DiagnosticReportShareService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\View\View;
 
 class PublicDiagnosticReportController extends Controller
@@ -16,6 +17,13 @@ class PublicDiagnosticReportController extends Controller
         $data = $this->shareService->documentData($order);
 
         return view('documents.diagnostic-share-report', $data);
+    }
+
+    public function showJson(string $token): JsonResponse
+    {
+        $order = $this->findByShareToken($token);
+
+        return response()->json($this->shareService->publicPayload($order));
     }
 
     public function download(string $token): View

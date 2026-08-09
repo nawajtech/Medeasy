@@ -1,0 +1,217 @@
+.share-rx-page {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  color: #1e293b;
+}
+
+.share-rx-wrap {
+  width: 100%;
+  max-width: 430px;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.share-rx-brand {
+  display: flex;
+  justify-content: center;
+  padding: 22px 16px 8px;
+}
+
+.share-rx-logo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: contain;
+  border: 2px solid #dbeafe;
+  background: #fff;
+  padding: 4px;
+}
+
+.share-rx-logo-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1e3a5f, #2563eb);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+}
+
+.share-rx-hero {
+  margin: 12px 16px 0;
+  background: linear-gradient(180deg, #e8f1ff 0%, #f0f7ff 100%);
+  border-radius: 14px;
+  padding: 18px 16px 16px;
+  text-align: center;
+}
+
+.share-rx-hero h1 {
+  font-size: 17px;
+  font-weight: 800;
+  color: #1e3a5f;
+  line-height: 1.35;
+  text-transform: uppercase;
+}
+
+.share-rx-study {
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e3a5f;
+  text-transform: uppercase;
+}
+
+.share-rx-pid {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.share-rx-pid strong {
+  color: #1e293b;
+}
+
+.share-rx-details {
+  margin: 8px 16px 0;
+  padding: 4px 0;
+}
+
+.share-rx-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 4px;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 13.5px;
+}
+
+.share-rx-row:last-child {
+  border-bottom: none;
+}
+
+.share-rx-row span {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.share-rx-row strong {
+  text-align: right;
+  word-break: break-word;
+}
+
+.share-rx-actions {
+  margin: 8px 16px 24px;
+  text-align: center;
+}
+
+.share-rx-actions p {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 14px;
+}
+
+.share-rx-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.share-rx-btn--download {
+  background: linear-gradient(135deg, #1e3a5f 0%, #1d4ed8 100%);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+}
+
+.share-rx-btn--view {
+  background: linear-gradient(135deg, #38bdf8 0%, #2563eb 100%);
+  box-shadow: 0 4px 14px rgba(56, 189, 248, 0.28);
+}
+
+.share-rx-btn:disabled {
+  opacity: 0.55;
+  pointer-events: none;
+  box-shadow: none;
+}
+
+.share-rx-note {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #b45309;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.share-rx-secure {
+  margin-top: auto;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #fff;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.share-rx-secure-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #22c55e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.share-rx-secure strong {
+  display: block;
+  font-size: 13px;
+}
+
+.share-rx-secure span {
+  display: block;
+  font-size: 11px;
+  opacity: 0.8;
+}
+
+.share-rx-status {
+  margin: 40px 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.share-rx-status--error {
+  color: #b91c1c;
+}
+
+.share-rx-home {
+  margin: 12px 0 20px;
+  font-size: 12px;
+}
+
+.share-rx-home a {
+  color: #64748b;
+}

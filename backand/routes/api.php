@@ -43,6 +43,12 @@ Route::get('theme', [ThemeController::class, 'show']);
 Route::get('platform-branding', [PlatformSettingController::class, 'show']);
 Route::get('media/{path}', [MediaController::class, 'show'])->where('path', '.*');
 
+// Public diagnostic report share (QR scan — no login)
+Route::get('public/share-report/{token}', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'showJson'])
+    ->where('token', '[A-Za-z0-9]+');
+Route::get('public/share-report/{token}/download', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'download'])
+    ->where('token', '[A-Za-z0-9]+');
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
     Route::put('auth/profile', [AuthController::class, 'updateProfile']);
