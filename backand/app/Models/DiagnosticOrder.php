@@ -14,6 +14,19 @@ class DiagnosticOrder extends Model
         'booked', 'scheduled', 'in_progress', 'completed', 'not_present', 'cancelled',
     ];
 
+    protected static function booted(): void
+    {
+        static::creating(function (DiagnosticOrder $order) {
+            if (! filled($order->share_token)) {
+                do {
+                    $token = \Illuminate\Support\Str::lower(\Illuminate\Support\Str::random(24));
+                } while (static::withoutGlobalScopes()->where('share_token', $token)->exists());
+
+                $order->share_token = $token;
+            }
+        });
+    }
+
     protected $fillable = [
         'company_id',
         'branch_id',
@@ -22,6 +35,7 @@ class DiagnosticOrder extends Model
         'test_type_id',
         'package_id',
         'order_number',
+        'share_token',
         'status',
         'technician_id',
         'scheduled_at',
