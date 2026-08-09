@@ -15,9 +15,9 @@ use App\Models\ReferralPartner;
 use App\Services\ClinicBrandingService;
 use App\Services\DiagnosticOrderBillingService;
 use App\Services\DiagnosticPaymentService;
+use App\Services\DiagnosticReportShareService;
 use App\Services\PatientWalletService;
 use App\Support\AmountInWords;
-use App\Support\PrescriptionFormatter;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -614,49 +614,10 @@ class DiagnosticOrderController extends Controller
     {
         $this->assertTenantAccess($diagnosticOrder);
 
-        $order = $diagnosticOrder->load([
-            'patient',
-            'doctor.user',
-            'doctor.department',
-            'testType.category',
-            'referralPartner',
-            'report.reporter',
-        ]);
-
-        $brandingService = app(ClinicBrandingService::class);
-        $branding = $brandingService->forCompany((int) $order->company_id);
-
-        $patient = $order->patient;
-        $agePart = '—';
-        if ($patient?->date_of_birth) {
-            $diff = $patient->date_of_birth->diff(now());
-            $agePart = sprintf('%d Y', $diff->y);
-        }
-        $sexPart = $patient?->gender ? strtoupper(substr($patient->gender, 0, 1) === 'M' ? 'MALE' : ($patient->gender === 'female' ? 'FEMALE' : strtoupper($patient->gender))) : '—';
-
-        $serviceName = trim(($order->testType?->category?->name ? $order->testType->category->name.' — ' : '').($order->testType?->name ?? 'Diagnostic Test'));
-
-        $referredBy = $order->referral_partner_name;
-        if (! $referredBy && $order->doctor?->user?->name) {
-            $referredBy = 'Dr. '.$order->doctor->user->name;
-        }
-
-        $doctorName = $order->doctor?->user?->name ?? auth()->user()?->name ?? 'Doctor';
-        $doctorQualification = trim(($order->doctor?->department?->name ?? '').($order->doctor?->license_number ? ' · Reg: '.$order->doctor->license_number : ''));
-
-        return view('documents.diagnostic-prescription', [
-            'order' => $order,
-            'patient' => $patient,
-            'report' => $order->report,
-            'branding' => $branding,
-            'reportDate' => $order->report?->updated_at ?? $order->created_at ?? now(),
-            'patientAgeSex' => $agePart.' / '.$sexPart,
-            'serviceName' => $serviceName,
-            'referredBy' => $referredBy,
-            'doctorName' => $doctorName,
-            'doctorQualification' => $doctorQualification,
-            'findingsHtml' => PrescriptionFormatter::findingsToHtml($order->report?->findings),
-        ]);
+        return view(
+            'documents.diagnostic-prescription',
+            app(DiagnosticReportShareService::class)->documentData($diagnosticOrder)
+        );
     }
 
     /** Record additional payment against due balance */
