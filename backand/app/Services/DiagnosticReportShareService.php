@@ -12,7 +12,8 @@ use Illuminate\Support\Str;
 
 class DiagnosticReportShareService
 {
-    private const PUBLIC_SHARE_BASE = 'https://apnamedi.com';
+    /** Public HTML/API host. SPA on apnamedi.com has no Laravel routes — QR must use /api/public/*. */
+    private const PUBLIC_API_BASE = 'https://app.apnamedi.com/api/public/share-report';
 
     public function ensureShareToken(DiagnosticOrder $order): string
     {
@@ -33,14 +34,14 @@ class DiagnosticReportShareService
     {
         $token = $this->ensureShareToken($order);
 
-        return self::PUBLIC_SHARE_BASE.'/share-report/'.$token;
+        return self::PUBLIC_API_BASE.'/'.$token.'/view';
     }
 
     public function downloadUrl(DiagnosticOrder $order): string
     {
         $token = $this->ensureShareToken($order);
 
-        return self::PUBLIC_SHARE_BASE.'/share-report/'.$token.'/download';
+        return self::PUBLIC_API_BASE.'/'.$token.'/download';
     }
 
     /** @return array<string, mixed> */
@@ -75,16 +76,20 @@ class DiagnosticReportShareService
 
     public function qrDataUri(string $content, int $size = 140): string
     {
-        $builder = new Builder(
-            writer: new PngWriter,
-            data: $content,
-            encoding: new Encoding('UTF-8'),
-            errorCorrectionLevel: ErrorCorrectionLevel::Medium,
-            size: $size,
-            margin: 4,
-        );
+        try {
+            $builder = new Builder(
+                writer: new PngWriter,
+                data: $content,
+                encoding: new Encoding('UTF-8'),
+                errorCorrectionLevel: ErrorCorrectionLevel::Medium,
+                size: $size,
+                margin: 4,
+            );
 
-        return $builder->build()->getDataUri();
+            return $builder->build()->getDataUri();
+        } catch (\Throwable) {
+            return '';
+        }
     }
 
     /** @return array<string, mixed> */

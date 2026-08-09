@@ -2,13 +2,21 @@ import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { API_BASE_URL } from "../config/env";
 
-/** Opens the public printable report (no login) then closes if opened as popup. */
+function publicApiBase() {
+  const configured = (API_BASE_URL || "").replace(/\/$/, "");
+  if (configured.includes("apnamedi.com") || configured.includes("127.0.0.1") || configured.includes("localhost")) {
+    return configured;
+  }
+  return "https://app.apnamedi.com/api";
+}
+
+/** Opens the public printable report (no login). */
 function ShareDiagnosticReportDownload() {
   const { token } = useParams();
 
   useEffect(() => {
     if (!token) return;
-    const url = `${API_BASE_URL}/public/share-report/${encodeURIComponent(token)}/download?print=1`;
+    const url = `${publicApiBase()}/public/share-report/${encodeURIComponent(token)}/download?print=1`;
     window.location.replace(url);
   }, [token]);
 
