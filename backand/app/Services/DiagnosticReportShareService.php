@@ -12,6 +12,8 @@ use Illuminate\Support\Str;
 
 class DiagnosticReportShareService
 {
+    private const PUBLIC_SHARE_BASE = 'https://apnamedi.com';
+
     public function ensureShareToken(DiagnosticOrder $order): string
     {
         if (filled($order->share_token)) {
@@ -31,14 +33,44 @@ class DiagnosticReportShareService
     {
         $token = $this->ensureShareToken($order);
 
-        return url('/share-report/'.$token);
+        return self::PUBLIC_SHARE_BASE.'/share-report/'.$token;
     }
 
     public function downloadUrl(DiagnosticOrder $order): string
     {
         $token = $this->ensureShareToken($order);
 
-        return url('/share-report/'.$token.'/download');
+        return self::PUBLIC_SHARE_BASE.'/share-report/'.$token.'/download';
+    }
+
+    /** @return array<string, mixed> */
+    public function publicPayload(DiagnosticOrder $order): array
+    {
+        $data = $this->documentData($order);
+        $token = $this->ensureShareToken($order);
+
+        return [
+            'token' => $token,
+            'report_id' => $order->order_number,
+            'patient_name' => $data['patient']?->name,
+            'patient_code' => $data['patient']?->patient_code,
+            'patient_headline' => $data['patientHeadline'],
+            'patient_age_sex_short' => $data['patientAgeSexShort'],
+            'service_name' => $data['serviceName'],
+            'test_name' => $order->testType?->name ?? $data['serviceName'],
+            'referred_by' => $data['referredBy'],
+            'study_at' => optional($data['studyDate'])->toIso8601String(),
+            'study_at_label' => optional($data['studyDate'])->format('d-m-Y h:i A'),
+            'report_at' => optional($data['reportDate'])->toIso8601String(),
+            'report_at_label' => optional($data['reportDate'])->format('d-m-Y h:i A'),
+            'has_report' => (bool) $data['hasReport'],
+            'branding' => [
+                'name' => $data['branding']['name'] ?? null,
+                'logo' => $data['branding']['logo'] ?? null,
+            ],
+            'share_url' => $data['shareUrl'],
+            'download_url' => $data['downloadUrl'],
+        ];
     }
 
     public function qrDataUri(string $content, int $size = 140): string
