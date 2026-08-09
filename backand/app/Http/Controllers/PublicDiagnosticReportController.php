@@ -26,6 +26,12 @@ class PublicDiagnosticReportController extends Controller
         return response()->json($this->shareService->publicPayload($order));
     }
 
+    /** Public HTML summary page for QR scans (no login). */
+    public function view(string $token): View
+    {
+        return $this->show($token);
+    }
+
     public function download(string $token): View
     {
         $order = $this->findByShareToken($token);

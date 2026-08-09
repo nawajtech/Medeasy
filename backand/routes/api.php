@@ -46,6 +46,8 @@ Route::get('media/{path}', [MediaController::class, 'show'])->where('path', '.*'
 // Public diagnostic report share (QR scan — no login)
 Route::get('public/share-report/{token}', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'showJson'])
     ->where('token', '[A-Za-z0-9]+');
+Route::get('public/share-report/{token}/view', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'view'])
+    ->where('token', '[A-Za-z0-9]+');
 Route::get('public/share-report/{token}/download', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'download'])
     ->where('token', '[A-Za-z0-9]+');
 

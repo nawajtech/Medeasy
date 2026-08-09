@@ -3,31 +3,47 @@ import { Link, useParams } from "react-router-dom";
 import { API_BASE_URL } from "../config/env";
 import "./ShareDiagnosticReport.css";
 
+/** Prefer live API host so public report works even if SPA env is wrong. */
+function publicApiBase() {
+  const configured = (API_BASE_URL || "").replace(/\/$/, "");
+  if (configured.includes("apnamedi.com") || configured.includes("127.0.0.1") || configured.includes("localhost")) {
+    return configured;
+  }
+  return "https://app.apnamedi.com/api";
+}
+
 function ShareDiagnosticReport() {
   const { token } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const apiBase = useMemo(() => publicApiBase(), []);
 
   const downloadHref = useMemo(() => {
     if (!token) return "#";
-    return `${API_BASE_URL}/public/share-report/${encodeURIComponent(token)}/download?print=1`;
-  }, [token]);
+    return `${apiBase}/public/share-report/${encodeURIComponent(token)}/download?print=1`;
+  }, [apiBase, token]);
 
   const viewHref = useMemo(() => {
     if (!token) return "#";
-    return `${API_BASE_URL}/public/share-report/${encodeURIComponent(token)}/download`;
-  }, [token]);
+    return `${apiBase}/public/share-report/${encodeURIComponent(token)}/download`;
+  }, [apiBase, token]);
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      if (!token) {
+        setError("Invalid report link.");
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError("");
       try {
         const res = await fetch(
-          `${API_BASE_URL}/public/share-report/${encodeURIComponent(token)}`,
+          `${apiBase}/public/share-report/${encodeURIComponent(token)}`,
           { headers: { Accept: "application/json" } }
         );
         if (!res.ok) {
@@ -42,11 +58,11 @@ function ShareDiagnosticReport() {
       }
     }
 
-    if (token) load();
+    load();
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [apiBase, token]);
 
   const brandInitials = (data?.branding?.name || "AM").slice(0, 2).toUpperCase();
 
@@ -65,7 +81,7 @@ function ShareDiagnosticReport() {
           <div className="share-rx-status">Loading report…</div>
         ) : error ? (
           <div className="share-rx-status share-rx-status--error">{error}</div>
-        ) : (
+        ) : data ? (
           <>
             <div className="share-rx-hero">
               <h1>{data.patient_headline}</h1>
@@ -126,6 +142,8 @@ function ShareDiagnosticReport() {
               )}
             </div>
           </>
+        ) : (
+          <div className="share-rx-status share-rx-status--error">Report not found.</div>
         )}
 
         <div className="share-rx-secure">
@@ -138,11 +156,9 @@ function ShareDiagnosticReport() {
           </div>
         </div>
       </div>
-      {!loading && !error ? null : (
-        <p className="share-rx-home">
-          <Link to="/login">Staff login</Link>
-        </p>
-      )}
+      <p className="share-rx-home">
+        <Link to="/login">Staff login</Link>
+      </p>
     </div>
   );
 }
