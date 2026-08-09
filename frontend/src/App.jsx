@@ -35,6 +35,8 @@ import Roles from "./pages/Roles";
 import RolePermissions from "./pages/RolePermissions";
 import ThemeSettings from "./pages/ThemeSettings";
 import AuditTrail from "./pages/AuditTrail";
+import ShareDiagnosticReport from "./pages/ShareDiagnosticReport";
+import ShareDiagnosticReportDownload from "./pages/ShareDiagnosticReportDownload";
 import "./App.css";
 
 function App() {
@@ -46,6 +48,8 @@ function App() {
           <NotificationToast />
           <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/share-report/:token" element={<ShareDiagnosticReport />} />
+          <Route path="/share-report/:token/download" element={<ShareDiagnosticReportDownload />} />
           <Route element={<ProtectedRoute />}>
             <Route element={<MainLayout />}>
               <Route element={<RoleRoute />}>

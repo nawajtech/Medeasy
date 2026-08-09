@@ -27,7 +27,8 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !isAuthRequest) {
       localStorage.removeItem("apna_medi_token");
       localStorage.removeItem("apna_medi_user");
-      if (window.location.pathname !== "/login") {
+      const path = window.location.pathname || "";
+      if (path !== "/login" && !path.startsWith("/share-report/")) {
         window.location.href = "/login";
       }
     }
