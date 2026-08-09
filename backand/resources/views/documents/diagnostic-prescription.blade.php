@@ -332,6 +332,26 @@
             align-items: flex-end;
             gap: 20px;
         }
+        .rx-qr {
+            width: 88px;
+            text-align: center;
+        }
+        .rx-qr img {
+            width: 72px;
+            height: 72px;
+            display: block;
+            border: 2px solid #bae6fd;
+            border-radius: 8px;
+            background: #fff;
+            padding: 2px;
+        }
+        .rx-qr span {
+            display: block;
+            margin-top: 4px;
+            font-size: 8px;
+            color: var(--muted);
+            line-height: 1.2;
+        }
         .rx-qr-placeholder {
             width: 72px;
             height: 72px;
@@ -544,7 +564,14 @@
             </div>
 
             <div class="rx-sign-row">
-                <div class="rx-qr-placeholder">Scan for<br>digital copy</div>
+                <div class="rx-qr">
+                    @if(!empty($qrDataUri))
+                        <img src="{{ $qrDataUri }}" alt="Scan for digital copy">
+                        <span>Scan for digital copy</span>
+                    @else
+                        <div class="rx-qr-placeholder">Scan for<br>digital copy</div>
+                    @endif
+                </div>
                 <div class="rx-sign">
                     <div class="rx-sign-line">
                         <strong>{{ $doctorName }}</strong>
@@ -572,5 +599,12 @@
             <div class="rx-bottom-stripe"></div>
         </div>
     </div>
+    @if(request()->boolean('print'))
+        <script>
+            window.addEventListener('load', function () {
+                setTimeout(function () { window.print(); }, 250);
+            });
+        </script>
+    @endif
 </body>
 </html>
