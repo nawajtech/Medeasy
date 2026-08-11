@@ -177,7 +177,7 @@ class DiagnosticPaymentService
             'payment_method' => $method,
             'reference' => $reference,
             'notes' => $notes,
-            'recorded_by' => auth()->id(),
+            'recorded_by' => auth()->user() instanceof \App\Models\User ? auth()->id() : null,
             'paid_at' => $paidAt ?? now(),
         ]);
     }

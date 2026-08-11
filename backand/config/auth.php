@@ -46,6 +46,10 @@ return [
             'driver' => 'sanctum',
             'provider' => 'users',
         ],
+        'patient' => [
+            'driver' => 'sanctum',
+            'provider' => 'patients',
+        ],
     ],
 
     /*
@@ -70,11 +74,10 @@ return [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
         ],
-
-        // 'users' => [
-        //     'driver' => 'database',
-        //     'table' => 'users',
-        // ],
+        'patients' => [
+            'driver' => 'eloquent',
+            'model' => App\Models\Patient::class,
+        ],
     ],
 
     /*
