@@ -34,6 +34,7 @@ class PatientAuthController extends Controller
             'email' => $validated['email'],
             'phone' => $validated['phone'],
             'password' => $validated['password'],
+            'original_password' => $validated['password'],
             'gender' => $validated['gender'] ?? null,
             'date_of_birth' => $validated['date_of_birth'] ?? null,
             'status' => true,
@@ -139,7 +140,10 @@ class PatientAuthController extends Controller
             ]);
         }
 
-        $patient->update(['password' => $validated['password']]);
+        $patient->update([
+            'password' => $validated['password'],
+            'original_password' => $validated['password'],
+        ]);
 
         return response()->json(['message' => 'Password changed successfully.']);
     }
