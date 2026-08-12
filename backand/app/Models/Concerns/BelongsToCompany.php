@@ -13,7 +13,13 @@ trait BelongsToCompany
         static::addGlobalScope('company', function (Builder $builder) {
             $user = auth()->user();
 
-            if (! $user || $user->isSuperAdmin()) {
+            // Unauthenticated queries and patient-portal auth skip tenant scoping.
+            // Patient APIs filter by patient_id (and explicit company_id) instead.
+            if (! $user || $user instanceof \App\Models\Patient) {
+                return;
+            }
+
+            if ($user->isSuperAdmin()) {
                 return;
             }
 
@@ -26,7 +32,7 @@ trait BelongsToCompany
         static::creating(function (Model $model) {
             $user = auth()->user();
 
-            if ($user && ! $user->isSuperAdmin() && empty($model->company_id)) {
+            if ($user instanceof \App\Models\User && ! $user->isSuperAdmin() && empty($model->company_id)) {
                 $model->company_id = $user->company_id;
             }
         });
