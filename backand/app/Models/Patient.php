@@ -18,6 +18,7 @@ class Patient extends Authenticatable
         'email',
         'phone',
         'password',
+        'original_password',
         'status',
         'gender',
         'date_of_birth',
@@ -33,6 +34,7 @@ class Patient extends Authenticatable
 
     protected $hidden = [
         'password',
+        'original_password',
         'remember_token',
     ];
 
