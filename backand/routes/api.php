@@ -34,9 +34,39 @@ use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\Patient\PatientAuthController;
+use App\Http\Controllers\Api\Patient\PatientPortalController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
+
+// Patient portal (patient.apnamedi.com)
+Route::prefix('patient')->group(function () {
+    Route::post('auth/register', [PatientAuthController::class, 'register']);
+    Route::post('auth/login', [PatientAuthController::class, 'login']);
+
+    Route::middleware(['auth:patient', 'patient'])->group(function () {
+        Route::get('auth/me', [PatientAuthController::class, 'me']);
+        Route::post('auth/logout', [PatientAuthController::class, 'logout']);
+        Route::put('auth/profile', [PatientAuthController::class, 'updateProfile']);
+        Route::put('auth/password', [PatientAuthController::class, 'changePassword']);
+
+        Route::get('centres', [PatientPortalController::class, 'centres']);
+        Route::get('centres/{companyId}', [PatientPortalController::class, 'centreShow'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/services', [PatientPortalController::class, 'centreServices'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/slots', [PatientPortalController::class, 'slots'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/referral', [PatientPortalController::class, 'lookupReferral'])->whereNumber('companyId');
+
+        Route::post('bookings', [PatientPortalController::class, 'book']);
+        Route::get('appointments', [PatientPortalController::class, 'appointments']);
+        Route::get('appointments/{orderId}', [PatientPortalController::class, 'appointmentShow'])->whereNumber('orderId');
+        Route::post('appointments/{orderId}/cancel', [PatientPortalController::class, 'cancel'])->whereNumber('orderId');
+        Route::post('appointments/{orderId}/reschedule', [PatientPortalController::class, 'reschedule'])->whereNumber('orderId');
+
+        Route::get('reports', [PatientPortalController::class, 'reports']);
+        Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
+    });
+});
 
 // Public — the active theme is applied on the login screen and for every user.
 Route::get('theme', [ThemeController::class, 'show']);
