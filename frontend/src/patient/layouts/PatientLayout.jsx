@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
 import { usePatientAuth } from "../auth/PatientAuthContext";
+import PatientChatWidget from "../components/PatientChatWidget";
 
 const links = [
   {
@@ -132,6 +133,8 @@ export default function PatientLayout() {
           </NavLink>
         ))}
       </nav>
+
+      <PatientChatWidget />
     </div>
   );
 }
