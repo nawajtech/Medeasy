@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
 use App\Http\Controllers\Api\Patient\PatientPortalController;
+use App\Http\Controllers\Api\SendReportsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
@@ -80,6 +81,9 @@ Route::get('public/share-report/{token}/view', [\App\Http\Controllers\PublicDiag
     ->where('token', '[A-Za-z0-9]+');
 Route::get('public/share-report/{token}/download', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'download'])
     ->where('token', '[A-Za-z0-9]+');
+
+// AWS Lambda / cron — send today's approved diagnostic reports to patient emails
+Route::match(['GET', 'POST'], 'sendreports', SendReportsController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
