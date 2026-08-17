@@ -40,4 +40,12 @@ return [
         'credentials' => env('FIREBASE_CREDENTIALS'),
     ],
 
+    /*
+    | Shared secret for /api/sendreports (AWS Lambda / EventBridge cron).
+    | Send as header: X-Reports-Secret: <value>
+    */
+    'reports_cron' => [
+        'secret' => env('REPORTS_CRON_SECRET'),
+    ],
+
 ];
