@@ -54,7 +54,7 @@ export default function PatientRegister() {
       <div className="pt-auth__bg" aria-hidden="true" />
       <div className="pt-auth__shell">
         <div className="pt-auth__card">
-          <div className="pt-logo pt-logo--lg" aria-hidden="true" />
+          <img src="/apnamedi-logo.png" alt="ApnaMedi" className="pt-logo pt-logo--lg" />
           <p className="pt-auth__eyebrow">Patient Portal</p>
           <h1>Create your account</h1>
           <p className="pt-page-sub">Book diagnostic appointments and access reports in one place.</p>
@@ -137,7 +137,11 @@ export default function PatientRegister() {
         </div>
 
         <span className="pt-powered pt-powered--light">
-          Powered by <strong>ApnaMedi</strong>
+          Powered by{" "}
+          <strong>
+            <span className="pt-brand-apna">Apna</span>
+            <span className="pt-brand-medi">Medi</span>
+          </strong>
         </span>
       </div>
     </div>

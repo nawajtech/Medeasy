@@ -5,7 +5,7 @@ import PatientChatWidget from "../components/PatientChatWidget";
 const links = [
   {
     to: "/",
-    label: "Centres",
+    label: "Book",
     end: true,
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
@@ -79,11 +79,8 @@ export default function PatientLayout() {
     <div className="pt-app">
       <header className="pt-header">
         <Link to="/" className="pt-header__brand">
-          <span className="pt-logo" aria-hidden="true" />
-          <div>
-            <strong>ApnaMedi</strong>
-            <span>Patient Portal</span>
-          </div>
+          <img src="/apnamedi-logo.png" alt="ApnaMedi" className="pt-logo-full" />
+          <span className="pt-header__portal">Patient</span>
         </Link>
 
         <nav className="pt-nav pt-nav--desktop" aria-label="Patient">
@@ -94,7 +91,7 @@ export default function PatientLayout() {
               end={link.end}
               className={({ isActive }) => (isActive ? "is-active" : undefined)}
             >
-              {link.label === "Rx" ? "Prescriptions" : link.label}
+              {link.label === "Rx" ? "Prescriptions" : link.label === "Book" ? "Book" : link.label}
             </NavLink>
           ))}
         </nav>
@@ -116,7 +113,11 @@ export default function PatientLayout() {
 
       <footer className="pt-footer">
         <span className="pt-powered">
-          Powered by <strong>ApnaMedi</strong>
+          Powered by{" "}
+          <strong>
+            <span className="pt-brand-apna">Apna</span>
+            <span className="pt-brand-medi">Medi</span>
+          </strong>
         </span>
       </footer>
 
