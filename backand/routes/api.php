@@ -58,6 +58,7 @@ Route::prefix('patient')->group(function () {
         Route::get('centres/{companyId}/slots', [PatientPortalController::class, 'slots'])->whereNumber('companyId');
         Route::get('centres/{companyId}/referral', [PatientPortalController::class, 'lookupReferral'])->whereNumber('companyId');
 
+        
         Route::post('bookings', [PatientPortalController::class, 'book']);
         Route::get('appointments', [PatientPortalController::class, 'appointments']);
         Route::get('appointments/{orderId}', [PatientPortalController::class, 'appointmentShow'])->whereNumber('orderId');
