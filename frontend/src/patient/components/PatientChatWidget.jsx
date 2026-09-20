@@ -470,7 +470,7 @@ export default function PatientChatWidget() {
     <div className={`pt-chat ${open ? "is-open" : ""}`}>
       {!open && (
         <button type="button" className="pt-chat__fab" onClick={() => setOpen(true)}>
-          Book with chat
+          Easy Booking
         </button>
       )}
 
@@ -478,7 +478,7 @@ export default function PatientChatWidget() {
         <div className="pt-chat__panel">
           <header className="pt-chat__head">
             <div>
-              <strong>ApnaMedi Chat</strong>
+              <strong>Easy Booking</strong>
               <span>I’ll ask for anything that’s missing</span>
             </div>
             <div className="pt-chat__head-actions">
