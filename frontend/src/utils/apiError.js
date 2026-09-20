@@ -1,13 +1,14 @@
 export function getApiErrorMessage(error, fallback = "Something went wrong.") {
   const data = error?.response?.data;
-  if (data?.message && data.message !== "The given data was invalid.") {
-    return data.message;
-  }
+
   if (data?.errors) {
     const messages = Object.values(data.errors)
       .flatMap((value) => (Array.isArray(value) ? value : [String(value)]))
       .filter(Boolean);
     if (messages.length) return messages.join(" ");
+  }
+  if (data?.message && data.message !== "The given data was invalid.") {
+    return data.message;
   }
   return fallback;
 }

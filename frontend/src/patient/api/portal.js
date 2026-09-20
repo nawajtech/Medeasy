@@ -13,6 +13,7 @@ export const getCentreServices = (id) => patientApi.get(`/patient/centres/${id}/
 export const getCentreSlots = (id, params) => patientApi.get(`/patient/centres/${id}/slots`, { params });
 export const lookupReferral = (id, params) => patientApi.get(`/patient/centres/${id}/referral`, { params });
 
+
 export const bookAppointment = (payload) => patientApi.post("/patient/bookings", payload);
 export const listAppointments = (params) => patientApi.get("/patient/appointments", { params });
 export const getAppointment = (id) => patientApi.get(`/patient/appointments/${id}`);
