@@ -1,0 +1,274 @@
+.today-centre-page .page-card-header h2 {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--me-text);
+  margin-bottom: 6px;
+}
+
+.today-centre-page .page-card-header p {
+  font-size: 0.875rem;
+  color: var(--me-text-secondary);
+}
+
+.today-centre-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.today-centre-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.today-centre-date {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--me-text);
+}
+
+.today-centre-updated {
+  font-size: 0.75rem;
+  color: var(--me-text-muted);
+}
+
+.today-centre-toolbar {
+  padding-bottom: 14px;
+}
+
+.today-centre-actions {
+  padding-bottom: 0;
+}
+
+.today-centre-cards {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.today-centre-card {
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 100px;
+}
+
+.today-centre-card--warn {
+  border-color: #fcd34d;
+  background: #fffbeb;
+}
+
+.today-centre-card-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--me-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.today-centre-card-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--me-text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+}
+
+.today-centre-card-hint {
+  font-size: 0.75rem;
+  color: var(--me-text-muted);
+}
+
+.today-centre-alerts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.today-centre-alert {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: var(--me-radius-sm);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  border: 1px solid var(--me-border);
+  background: var(--me-surface);
+  color: var(--me-text);
+}
+
+.today-centre-alert--warning {
+  background: #fffbeb;
+  border-color: #fcd34d;
+  color: #92400e;
+}
+
+.today-centre-alert--info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #1e40af;
+}
+
+.today-centre-quick {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  background: var(--me-surface-muted);
+}
+
+.today-centre-quick h3 {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--me-text);
+}
+
+.today-centre-quick-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.today-centre-quick-row .crud-btn {
+  text-decoration: none;
+}
+
+.today-centre-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.today-centre-panel {
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
+  background: var(--me-surface);
+  overflow: hidden;
+  min-width: 0;
+}
+
+.today-centre-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--me-border);
+  background: var(--me-surface-muted);
+}
+
+.today-centre-panel-head h3 {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.today-centre-panel-head a {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--me-primary);
+  text-decoration: none;
+}
+
+.today-centre-panel-head a:hover {
+  text-decoration: underline;
+}
+
+.today-centre-panel .crud-table-wrap {
+  margin: 0;
+}
+
+.today-centre-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+  white-space: nowrap;
+}
+
+.today-centre-row-actions .crud-btn {
+  text-decoration: none;
+}
+
+.today-centre-empty {
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--me-text-muted);
+  font-size: 0.875rem;
+}
+
+.today-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: var(--me-radius-full);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--me-surface-muted);
+  color: var(--me-text-secondary);
+  white-space: nowrap;
+}
+
+.today-pill--booked,
+.today-pill--scheduled { background: #dbeafe; color: #1d4ed8; }
+.today-pill--in_progress,
+.today-pill--ongoing { background: #ffedd5; color: #c2410c; }
+.today-pill--completed,
+.today-pill--paid { background: var(--me-success-soft); color: var(--me-success); }
+.today-pill--not_present,
+.today-pill--cancelled,
+.today-pill--pending,
+.today-pill--pending_approval { background: #fef3c7; color: #b45309; }
+.today-pill--cancelled { background: var(--me-danger-soft); color: var(--me-danger); }
+.today-pill--partial { background: #ede9fe; color: #6d28d9; }
+
+@media (max-width: 1200px) {
+  .today-centre-cards {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .today-centre-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .today-centre-header {
+    flex-direction: column;
+  }
+
+  .today-centre-meta {
+    align-items: flex-start;
+  }
+
+  .today-centre-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .today-centre-quick-row .crud-btn {
+    flex: 1 1 calc(50% - 8px);
+    justify-content: center;
+  }
+}
+
+@media (max-width: 420px) {
+  .today-centre-cards {
+    grid-template-columns: 1fr;
+  }
+}
