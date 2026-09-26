@@ -3,8 +3,8 @@
 namespace App\Services\AppointmentAssistant;
 
 use App\Models\Patient;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use OpenAI\Factory;
 use RuntimeException;
 
 class AppointmentAssistantService
@@ -58,38 +58,52 @@ PROMPT;
      */
     public function chat(Patient $patient, array $messages): array
     {
-        $apiKey = config('services.openai.api_key');
+        $apiKey = config('services.gemini.api_key');
         if (! filled($apiKey)) {
-            throw new RuntimeException('OPENAI_API_KEY is not configured on the server.');
+            throw new RuntimeException('GEMINI_API_KEY is not configured on the server.');
         }
 
-        $client = (new Factory)->withApiKey($apiKey)->make();
-        $model = (string) config('services.openai.model', 'gpt-4o-mini');
-        $maxRounds = max(1, (int) config('services.openai.max_tool_rounds', 8));
+        $model = (string) config('services.gemini.model', 'gemini-3.8-flash');
+        $maxRounds = max(1, (int) config('services.gemini.max_tool_rounds', 8));
 
-        $history = [
-            ['role' => 'system', 'content' => self::SYSTEM_PROMPT],
-            [
-                'role' => 'system',
-                'content' => 'Logged-in patient context (do not invent other identities): '
-                    .json_encode([
-                        'id' => $patient->id,
-                        'name' => $patient->name,
-                        'phone' => $patient->phone,
-                        'email' => $patient->email,
-                        'today' => now(config('app.timezone'))->toDateString(),
-                        'timezone' => config('app.timezone'),
-                    ]),
-            ],
-        ];
+        $systemText = self::SYSTEM_PROMPT."\n\nLogged-in patient context (do not invent other identities): "
+            .json_encode([
+                'id' => $patient->id,
+                'name' => $patient->name,
+                'phone' => $patient->phone,
+                'email' => $patient->email,
+                'today' => now(config('app.timezone'))->toDateString(),
+                'timezone' => config('app.timezone'),
+            ], JSON_UNESCAPED_UNICODE);
 
+        $contents = [];
         foreach ($messages as $msg) {
-            $role = ($msg['role'] ?? '') === 'assistant' ? 'assistant' : 'user';
             $content = trim((string) ($msg['content'] ?? ''));
             if ($content === '') {
                 continue;
             }
-            $history[] = ['role' => $role, 'content' => $content];
+            $role = ($msg['role'] ?? '') === 'assistant' ? 'model' : 'user';
+            $contents[] = [
+                'role' => $role,
+                'parts' => [['text' => $content]],
+            ];
+        }
+
+        if ($contents === []) {
+            return [
+                'reply' => 'How can I help you book an appointment today?',
+                'booked' => false,
+                'appointment_id' => null,
+                'tool_trace' => [],
+            ];
+        }
+
+        // Gemini requires the first content role to be "user".
+        if (($contents[0]['role'] ?? '') !== 'user') {
+            array_unshift($contents, [
+                'role' => 'user',
+                'parts' => [['text' => 'Hello']],
+            ]);
         }
 
         $toolTrace = [];
@@ -97,24 +111,31 @@ PROMPT;
         $appointmentId = null;
 
         for ($round = 0; $round < $maxRounds; $round++) {
-            $response = $client->chat()->create([
-                'model' => $model,
-                'messages' => $history,
-                'tools' => $this->tools->definitions(),
-                'tool_choice' => 'auto',
-                'temperature' => 0.2,
-            ]);
+            $response = $this->generateContent($apiKey, $model, $systemText, $contents);
+            $candidate = $response['candidates'][0] ?? null;
+            $parts = $candidate['content']['parts'] ?? [];
 
-            $choice = $response->choices[0] ?? null;
-            if (! $choice) {
-                throw new RuntimeException('Empty response from AI model.');
+            if ($parts === []) {
+                $block = $response['promptFeedback']['blockReason'] ?? null;
+                throw new RuntimeException($block
+                    ? "Gemini blocked the request ({$block})."
+                    : 'Empty response from Gemini.');
             }
 
-            $message = $choice->message;
-            $toolCalls = $message->toolCalls ?? [];
+            $functionCalls = [];
+            $textChunks = [];
 
-            if ($toolCalls === [] || $toolCalls === null) {
-                $reply = trim((string) ($message->content ?? ''));
+            foreach ($parts as $part) {
+                if (isset($part['functionCall']['name'])) {
+                    $functionCalls[] = $part['functionCall'];
+                }
+                if (isset($part['text']) && is_string($part['text']) && trim($part['text']) !== '') {
+                    $textChunks[] = trim($part['text']);
+                }
+            }
+
+            if ($functionCalls === []) {
+                $reply = trim(implode("\n", $textChunks));
 
                 return [
                     'reply' => $reply !== '' ? $reply : 'How can I help you book an appointment today?',
@@ -124,29 +145,17 @@ PROMPT;
                 ];
             }
 
-            $assistantMessage = [
-                'role' => 'assistant',
-                'content' => $message->content,
-                'tool_calls' => [],
+            // Append model turn (may include text + function calls).
+            $contents[] = [
+                'role' => 'model',
+                'parts' => $parts,
             ];
 
-            foreach ($toolCalls as $call) {
-                $assistantMessage['tool_calls'][] = [
-                    'id' => $call->id,
-                    'type' => 'function',
-                    'function' => [
-                        'name' => $call->function->name,
-                        'arguments' => $call->function->arguments,
-                    ],
-                ];
-            }
+            $functionResponseParts = [];
 
-            $history[] = $assistantMessage;
-
-            foreach ($toolCalls as $call) {
-                $name = $call->function->name;
-                $rawArgs = $call->function->arguments ?? '{}';
-                $arguments = json_decode($rawArgs, true);
+            foreach ($functionCalls as $call) {
+                $name = (string) ($call['name'] ?? '');
+                $arguments = $call['args'] ?? [];
                 if (! is_array($arguments)) {
                     $arguments = [];
                 }
@@ -172,12 +181,18 @@ PROMPT;
                     'result' => $result,
                 ];
 
-                $history[] = [
-                    'role' => 'tool',
-                    'tool_call_id' => $call->id,
-                    'content' => json_encode($result, JSON_UNESCAPED_UNICODE),
+                $functionResponseParts[] = [
+                    'functionResponse' => [
+                        'name' => $name,
+                        'response' => $result,
+                    ],
                 ];
             }
+
+            $contents[] = [
+                'role' => 'user',
+                'parts' => $functionResponseParts,
+            ];
         }
 
         return [
@@ -186,5 +201,85 @@ PROMPT;
             'appointment_id' => $appointmentId,
             'tool_trace' => $toolTrace,
         ];
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $contents
+     * @return array<string, mixed>
+     */
+    private function generateContent(string $apiKey, string $model, string $systemText, array $contents): array
+    {
+        $attempts = 3;
+        $delayMs = 1500;
+        $url = 'https://generativelanguage.googleapis.com/v1beta/models/'
+            .rawurlencode($model)
+            .':generateContent';
+
+        $payload = [
+            'systemInstruction' => [
+                'parts' => [['text' => $systemText]],
+            ],
+            'contents' => $contents,
+            'tools' => [
+                [
+                    'functionDeclarations' => $this->tools->geminiDeclarations(),
+                ],
+            ],
+            'toolConfig' => [
+                'functionCallingConfig' => [
+                    'mode' => 'AUTO',
+                ],
+            ],
+            'generationConfig' => [
+                'temperature' => 0.2,
+            ],
+        ];
+
+        for ($attempt = 1; $attempt <= $attempts; $attempt++) {
+            // Use x-goog-api-key (not Authorization: Bearer) — required for AQ./AI Studio keys.
+            $response = Http::timeout(60)
+                ->withHeaders([
+                    'Content-Type' => 'application/json',
+                    'x-goog-api-key' => $apiKey,
+                ])
+                ->post($url, $payload);
+
+            if ($response->successful()) {
+                return $response->json() ?? [];
+            }
+
+            $status = $response->status();
+            $body = $response->json();
+            $message = (string) data_get($body, 'error.message', $response->body());
+
+            Log::warning('Gemini API error', [
+                'attempt' => $attempt,
+                'status' => $status,
+                'message' => $message,
+                'model' => $model,
+            ]);
+
+            if (in_array($status, [429, 503], true) && $attempt < $attempts) {
+                usleep($delayMs * 1000);
+                $delayMs *= 2;
+                continue;
+            }
+
+            if ($status === 429) {
+                throw new RuntimeException(
+                    'The booking assistant is busy right now (Gemini rate limit). Please wait a minute and try again, or book from the Centres page.'
+                );
+            }
+
+            if ($status === 401 || $status === 403) {
+                throw new RuntimeException(
+                    'Gemini API key was rejected. Create a Gemini API key in Google AI Studio and set GEMINI_API_KEY in .env (use x-goog-api-key style keys).'
+                );
+            }
+
+            throw new RuntimeException('Gemini error: '.$message);
+        }
+
+        throw new RuntimeException('Unable to reach the booking assistant right now.');
     }
 }

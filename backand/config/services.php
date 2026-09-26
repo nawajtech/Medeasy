@@ -54,4 +54,10 @@ return [
         'max_tool_rounds' => (int) env('OPENAI_MAX_TOOL_ROUNDS', 8),
     ],
 
+    'gemini' => [
+        'api_key' => env('GEMINI_API_KEY'),
+        'model' => env('GEMINI_MODEL', 'gemini-3.8-flash'),
+        'max_tool_rounds' => (int) env('GEMINI_MAX_TOOL_ROUNDS', 8),
+    ],
+
 ];

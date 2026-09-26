@@ -24,7 +24,7 @@ class AppointmentAssistantTools
         private DiagnosticPaymentService $paymentService,
     ) {}
 
-    /** @return array<int, array<string, mixed>> */
+    /** OpenAI-style tool defs (kept for reference / future dual-provider use). */
     public function definitions(): array
     {
         return [
@@ -180,6 +180,48 @@ class AppointmentAssistantTools
                 ],
             ],
         ];
+    }
+
+    /** Gemini functionDeclarations converted from OpenAI-style defs. */
+    public function geminiDeclarations(): array
+    {
+        return array_map(function (array $tool) {
+            $fn = $tool['function'];
+
+            return [
+                'name' => $fn['name'],
+                'description' => $fn['description'],
+                'parameters' => $this->toGeminiSchema($fn['parameters'] ?? ['type' => 'object', 'properties' => (object) []]),
+            ];
+        }, $this->definitions());
+    }
+
+    /** @param array<string, mixed> $schema */
+    private function toGeminiSchema(array $schema): array
+    {
+        $type = strtoupper((string) ($schema['type'] ?? 'OBJECT'));
+        $out = ['type' => $type === 'OBJECT' || $type === 'ARRAY' || $type === 'STRING' || $type === 'NUMBER' || $type === 'INTEGER' || $type === 'BOOLEAN' ? $type : 'OBJECT'];
+
+        if (isset($schema['description'])) {
+            $out['description'] = $schema['description'];
+        }
+
+        if (isset($schema['enum']) && is_array($schema['enum'])) {
+            $out['enum'] = array_values($schema['enum']);
+        }
+
+        if (($schema['type'] ?? '') === 'object' || $type === 'OBJECT') {
+            $properties = [];
+            foreach ($schema['properties'] ?? [] as $key => $prop) {
+                $properties[$key] = $this->toGeminiSchema(is_array($prop) ? $prop : ['type' => 'string']);
+            }
+            $out['properties'] = $properties === [] ? (object) [] : $properties;
+            if (! empty($schema['required']) && is_array($schema['required'])) {
+                $out['required'] = array_values($schema['required']);
+            }
+        }
+
+        return $out;
     }
 
     /** @param array<string, mixed> $arguments */

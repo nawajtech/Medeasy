@@ -40,13 +40,26 @@ class PatientChatController extends Controller
         } catch (RuntimeException $e) {
             return response()->json([
                 'message' => $e->getMessage(),
-                'reply' => 'Sorry — the booking assistant is temporarily unavailable. Please try again later or book from the Centres page.',
+                'reply' => $e->getMessage(),
             ], 503);
         } catch (Throwable $e) {
             report($e);
 
+            if ($this->isRateLimitError($e)) {
+                $msg = 'The booking assistant is busy right now (AI rate limit). Please wait about a minute and try again, or book from the Centres page.';
+
+                return response()->json([
+                    'message' => $msg,
+                    'reply' => $msg,
+                ], 429);
+            }
+
+            $message = config('app.debug')
+                ? ('Assistant error: '.$e->getMessage())
+                : 'Assistant error';
+
             return response()->json([
-                'message' => 'Assistant error',
+                'message' => $message,
                 'reply' => 'Something went wrong while processing your request. Please try again.',
             ], 500);
         }
@@ -59,5 +72,15 @@ class PatientChatController extends Controller
             // include only when APP_DEBUG is on for local debugging.
             'tool_trace' => config('app.debug') ? $result['tool_trace'] : [],
         ]);
+    }
+
+    private function isRateLimitError(Throwable $e): bool
+    {
+        $msg = strtolower($e->getMessage());
+
+        return str_contains($msg, 'rate limit')
+            || str_contains($msg, 'too many requests')
+            || str_contains($msg, 'resource_exhausted')
+            || $e instanceof \OpenAI\Exceptions\RateLimitException;
     }
 }
