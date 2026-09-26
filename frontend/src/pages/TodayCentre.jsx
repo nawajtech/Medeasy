@@ -262,16 +262,11 @@ function TodayCentre() {
                 <div className="today-centre-panel-head">
                   <h3>
                     {access.diagnostic_appointments
-                      ? "Today's Appointments"
+                      ? "Today's Queue"
                       : "Clinic Appointments"}
                   </h3>
                   <Link to={access.diagnostic_appointments ? "/diagnostics/orders" : "/appointments"}>View all</Link>
                 </div>
-                <p className="today-centre-panel-note">
-                  {access.diagnostic_appointments
-                    ? "Pending diagnostic bookings for today (order number shown)."
-                    : "Doctor / clinic visits scheduled for today."}
-                </p>
                 <div className="crud-table-wrap">
                   <table className="crud-table">
                     <thead>
@@ -288,7 +283,7 @@ function TodayCentre() {
                         <tr>
                           <td colSpan={access.diagnostic_appointments ? 5 : 4} className="crud-empty">
                             {access.diagnostic_appointments
-                              ? "No pending appointments today."
+                              ? "No pending items in queue."
                               : "No clinic appointments today."}
                           </td>
                         </tr>
@@ -318,7 +313,7 @@ function TodayCentre() {
             {access.diagnostics && (
               <section className="today-centre-panel">
                 <div className="today-centre-panel-head">
-                  <h3>Today&apos;s Queue</h3>
+                  <h3>Today&apos;s Appointments</h3>
                   <Link to="/diagnostics/orders">View all</Link>
                 </div>
                 <div className="crud-table-wrap">
@@ -335,7 +330,7 @@ function TodayCentre() {
                     </thead>
                     <tbody>
                       {(data?.queue || []).length === 0 && (
-                        <tr><td colSpan={6} className="crud-empty">No queue items for today.</td></tr>
+                        <tr><td colSpan={6} className="crud-empty">No appointments for today.</td></tr>
                       )}
                       {(data?.queue || []).map((row) => (
                         <tr key={row.id} className={["booked", "scheduled", "in_progress"].includes(row.status) ? "today-centre-row--pending" : undefined}>
