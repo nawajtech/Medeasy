@@ -35,6 +35,7 @@ use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
+use App\Http\Controllers\Api\Patient\PatientChatController;
 use App\Http\Controllers\Api\Patient\PatientPortalController;
 use App\Http\Controllers\Api\SendReportsController;
 use Illuminate\Support\Facades\Route;
@@ -64,6 +65,8 @@ Route::prefix('patient')->group(function () {
         Route::get('appointments/{orderId}', [PatientPortalController::class, 'appointmentShow'])->whereNumber('orderId');
         Route::post('appointments/{orderId}/cancel', [PatientPortalController::class, 'cancel'])->whereNumber('orderId');
         Route::post('appointments/{orderId}/reschedule', [PatientPortalController::class, 'reschedule'])->whereNumber('orderId');
+
+        Route::post('chat', [PatientChatController::class, 'chat']);
 
         Route::get('reports', [PatientPortalController::class, 'reports']);
         Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);

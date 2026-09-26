@@ -48,4 +48,10 @@ return [
         'secret' => env('REPORTS_CRON_SECRET'),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4o-mini'),
+        'max_tool_rounds' => (int) env('OPENAI_MAX_TOOL_ROUNDS', 8),
+    ],
+
 ];
