@@ -90,10 +90,20 @@ function TodayCentre() {
   const cards = [
     {
       key: "appointments",
-      label: "Today's Appointments",
+      label: access.diagnostic_appointments ? "Today's Orders" : "Today's Appointments",
       value: summary.appointments_today ?? 0,
-      hint: "Clinic / centre visits today",
+      hint: access.diagnostic_appointments
+        ? "Diagnostic bookings for today"
+        : "Clinic visits scheduled today",
       show: access.appointments || access.diagnostics,
+    },
+    {
+      key: "pending",
+      label: "Pending Queue",
+      value: summary.pending_queue ?? 0,
+      hint: "Booked / scheduled, not started",
+      show: access.diagnostics,
+      tone: summary.pending_queue > 0 ? "warn" : undefined,
     },
     {
       key: "walkins",
@@ -101,6 +111,14 @@ function TodayCentre() {
       value: summary.walk_ins ?? 0,
       hint: "Same-day unscheduled / walk-in",
       show: access.diagnostics,
+    },
+    {
+      key: "cancelled",
+      label: "Cancelled Today",
+      value: summary.cancelled_today ?? 0,
+      hint: "Cancelled appointments / orders",
+      show: access.appointments || access.diagnostics,
+      tone: summary.cancelled_today > 0 ? "warn" : undefined,
     },
     {
       key: "patients",
@@ -249,7 +267,7 @@ function TodayCentre() {
                   <table className="crud-table">
                     <thead>
                       <tr>
-                        <th>Token</th>
+                        <th>Order</th>
                         <th>Patient</th>
                         <th>Test / Service</th>
                         <th>Time</th>
@@ -262,8 +280,13 @@ function TodayCentre() {
                         <tr><td colSpan={6} className="crud-empty">No queue items for today.</td></tr>
                       )}
                       {(data?.queue || []).map((row) => (
-                        <tr key={row.id}>
-                          <td>{row.token ?? "—"}</td>
+                        <tr key={row.id} className={["booked", "scheduled", "in_progress"].includes(row.status) ? "today-centre-row--pending" : undefined}>
+                          <td>
+                            <strong className="today-centre-order-no">{row.order_number || "—"}</strong>
+                            {row.token != null && row.token !== "" && (
+                              <div className="crud-muted">Token {row.token}</div>
+                            )}
+                          </td>
                           <td>
                             <strong>{row.patient || "—"}</strong>
                             {row.patient_code && <div className="crud-muted">{row.patient_code}</div>}
@@ -272,7 +295,7 @@ function TodayCentre() {
                           <td>{row.time || "—"}</td>
                           <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
                           <td className="today-centre-row-actions">
-                            <Link className="crud-btn crud-btn--ghost crud-btn--sm" to={`/diagnostics/orders`}>Open</Link>
+                            <Link className="crud-btn crud-btn--ghost crud-btn--sm" to="/diagnostics/orders">Open</Link>
                             {row.patient_id && (
                               <Link className="crud-btn crud-btn--ghost crud-btn--sm" to={`/patients/${row.patient_id}`}>Patient</Link>
                             )}
@@ -285,34 +308,55 @@ function TodayCentre() {
               </section>
             )}
 
-            {access.appointments && (
+            {(access.clinic_appointments || access.diagnostic_appointments) && (
               <section className="today-centre-panel">
                 <div className="today-centre-panel-head">
-                  <h3>Today&apos;s Appointments</h3>
-                  <Link to="/appointments">View all</Link>
+                  <h3>
+                    {access.diagnostic_appointments
+                      ? "Today's Appointments"
+                      : "Clinic Appointments"}
+                  </h3>
+                  <Link to={access.diagnostic_appointments ? "/diagnostics/orders" : "/appointments"}>View all</Link>
                 </div>
+                <p className="today-centre-panel-note">
+                  {access.diagnostic_appointments
+                    ? "Pending diagnostic bookings for today (order number shown)."
+                    : "Doctor / clinic visits scheduled for today."}
+                </p>
                 <div className="crud-table-wrap">
                   <table className="crud-table">
                     <thead>
                       <tr>
+                        {access.diagnostic_appointments && <th>Order</th>}
                         <th>Patient</th>
                         <th>Time</th>
-                        <th>Doctor</th>
+                        <th>{access.diagnostic_appointments ? "Test / Service" : "Doctor"}</th>
                         <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {(data?.appointments || []).length === 0 && (
-                        <tr><td colSpan={4} className="crud-empty">No clinic appointments today.</td></tr>
+                        <tr>
+                          <td colSpan={access.diagnostic_appointments ? 5 : 4} className="crud-empty">
+                            {access.diagnostic_appointments
+                              ? "No pending appointments today."
+                              : "No clinic appointments today."}
+                          </td>
+                        </tr>
                       )}
                       {(data?.appointments || []).map((row) => (
                         <tr key={row.id}>
+                          {access.diagnostic_appointments && (
+                            <td>
+                              <strong className="today-centre-order-no">{row.order_number || "—"}</strong>
+                            </td>
+                          )}
                           <td>
                             <strong>{row.patient || "—"}</strong>
                             {row.patient_code && <div className="crud-muted">{row.patient_code}</div>}
                           </td>
                           <td>{row.time || formatClock(row.scheduled_at)}</td>
-                          <td>{row.doctor || "—"}</td>
+                          <td>{access.diagnostic_appointments ? (row.service || "—") : (row.doctor || "—")}</td>
                           <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
                         </tr>
                       ))}
@@ -332,6 +376,7 @@ function TodayCentre() {
                   <table className="crud-table">
                     <thead>
                       <tr>
+                        <th>Order</th>
                         <th>Patient</th>
                         <th>Test</th>
                         <th>Status</th>
@@ -340,10 +385,11 @@ function TodayCentre() {
                     </thead>
                     <tbody>
                       {(data?.reports || []).length === 0 && (
-                        <tr><td colSpan={4} className="crud-empty">No pending report approvals.</td></tr>
+                        <tr><td colSpan={5} className="crud-empty">No pending report approvals.</td></tr>
                       )}
                       {(data?.reports || []).map((row) => (
                         <tr key={row.id}>
+                          <td><strong className="today-centre-order-no">{row.order_number || "—"}</strong></td>
                           <td>{row.patient || "—"}</td>
                           <td>{row.service || "—"}</td>
                           <td><span className="today-pill today-pill--pending_approval">Pending approval</span></td>
@@ -372,6 +418,7 @@ function TodayCentre() {
                   <table className="crud-table">
                     <thead>
                       <tr>
+                        <th>Order</th>
                         <th>Patient</th>
                         <th>Service</th>
                         <th>Due</th>
@@ -381,10 +428,11 @@ function TodayCentre() {
                     </thead>
                     <tbody>
                       {(data?.payments?.pending_orders || []).length === 0 && (
-                        <tr><td colSpan={5} className="crud-empty">No pending diagnostic payments.</td></tr>
+                        <tr><td colSpan={6} className="crud-empty">No pending diagnostic payments.</td></tr>
                       )}
                       {(data?.payments?.pending_orders || []).map((row) => (
                         <tr key={row.id}>
+                          <td><strong className="today-centre-order-no">{row.order_number || "—"}</strong></td>
                           <td>{row.patient || "—"}</td>
                           <td>{row.service || "—"}</td>
                           <td>{formatCurrency(row.due_amount)}</td>
