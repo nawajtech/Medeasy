@@ -14,38 +14,6 @@
   overflow-x: auto;
 }
 
-.patients-toolbar {
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.patients-toolbar-left {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 16px;
-}
-
-.company-select-inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.company-select-inline-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--me-text-secondary);
-}
-
-.company-select-inline select {
-  padding: 6px 10px;
-  border: 1px solid var(--me-border);
-  border-radius: var(--me-radius-sm);
-  font-size: 0.875rem;
-  min-width: 160px;
-}
-
 .patients-table {
   font-size: 0.8125rem;
 }
@@ -124,22 +92,6 @@
   .patients-table-wrap {
     -webkit-overflow-scrolling: touch;
     margin-inline: -4px;
-  }
-
-  .patients-toolbar-left {
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .company-select-inline {
-    width: 100%;
-    flex-wrap: wrap;
-  }
-
-  .company-select-inline select {
-    min-width: 0;
-    flex: 1;
   }
 
   .patients-actions {

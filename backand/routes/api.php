@@ -34,6 +34,7 @@ use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\TodayCentreController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
 use App\Http\Controllers\Api\Patient\PatientChatController;
 use App\Http\Controllers\Api\Patient\PatientPortalController;
@@ -204,6 +205,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Dashboard ───────────────────────────────────────────────
     Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::get('ops/today-centre', [TodayCentreController::class, 'show']);
 
     // ── Pharmacy / Medicine ───────────────────────────────────────
     Route::middleware('permission:medicine.view')->get('pharmacy/medicines', [MedicineController::class, 'index']);

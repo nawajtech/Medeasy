@@ -1,24 +1,31 @@
 .crud-toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 16px 20px;
   margin-top: 20px;
+  padding: 14px 16px 8px;
   flex-wrap: wrap;
+  background: var(--me-surface-muted);
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-md);
 }
 
 .crud-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 8px;
+  align-items: flex-start; /* keep Export / Import / Add on one top baseline */
+  gap: 10px;
+  margin-left: auto;
+  padding-bottom: 18px; /* room for "Sample template" under Import */
 }
 
 .spreadsheet-import-compact {
-  display: flex;
+  position: relative;
+  display: inline-flex;
   flex-direction: column;
-  align-items: center;
-  gap: 2px;
+  align-items: stretch;
+  min-width: 0;
 }
 
 .spreadsheet-import-input {
@@ -42,21 +49,27 @@
 }
 
 .spreadsheet-sample-link {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
   padding: 0;
   border: none;
   background: none;
-  color: var(--me-accent, #4f46e5);
-  font-size: 0.7rem;
+  color: var(--me-text-muted);
+  font-size: 0.75rem;
   font-weight: 600;
   line-height: 1.2;
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  text-decoration: none;
+  text-align: center;
   white-space: nowrap;
 }
 
 .spreadsheet-sample-link:hover:not(:disabled) {
-  color: var(--me-primary, #2563eb);
+  color: var(--me-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .spreadsheet-sample-link:disabled {
@@ -69,18 +82,38 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.tenant-toolbar-left > span:first-child,
+.crud-toolbar-count {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: var(--me-radius-sm);
+  background: var(--me-surface);
+  border: 1px solid var(--me-border);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--me-text-secondary);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .crud-search-input {
-  min-width: 240px;
-  padding: 8px 12px;
+  min-width: 220px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid var(--me-border);
   border-radius: var(--me-radius-sm);
   font-size: 0.875rem;
   font-family: inherit;
   background: var(--me-surface);
   color: var(--me-text);
+  box-sizing: border-box;
   transition:
     border-color var(--me-transition),
     box-shadow var(--me-transition);
@@ -91,6 +124,60 @@
 }
 
 .crud-search-input:focus {
+  outline: none;
+  border-color: var(--me-primary);
+  box-shadow: 0 0 0 3px var(--me-primary-ring);
+}
+
+.company-select-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+}
+
+.company-select-inline-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--me-text-secondary);
+  white-space: nowrap;
+}
+
+.company-select-inline select {
+  height: 40px;
+  min-width: 160px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--me-surface);
+  color: var(--me-text);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.company-select-inline select:focus {
+  outline: none;
+  border-color: var(--me-primary);
+  box-shadow: 0 0 0 3px var(--me-primary-ring);
+}
+
+.tenant-toolbar-left > select {
+  height: 40px;
+  min-width: 160px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--me-surface);
+  color: var(--me-text);
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.tenant-toolbar-left > select:focus {
   outline: none;
   border-color: var(--me-primary);
   box-shadow: 0 0 0 3px var(--me-primary-ring);
@@ -228,89 +315,98 @@
 }
 
 .crud-btn {
-  padding: 10px 18px;
-  border-radius: var(--me-radius-btn);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 40px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: var(--me-radius-sm);
   font-size: 0.875rem;
   font-weight: 600;
+  font-family: inherit;
+  line-height: 1;
   cursor: pointer;
   border: 1px solid transparent;
+  box-sizing: border-box;
+  white-space: nowrap;
   transition:
     background var(--me-transition),
     color var(--me-transition),
     border-color var(--me-transition),
-    transform var(--me-transition),
     box-shadow var(--me-transition);
 }
 
 .crud-btn:hover {
-  transform: translateY(-1px);
+  box-shadow: var(--me-shadow-xs);
 }
 
 .crud-btn:active {
-  transform: translateY(0);
+  box-shadow: none;
+}
+
+.crud-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 .crud-btn--primary {
   background: var(--me-primary);
   color: #fff;
+  border-color: var(--me-primary);
   box-shadow: var(--me-shadow-xs);
 }
 
-.crud-btn--primary:hover {
+.crud-btn--primary:hover:not(:disabled) {
   background: var(--me-primary-hover);
+  border-color: var(--me-primary-hover);
   box-shadow: var(--me-shadow-sm);
 }
 
 .crud-btn--ghost {
-  background: transparent;
+  background: var(--me-surface);
   color: var(--me-text-secondary);
-  border-color: var(--me-border);
+  border-color: var(--me-border-strong);
 }
 
-.crud-btn--ghost:hover {
+.crud-btn--ghost:hover:not(:disabled) {
   background: var(--me-surface-muted);
   color: var(--me-text);
   border-color: var(--me-border-strong);
 }
 
-.crud-btn--export {
-  background: var(--me-secondary-soft, rgba(20, 184, 166, 0.1));
-  color: var(--me-secondary, #0f766e);
-  border-color: rgba(20, 184, 166, 0.35);
-}
-
-.crud-btn--export:hover {
-  background: rgba(20, 184, 166, 0.16);
-  color: var(--me-secondary, #0f766e);
-  border-color: rgba(20, 184, 166, 0.5);
-  box-shadow: var(--me-shadow-xs);
-}
-
+/* Secondary actions — same corporate style for Export / Import */
+.crud-btn--export,
 .crud-btn--import {
-  background: var(--me-accent-soft, rgba(99, 102, 241, 0.1));
-  color: var(--me-accent, #4f46e5);
-  border-color: rgba(99, 102, 241, 0.35);
+  background: var(--me-surface);
+  color: var(--me-text);
+  border-color: var(--me-border-strong);
 }
 
-.crud-btn--import:hover {
-  background: rgba(99, 102, 241, 0.16);
-  color: var(--me-accent, #4f46e5);
-  border-color: rgba(99, 102, 241, 0.5);
+.crud-btn--export:hover:not(:disabled),
+.crud-btn--import:hover:not(:disabled) {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+  border-color: var(--me-primary);
   box-shadow: var(--me-shadow-xs);
 }
 
 .crud-btn--danger {
-  background: transparent;
+  background: var(--me-surface);
   color: #dc2626;
   border-color: #fecaca;
 }
 
-.crud-btn--danger:hover {
+.crud-btn--danger:hover:not(:disabled) {
   background: #fef2f2;
 }
 
 .crud-btn--sm {
-  padding: 4px 10px;
+  min-height: 32px;
+  height: 32px;
+  padding: 0 10px;
   font-size: 0.8125rem;
 }
 
@@ -477,16 +573,75 @@
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+    padding: 12px;
   }
 
-  .tenant-toolbar-left,
+  .tenant-toolbar-left {
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .tenant-toolbar-left > span:first-child,
+  .crud-toolbar-count {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tenant-toolbar-left > select {
+    width: 100%;
+    min-width: 0;
+  }
+
   .crud-toolbar-actions {
+    width: 100%;
+    margin-left: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 8px;
+    align-items: start;
+    padding-bottom: 22px;
+  }
+
+  /* Primary action spans full width on its own row */
+  .crud-toolbar-actions .crud-btn--primary {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+
+  .crud-toolbar-actions .crud-btn {
+    width: 100%;
+  }
+
+  .spreadsheet-import-compact {
+    width: 100%;
+  }
+
+  .spreadsheet-import-compact .crud-btn {
+    width: 100%;
+  }
+
+  .spreadsheet-sample-link {
+    left: 0;
+    right: 0;
+    transform: none;
     width: 100%;
   }
 
   .crud-search-input {
     min-width: 0;
     width: 100%;
+  }
+
+  .company-select-inline {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .company-select-inline select {
+    min-width: 0;
+    flex: 1;
   }
 
   .crud-modal-backdrop {
