@@ -58,6 +58,8 @@ export const MENU_SECTIONS = [
 export const menuItems = [
   // Overview
   { to: "/", label: "Overview", permission: PERMISSIONS.DASHBOARD_VIEW, end: true, section: "overview" },
+  { to: "/diagnostics/orders", label: "Create appointment", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "overview", tenantModule: "diagnostics", openCreate: true },
+  { to: "/today-centre", label: "Today's Centre", permission: PERMISSIONS.DASHBOARD_VIEW, section: "overview" },
   { to: "/patients", label: "Patients", permission: PERMISSIONS.PATIENT_VIEW, section: "overview" },
 
   // Clinic
@@ -146,11 +148,13 @@ export function filterMenuByPermissions(permissions = [], role, companyModules =
         return false;
       }
       if (item.roleOnly && item.roleOnly !== role) return false;
+      if (item.openCreate && role === "doctor") return false;
       if (item.tenantModule && !isSuperAdmin && !tenantHasModule(modules, item.tenantModule)) return false;
       if (
         item.permission &&
         !set.has(item.permission) &&
-        !(adminRole && item.to === "/" && item.label === "Overview")
+        !(adminRole && item.to === "/" && item.label === "Overview") &&
+        !(adminRole && item.to === "/today-centre")
       ) {
         return false;
       }
@@ -185,6 +189,7 @@ export function groupMenuItems(items) {
 
 const routeRules = [
   { pattern: /^\/finance$/, permission: PERMISSIONS.FINANCIAL_VIEW, roleOnly: "company_admin" },
+  { pattern: /^\/today-centre$/, permission: PERMISSIONS.DASHBOARD_VIEW },
   { pattern: /^\/diagnostics\/today$/, permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor" },
   { pattern: /^\/my-schedule$/, permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor" },
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
@@ -205,7 +210,7 @@ export function canAccessRoute(permissions = [], role, path, companyModules = nu
     return path === "/" || path === "/diagnostics/today";
   }
 
-  if (isAdminRole(role) && path === "/") {
+  if (isAdminRole(role) && (path === "/" || path === "/today-centre")) {
     return true;
   }
 

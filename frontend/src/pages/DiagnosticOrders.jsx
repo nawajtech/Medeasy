@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   getDiagnosticCategories,
   getDiagnosticTypes, getDiagnosticPackages, getDiagnosticOrders, getDiagnosticOrder,
@@ -155,6 +156,8 @@ function StatusBadge({ status }) {
 
 function DiagnosticOrders() {
   const { isDoctor, isSuperAdmin, user } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const canViewAudit = hasPermission(user?.permissions, "audit.view");
 
   const [orders, setOrders] = useState([]);
@@ -379,7 +382,7 @@ function DiagnosticOrders() {
     }
   };
 
-  const openCreate = async () => {
+  const openCreate = useCallback(async () => {
     setPatients([]);
     setOrderForm({
       company_id: "", patient_id: "", branch_id: "", booking_type: "test",
@@ -390,7 +393,14 @@ function DiagnosticOrders() {
     });
     setCreateOpen(true);
     await Promise.allSettled([loadCreatePatients(""), loadCatalog(), loadDoctors(), loadReferralPartners(), loadTaxSettings()]);
-  };
+  }, [loadCatalog, loadDoctors, loadReferralPartners, loadTaxSettings]);
+
+  useEffect(() => {
+    if (isDoctor) return;
+    if (!location.state?.openCreate && new URLSearchParams(location.search).get("new") !== "1") return;
+    openCreate();
+    navigate("/diagnostics/orders", { replace: true, state: {} });
+  }, [isDoctor, location.state, location.search, openCreate, navigate]);
 
   const handleOrderCompanyChange = async (e) => {
     const cid = e.target.value;
@@ -781,7 +791,7 @@ function DiagnosticOrders() {
           <BranchSelect value={branchFilter} onChange={(e) => setBranchFilter(e.target.value)} allLabel="All branches" id="dgn_branch_filter" name="dgn_branch_filter" />
         </div>
         {!isDoctor && (
-          <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>New order</button>
+          <button type="button" className="crud-btn crud-btn--primary" onClick={openCreate}>Create appointment</button>
         )}
       </div>
 
@@ -841,7 +851,7 @@ function DiagnosticOrders() {
         </table>
       </div>
 
-      <Modal title="New diagnostic order" open={createOpen} onClose={() => setCreateOpen(false)}>
+      <Modal title="Create appointment" open={createOpen} onClose={() => setCreateOpen(false)}>
         <form onSubmit={handleCreateOrder}>
           <div className="crud-form-grid">
             {isSuperAdmin && (
