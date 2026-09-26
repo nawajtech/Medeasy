@@ -21,5 +21,7 @@ export const cancelAppointment = (id) => patientApi.post(`/patient/appointments/
 export const rescheduleAppointment = (id, payload) =>
   patientApi.post(`/patient/appointments/${id}/reschedule`, payload);
 
+export const patientChat = (payload) => patientApi.post("/patient/chat", payload);
+
 export const listReports = () => patientApi.get("/patient/reports");
 export const listPrescriptions = () => patientApi.get("/patient/prescriptions");
