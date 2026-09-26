@@ -257,57 +257,6 @@ function TodayCentre() {
           </div>
 
           <div className="today-centre-grid">
-            {access.diagnostics && (
-              <section className="today-centre-panel">
-                <div className="today-centre-panel-head">
-                  <h3>Today&apos;s Queue</h3>
-                  <Link to="/diagnostics/orders">View all</Link>
-                </div>
-                <div className="crud-table-wrap">
-                  <table className="crud-table">
-                    <thead>
-                      <tr>
-                        <th>Order</th>
-                        <th>Patient</th>
-                        <th>Test / Service</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data?.queue || []).length === 0 && (
-                        <tr><td colSpan={6} className="crud-empty">No queue items for today.</td></tr>
-                      )}
-                      {(data?.queue || []).map((row) => (
-                        <tr key={row.id} className={["booked", "scheduled", "in_progress"].includes(row.status) ? "today-centre-row--pending" : undefined}>
-                          <td>
-                            <strong className="today-centre-order-no">{row.order_number || "—"}</strong>
-                            {row.token != null && row.token !== "" && (
-                              <div className="crud-muted">Token {row.token}</div>
-                            )}
-                          </td>
-                          <td>
-                            <strong>{row.patient || "—"}</strong>
-                            {row.patient_code && <div className="crud-muted">{row.patient_code}</div>}
-                          </td>
-                          <td>{row.service || "—"}</td>
-                          <td>{row.time || "—"}</td>
-                          <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
-                          <td className="today-centre-row-actions">
-                            <Link className="crud-btn crud-btn--ghost crud-btn--sm" to="/diagnostics/orders">Open</Link>
-                            {row.patient_id && (
-                              <Link className="crud-btn crud-btn--ghost crud-btn--sm" to={`/patients/${row.patient_id}`}>Patient</Link>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
             {(access.clinic_appointments || access.diagnostic_appointments) && (
               <section className="today-centre-panel">
                 <div className="today-centre-panel-head">
@@ -358,6 +307,57 @@ function TodayCentre() {
                           <td>{row.time || formatClock(row.scheduled_at)}</td>
                           <td>{access.diagnostic_appointments ? (row.service || "—") : (row.doctor || "—")}</td>
                           <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            )}
+
+            {access.diagnostics && (
+              <section className="today-centre-panel">
+                <div className="today-centre-panel-head">
+                  <h3>Today&apos;s Queue</h3>
+                  <Link to="/diagnostics/orders">View all</Link>
+                </div>
+                <div className="crud-table-wrap">
+                  <table className="crud-table">
+                    <thead>
+                      <tr>
+                        <th>Order</th>
+                        <th>Patient</th>
+                        <th>Test / Service</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(data?.queue || []).length === 0 && (
+                        <tr><td colSpan={6} className="crud-empty">No queue items for today.</td></tr>
+                      )}
+                      {(data?.queue || []).map((row) => (
+                        <tr key={row.id} className={["booked", "scheduled", "in_progress"].includes(row.status) ? "today-centre-row--pending" : undefined}>
+                          <td>
+                            <strong className="today-centre-order-no">{row.order_number || "—"}</strong>
+                            {row.token != null && row.token !== "" && (
+                              <div className="crud-muted">Token {row.token}</div>
+                            )}
+                          </td>
+                          <td>
+                            <strong>{row.patient || "—"}</strong>
+                            {row.patient_code && <div className="crud-muted">{row.patient_code}</div>}
+                          </td>
+                          <td>{row.service || "—"}</td>
+                          <td>{row.time || "—"}</td>
+                          <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
+                          <td className="today-centre-row-actions">
+                            <Link className="crud-btn crud-btn--ghost crud-btn--sm" to="/diagnostics/orders">Open</Link>
+                            {row.patient_id && (
+                              <Link className="crud-btn crud-btn--ghost crud-btn--sm" to={`/patients/${row.patient_id}`}>Patient</Link>
+                            )}
+                          </td>
                         </tr>
                       ))}
                     </tbody>
