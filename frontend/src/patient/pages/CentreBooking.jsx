@@ -180,12 +180,17 @@ export default function CentreBooking() {
       <Link to="/" className="pt-back">
         ← All centres
       </Link>
-      <div className="pt-page-head">
-        <h1 className="pt-page-title">{centre.name}</h1>
-        <p className="pt-page-sub">
-          {[centre.address, centre.city].filter(Boolean).join(", ")}
-          {centre.phone ? ` · ${centre.phone}` : ""}
-        </p>
+      <div className="pt-page-head pt-page-head--row">
+        <div>
+          <h1 className="pt-page-title">{centre.name}</h1>
+          <p className="pt-page-sub">
+            {[centre.address, centre.city].filter(Boolean).join(", ")}
+            {centre.phone ? ` · ${centre.phone}` : ""}
+          </p>
+        </div>
+        <Link to={`/centres/${centre.id}/chat`} className="pt-btn">
+          Chat with Center
+        </Link>
       </div>
 
       <div className="pt-panel">

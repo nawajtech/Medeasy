@@ -84,6 +84,7 @@ export const menuItems = [
   { to: "/diagnostics/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
   { to: "/diagnostics", label: "Diagnostic Catalog", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics", end: true },
   { to: "/diagnostics/orders", label: "Diagnostic Orders", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
+  { to: "/diagnostics/chats", label: "Patient chats", permission: PERMISSIONS.DASHBOARD_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
 
   // Reports & Finance
   { to: "/reports", label: "Reports", permission: PERMISSIONS.REPORT_VIEW, section: "reports", tenantModule: "clinic" },
@@ -142,7 +143,10 @@ export function filterMenuByPermissions(permissions = [], role, companyModules =
   return menuItems
     .filter((item) => {
       if (diagnosticsOnlyDoctor) {
-        return item.to === "/diagnostics/today" && item.label === "Today's appointments";
+        return (
+          (item.to === "/diagnostics/today" && item.label === "Today's appointments")
+          || item.to === "/diagnostics/chats"
+        );
       }
       if (role === "super_admin" && (item.to === "/roles" || item.to.startsWith("/roles/"))) {
         return false;
@@ -191,6 +195,7 @@ const routeRules = [
   { pattern: /^\/finance$/, permission: PERMISSIONS.FINANCIAL_VIEW, roleOnly: "company_admin" },
   { pattern: /^\/today-centre$/, permission: PERMISSIONS.DASHBOARD_VIEW },
   { pattern: /^\/diagnostics\/today$/, permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor" },
+  { pattern: /^\/diagnostics\/chats$/, permission: PERMISSIONS.DASHBOARD_VIEW },
   { pattern: /^\/my-schedule$/, permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor" },
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
   { pattern: /^\/doctors\/\d+\/availability$/, permission: PERMISSIONS.DOCTOR_VIEW },
@@ -207,7 +212,7 @@ export function canAccessRoute(permissions = [], role, path, companyModules = nu
   }
 
   if (isDiagnosticsOnlyDoctor(role, companyModules)) {
-    return path === "/" || path === "/diagnostics/today";
+    return path === "/" || path === "/diagnostics/today" || path === "/diagnostics/chats";
   }
 
   if (isAdminRole(role) && (path === "/" || path === "/today-centre")) {

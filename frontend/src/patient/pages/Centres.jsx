@@ -145,18 +145,23 @@ export default function Centres() {
       ) : (
         <div className="pt-grid">
           {centres.map((centre) => (
-            <Link key={centre.id} to={`/centres/${centre.id}`} className="pt-centre">
-              <div className="pt-centre__top">
-                <span className="pt-chip pt-chip--green">Book now</span>
-              </div>
-              <h3>{centre.name}</h3>
-              <p>
-                {[centre.address, centre.city, centre.state].filter(Boolean).join(", ") ||
-                  "Address not listed"}
-              </p>
-              {centre.phone ? <p>{centre.phone}</p> : null}
-              <span className="pt-centre__cta">Select tests & book →</span>
-            </Link>
+            <article key={centre.id} className="pt-centre">
+              <Link to={`/centres/${centre.id}`} className="pt-centre__main">
+                <div className="pt-centre__top">
+                  <span className="pt-chip pt-chip--green">Book now</span>
+                </div>
+                <h3>{centre.name}</h3>
+                <p>
+                  {[centre.address, centre.city, centre.state].filter(Boolean).join(", ") ||
+                    "Address not listed"}
+                </p>
+                {centre.phone ? <p>{centre.phone}</p> : null}
+                <span className="pt-centre__cta">Select tests & book →</span>
+              </Link>
+              <Link to={`/centres/${centre.id}/chat`} className="pt-centre__chat">
+                Chat with Center
+              </Link>
+            </article>
           ))}
         </div>
       )}

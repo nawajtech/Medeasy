@@ -35,7 +35,9 @@ use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TodayCentreController;
+use App\Http\Controllers\Api\CenterChatController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
+use App\Http\Controllers\Api\Patient\PatientCenterChatController;
 use App\Http\Controllers\Api\Patient\PatientChatController;
 use App\Http\Controllers\Api\Patient\PatientPortalController;
 use App\Http\Controllers\Api\SendReportsController;
@@ -68,6 +70,12 @@ Route::prefix('patient')->group(function () {
         Route::post('appointments/{orderId}/reschedule', [PatientPortalController::class, 'reschedule'])->whereNumber('orderId');
 
         Route::post('chat', [PatientChatController::class, 'chat']);
+
+        Route::get('center-chats/unread', [PatientCenterChatController::class, 'unread']);
+        Route::get('center-chats', [PatientCenterChatController::class, 'index']);
+        Route::post('center-chats', [PatientCenterChatController::class, 'start']);
+        Route::get('center-chats/{conversation}', [PatientCenterChatController::class, 'show'])->whereNumber('conversation');
+        Route::post('center-chats/{conversation}/messages', [PatientCenterChatController::class, 'send'])->whereNumber('conversation');
 
         Route::get('reports', [PatientPortalController::class, 'reports']);
         Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
@@ -314,6 +322,12 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     Route::middleware('permission:lab.verify')->patch('lab/orders/{labOrder}/verify', [LabOrderController::class, 'verify']);
     Route::middleware('permission:lab.approve')->patch('lab/orders/{labOrder}/approve', [LabOrderController::class, 'approve']);
+
+    // Centre chat is available to signed-in staff of a diagnostic centre.
+    Route::get('diagnostics/center-chats/unread', [CenterChatController::class, 'unread']);
+    Route::get('diagnostics/center-chats', [CenterChatController::class, 'index']);
+    Route::get('diagnostics/center-chats/{conversation}', [CenterChatController::class, 'show'])->whereNumber('conversation');
+    Route::post('diagnostics/center-chats/{conversation}/messages', [CenterChatController::class, 'send'])->whereNumber('conversation');
 
     // ── Diagnostic module ─────────────────────────────────────────
     Route::middleware('permission:diagnostic.view')->group(function () {
