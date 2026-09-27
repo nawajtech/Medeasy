@@ -179,9 +179,10 @@ function AuditTrail() {
             allLabel="All branches"
             id="audit_branch"
             name="audit_branch"
+            className="audit-trail-control"
           />
           <select
-            className="crud-btn crud-btn--ghost"
+            className="audit-trail-control"
             value={filters.user_id}
             onChange={(e) => setFilter("user_id", e.target.value)}
             aria-label="User"
@@ -192,7 +193,7 @@ function AuditTrail() {
             ))}
           </select>
           <select
-            className="crud-btn crud-btn--ghost"
+            className="audit-trail-control"
             value={filters.module}
             onChange={(e) => setFilter("module", e.target.value)}
             aria-label="Module"
@@ -203,7 +204,7 @@ function AuditTrail() {
             ))}
           </select>
           <select
-            className="crud-btn crud-btn--ghost"
+            className="audit-trail-control"
             value={filters.action}
             onChange={(e) => setFilter("action", e.target.value)}
             aria-label="Action"
@@ -213,42 +214,47 @@ function AuditTrail() {
               <option key={a} value={a}>{a}</option>
             ))}
           </select>
-          <input
-            type="date"
-            value={filters.date_from}
-            onChange={(e) => setFilter("date_from", e.target.value)}
-            aria-label="From date"
-            placeholder="From date"
-          />
-          <span>–</span>
-          <input
-            type="date"
-            value={filters.date_to}
-            onChange={(e) => setFilter("date_to", e.target.value)}
-            aria-label="To date"
-            placeholder="To date"
-          />
+          <div className="audit-trail-date-range" role="group" aria-label="Date range">
+            <input
+              type="date"
+              className="audit-trail-control"
+              value={filters.date_from}
+              onChange={(e) => setFilter("date_from", e.target.value)}
+              aria-label="From date"
+            />
+            <span className="audit-trail-date-sep" aria-hidden="true">to</span>
+            <input
+              type="date"
+              className="audit-trail-control"
+              value={filters.date_to}
+              onChange={(e) => setFilter("date_to", e.target.value)}
+              aria-label="To date"
+            />
+          </div>
           <input
             type="search"
-            className="audit-trail-search"
+            className="audit-trail-control audit-trail-search"
             placeholder="Search user, record…"
+            aria-label="Search audit trail"
             value={filters.search}
             onChange={(e) => setFilter("search", e.target.value)}
           />
         </div>
         {can("audit.export") && (
-          <button
-            type="button"
-            className="crud-btn crud-btn--primary"
-            onClick={handleExport}
-            disabled={exporting}
-          >
-            {exporting ? "Exporting…" : "Export CSV"}
-          </button>
+          <div className="crud-toolbar-actions audit-trail-actions">
+            <button
+              type="button"
+              className="crud-btn crud-btn--export"
+              onClick={handleExport}
+              disabled={exporting}
+            >
+              {exporting ? "Exporting…" : "Export CSV"}
+            </button>
+          </div>
         )}
       </div>
 
-      <div className="crud-table-wrap">
+      <div className="crud-table-wrap audit-trail-table-wrap">
         <table className="crud-table audit-trail-table">
           <thead>
             <tr>
@@ -263,25 +269,32 @@ function AuditTrail() {
             </tr>
           </thead>
           <tbody>
+            {loading && (
+              <tr><td colSpan={8} className="crud-empty">Loading…</td></tr>
+            )}
             {!loading && logs.length === 0 && (
               <tr><td colSpan={8} className="crud-empty">No audit entries found.</td></tr>
             )}
-            {logs.map((log) => (
+            {!loading && logs.map((log) => (
               <tr key={log.id}>
                 <td className="audit-trail-date">{formatDate(log.created_at)}</td>
-                <td>
+                <td className="audit-trail-user">
                   <strong>{log.user_name || "System"}</strong>
                   {log.user_email && <div className="crud-muted audit-trail-email">{log.user_email}</div>}
                 </td>
                 <td><span className={`audit-pill audit-pill--${log.action}`}>{log.action}</span></td>
                 <td>{MODULE_LABELS[log.module] || log.module}</td>
-                <td>{log.auditable_label || "—"}</td>
-                <td>{log.branch?.name || "—"}</td>
-                <td className="audit-trail-meta">
-                  {log.ip_address || "—"}
-                  {log.device && <span className="crud-muted"> · {log.device} / {log.browser}</span>}
+                <td className="audit-trail-record">{log.auditable_label || "—"}</td>
+                <td className="audit-trail-branch" title={log.branch?.name || undefined}>
+                  {log.branch?.name || "—"}
                 </td>
-                <td>
+                <td className="audit-trail-meta">
+                  <div>{log.ip_address || "—"}</div>
+                  {log.device && (
+                    <div className="crud-muted">{log.device}{log.browser ? ` / ${log.browser}` : ""}</div>
+                  )}
+                </td>
+                <td className="audit-trail-row-actions">
                   <button
                     type="button"
                     className="crud-btn crud-btn--ghost crud-btn--sm"

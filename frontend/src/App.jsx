@@ -35,6 +35,7 @@ import Roles from "./pages/Roles";
 import RolePermissions from "./pages/RolePermissions";
 import ThemeSettings from "./pages/ThemeSettings";
 import AuditTrail from "./pages/AuditTrail";
+import TodayCentre from "./pages/TodayCentre";
 import ShareDiagnosticReport from "./pages/ShareDiagnosticReport";
 import ShareDiagnosticReportDownload from "./pages/ShareDiagnosticReportDownload";
 import "./App.css";
@@ -54,6 +55,7 @@ function App() {
             <Route element={<MainLayout />}>
               <Route element={<RoleRoute />}>
                 <Route index element={<Dashboard />} />
+                <Route path="today-centre" element={<TodayCentre />} />
                 <Route path="companies" element={<Companies />} />
                 <Route path="plans" element={<Plans />} />
                 <Route path="admin/subscriptions" element={<AdminSubscriptions />} />

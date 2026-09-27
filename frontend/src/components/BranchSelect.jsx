@@ -25,6 +25,7 @@ function BranchSelect({
   allowAll = true,
   allLabel = "All branches",
   disabled = false,
+  className,
 }) {
   const [branches, setBranches] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,7 @@ function BranchSelect({
       onChange={onChange}
       required={required}
       disabled={disabled || loading}
+      className={className}
     >
       {allowAll && <option value="">{loading ? "Loading…" : allLabel}</option>}
       {branches.map((b) => (

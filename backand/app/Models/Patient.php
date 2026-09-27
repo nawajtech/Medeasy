@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Models\Concerns\BelongsToCompany;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
 
-class Patient extends Model
+class Patient extends Authenticatable
 {
-    use BelongsToCompany, SoftDeletes;
+    use BelongsToCompany, HasApiTokens, SoftDeletes;
 
     protected $fillable = [
         'company_id',
@@ -17,6 +18,7 @@ class Patient extends Model
         'email',
         'phone',
         'password',
+        'original_password',
         'status',
         'gender',
         'date_of_birth',
@@ -32,6 +34,8 @@ class Patient extends Model
 
     protected $hidden = [
         'password',
+        'original_password',
+        'remember_token',
     ];
 
     protected function casts(): array
@@ -68,5 +72,10 @@ class Patient extends Model
     public function wallet()
     {
         return $this->hasOne(PatientWallet::class);
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return false;
     }
 }

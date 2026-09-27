@@ -1,21 +1,18 @@
-import { useAuth } from "../auth/AuthContext";
-import { getBranding } from "../utils/branding";
 import "./Footer.css";
+
+const PLATFORM_NAME = "ApnaMedi";
+const PLATFORM_TAGLINE = "Healthcare Operations, Simplified";
 
 function Footer() {
   const year = new Date().getFullYear();
-  const { user } = useAuth();
-  const branding = getBranding(user);
-  const name = branding.name || "ApnaMedi";
-  const tagline = branding.tagline || "Healthcare Operations, Simplified";
 
   return (
     <footer className="footer">
       <div className="footer-inner">
         <div className="footer-brand">
-          <span className="footer-logo">{name}</span>
+          <span className="footer-logo">{PLATFORM_NAME}</span>
           <p className="footer-copy">
-            © {year} {name}. {tagline}.
+            © {year} {PLATFORM_NAME}. {PLATFORM_TAGLINE}.
           </p>
         </div>
 

@@ -18,8 +18,13 @@ function resolveApiBaseUrl() {
 
   // If built without VITE_API_BASE_URL, use same host in the browser (live deploy).
   if (typeof window !== "undefined") {
-    const { hostname, origin } = window.location;
+    const { hostname, origin, protocol } = window.location;
     if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+      // Patient subdomain talks to the main API host (app.*), not patient.*/api.
+      if (hostname === "patient.apnamedi.com" || hostname.startsWith("patient.")) {
+        const apiHost = hostname.replace(/^patient\./, "app.");
+        return `${protocol}//${apiHost}/api`;
+      }
       return `${origin}/api`;
     }
   }

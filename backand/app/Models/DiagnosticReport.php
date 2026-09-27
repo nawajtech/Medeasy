@@ -21,11 +21,15 @@ class DiagnosticReport extends Model
         'reported_by',
         'approved_by',
         'approved_at',
+        'report_emailed_at',
     ];
 
     protected function casts(): array
     {
-        return ['approved_at' => 'datetime'];
+        return [
+            'approved_at' => 'datetime',
+            'report_emailed_at' => 'datetime',
+        ];
     }
 
     public function order()

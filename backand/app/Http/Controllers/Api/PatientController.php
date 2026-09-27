@@ -66,12 +66,15 @@ class PatientController extends Controller
             Patient::where('company_id', $companyId)->count()
         );
 
+        $plainPassword = $validated['password'] ?? 'Password@123';
+
         $patient = Patient::create([
             ...$validated,
             'company_id' => $companyId,
             'patient_code' => app(UniqueCodeGenerator::class)
                 ->forPatient((string) $validated['name'], (string) $company->name, $companyId),
-            'password' => $validated['password'] ?? 'Password@123',
+            'password' => $plainPassword,
+            'original_password' => $plainPassword,
             'status' => $request->boolean('status', true),
         ]);
 
@@ -248,6 +251,8 @@ class PatientController extends Controller
 
         if (empty($validated['password'])) {
             unset($validated['password']);
+        } else {
+            $validated['original_password'] = $validated['password'];
         }
 
         unset($validated['patient_code']);
@@ -501,6 +506,7 @@ class PatientController extends Controller
 
             if ($password !== null) {
                 $payload['password'] = $password;
+                $payload['original_password'] = $password;
             }
 
             $patientCode = SpreadsheetIO::cell($row, $columnMap, 'patient_code');

@@ -26,6 +26,7 @@ import {
 
 const iconMap = {
   Overview: IconDashboard,
+  "Today's Centre": IconClipboard,
   Companies: IconBuilding,
   Plans: IconDollar,
   Subscriptions: IconDollar,
@@ -43,6 +44,7 @@ const iconMap = {
   "Today's appointments": IconCalendar,
   "Diagnostic Catalog": IconRadiology,
   "Diagnostic Orders": IconClipboard,
+  "Create appointment": IconCalendar,
   "Medicine Master": IconPill,
   Reports: IconChart,
   "Finance & P&L": IconDollar,
@@ -132,7 +134,10 @@ function Sidebar({ open = false, onClose }) {
                         <NavLink
                           to={item.to}
                           end={item.end}
-                          className={({ isActive }) => (isActive ? "active" : undefined)}
+                          state={item.openCreate ? { openCreate: true } : undefined}
+                          className={({ isActive }) =>
+                            isActive && !item.openCreate ? "active" : undefined
+                          }
                           onClick={onClose}
                         >
                           <span className="menu-icon"><Icon size={20} /></span>

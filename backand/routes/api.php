@@ -34,9 +34,45 @@ use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PlatformSettingController;
 use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\TodayCentreController;
+use App\Http\Controllers\Api\Patient\PatientAuthController;
+use App\Http\Controllers\Api\Patient\PatientChatController;
+use App\Http\Controllers\Api\Patient\PatientPortalController;
+use App\Http\Controllers\Api\SendReportsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
+
+// Patient portal (patient.apnamedi.com)
+Route::prefix('patient')->group(function () {
+    Route::post('auth/register', [PatientAuthController::class, 'register']);
+    Route::post('auth/login', [PatientAuthController::class, 'login']);
+
+    Route::middleware(['auth:patient', 'patient'])->group(function () {
+        Route::get('auth/me', [PatientAuthController::class, 'me']);
+        Route::post('auth/logout', [PatientAuthController::class, 'logout']);
+        Route::put('auth/profile', [PatientAuthController::class, 'updateProfile']);
+        Route::put('auth/password', [PatientAuthController::class, 'changePassword']);
+
+        Route::get('centres', [PatientPortalController::class, 'centres']);
+        Route::get('centres/{companyId}', [PatientPortalController::class, 'centreShow'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/services', [PatientPortalController::class, 'centreServices'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/slots', [PatientPortalController::class, 'slots'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/referral', [PatientPortalController::class, 'lookupReferral'])->whereNumber('companyId');
+
+        
+        Route::post('bookings', [PatientPortalController::class, 'book']);
+        Route::get('appointments', [PatientPortalController::class, 'appointments']);
+        Route::get('appointments/{orderId}', [PatientPortalController::class, 'appointmentShow'])->whereNumber('orderId');
+        Route::post('appointments/{orderId}/cancel', [PatientPortalController::class, 'cancel'])->whereNumber('orderId');
+        Route::post('appointments/{orderId}/reschedule', [PatientPortalController::class, 'reschedule'])->whereNumber('orderId');
+
+        Route::post('chat', [PatientChatController::class, 'chat']);
+
+        Route::get('reports', [PatientPortalController::class, 'reports']);
+        Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
+    });
+});
 
 // Public — the active theme is applied on the login screen and for every user.
 Route::get('theme', [ThemeController::class, 'show']);
@@ -50,6 +86,9 @@ Route::get('public/share-report/{token}/view', [\App\Http\Controllers\PublicDiag
     ->where('token', '[A-Za-z0-9]+');
 Route::get('public/share-report/{token}/download', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'download'])
     ->where('token', '[A-Za-z0-9]+');
+
+// AWS Lambda / cron — send today's approved diagnostic reports to patient emails
+Route::match(['GET', 'POST'], 'sendreports', SendReportsController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('auth/me', [AuthController::class, 'me']);
@@ -166,6 +205,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // ── Dashboard ───────────────────────────────────────────────
     Route::get('dashboard', [DashboardController::class, 'index']);
+    Route::get('ops/today-centre', [TodayCentreController::class, 'show']);
 
     // ── Pharmacy / Medicine ───────────────────────────────────────
     Route::middleware('permission:medicine.view')->get('pharmacy/medicines', [MedicineController::class, 'index']);

@@ -297,7 +297,7 @@ function Patients() {
 
       <div className="crud-toolbar patients-toolbar">
         <div className="tenant-toolbar-left">
-          <span>{loading ? "Loading…" : `${filteredItems.length} patient(s)`}</span>
+          <span className="crud-toolbar-count">{loading ? "Loading…" : `${filteredItems.length} patient(s)`}</span>
           <input
             type="search"
             className="crud-search-input"
