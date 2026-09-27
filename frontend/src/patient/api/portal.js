@@ -23,5 +23,12 @@ export const rescheduleAppointment = (id, payload) =>
 
 export const patientChat = (payload) => patientApi.post("/patient/chat", payload);
 
+export const listCenterChats = () => patientApi.get("/patient/center-chats");
+export const getCenterChatUnread = () => patientApi.get("/patient/center-chats/unread");
+export const startCenterChat = (payload) => patientApi.post("/patient/center-chats", payload);
+export const getCenterChat = (id, params) => patientApi.get(`/patient/center-chats/${id}`, { params });
+export const sendCenterChatMessage = (id, payload) =>
+  patientApi.post(`/patient/center-chats/${id}/messages`, payload);
+
 export const listReports = () => patientApi.get("/patient/reports");
 export const listPrescriptions = () => patientApi.get("/patient/prescriptions");
