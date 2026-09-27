@@ -27,6 +27,7 @@ import LabOrders from "./pages/LabOrders";
 import DiagnosticCatalog from "./pages/DiagnosticCatalog";
 import DiagnosticOrders from "./pages/DiagnosticOrders";
 import DiagnosticTodayQueue from "./pages/DiagnosticTodayQueue";
+import CenterChats from "./pages/CenterChats";
 import ReferralPartners from "./pages/ReferralPartners";
 import FinancialReport from "./pages/FinancialReport";
 import Medicines from "./pages/Medicines";
@@ -86,6 +87,7 @@ function App() {
                 <Route path="diagnostics/orders" element={<DiagnosticOrders />} />
                 <Route path="diagnostics/referrals" element={<ReferralPartners />} />
                 <Route path="diagnostics/today" element={<DiagnosticTodayQueue />} />
+                <Route path="diagnostics/chats" element={<CenterChats />} />
                 {/* Pharmacy module */}
                 <Route path="pharmacy/medicines" element={<Medicines />} />
               </Route>

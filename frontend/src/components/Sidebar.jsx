@@ -1,5 +1,7 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { getStaffCenterChatUnread } from "../api/centerChats";
 import { filterMenuByPermissions, groupMenuItems } from "../config/permissions";
 import "./Sidebar.css";
 import {
@@ -16,6 +18,7 @@ import {
   IconRadiology,
   IconBranch,
   IconClipboard,
+  IconChat,
   IconPill,
   IconDollar,
   IconReferral,
@@ -44,6 +47,7 @@ const iconMap = {
   "Today's appointments": IconCalendar,
   "Diagnostic Catalog": IconRadiology,
   "Diagnostic Orders": IconClipboard,
+  "Patient chats": IconChat,
   "Create appointment": IconCalendar,
   "Medicine Master": IconPill,
   Reports: IconChart,
@@ -70,6 +74,27 @@ function Sidebar({ open = false, onClose }) {
   const { user, branding } = useAuth();
   const items = filterMenuByPermissions(user?.permissions, user?.role, user?.company?.modules);
   const groups = groupMenuItems(items);
+  const showChats = items.some((item) => item.to === "/diagnostics/chats");
+  const [chatUnread, setChatUnread] = useState(0);
+
+  useEffect(() => {
+    if (!showChats) return undefined;
+    let active = true;
+    const load = async () => {
+      try {
+        const { data } = await getStaffCenterChatUnread();
+        if (active) setChatUnread(Number(data?.unread_count) || 0);
+      } catch {
+        if (active) setChatUnread(0);
+      }
+    };
+    load();
+    const timer = setInterval(load, 8000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, [showChats]);
 
   return (
     <aside
@@ -142,6 +167,9 @@ function Sidebar({ open = false, onClose }) {
                         >
                           <span className="menu-icon"><Icon size={20} /></span>
                           <span className="menu-text">{item.label}</span>
+                          {item.to === "/diagnostics/chats" && chatUnread > 0 ? (
+                            <span className="menu-badge">{chatUnread > 9 ? "9+" : chatUnread}</span>
+                          ) : null}
                         </NavLink>
                       </li>
                     );

@@ -1,6 +1,8 @@
-import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { usePatientAuth } from "../auth/PatientAuthContext";
 import PatientChatWidget from "../components/PatientChatWidget";
+import { getCenterChatUnread } from "../api/portal";
 
 
 const links = [
@@ -13,6 +15,15 @@ const links = [
         <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M5.5 9.5V20h13V9.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M10 20v-6h4v6" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    to: "/chats",
+    label: "Chats",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M6 16.5 3.5 20V6.5A2.5 2.5 0 0 1 6 4h12a2.5 2.5 0 0 1 2.5 2.5v7A2.5 2.5 0 0 1 18 16H8l-2 2.5Z" strokeLinejoin="round" />
       </svg>
     ),
   },
@@ -67,9 +78,39 @@ function initials(name = "") {
     .join("") || "P";
 }
 
+function ChatBadge({ count, floating = false }) {
+  if (!count) return null;
+  return (
+    <span className={`pt-nav-badge${floating ? " pt-nav-badge--float" : ""}`}>
+      {count > 9 ? "9+" : count}
+    </span>
+  );
+}
+
 export default function PatientLayout() {
   const { patient, logout } = usePatientAuth();
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  const onCenterChat = pathname === "/chats" || pathname.startsWith("/chats/") || /\/centres\/\d+\/chat$/.test(pathname);
+  const [unreadChats, setUnreadChats] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { data } = await getCenterChatUnread();
+        if (active) setUnreadChats(Number(data?.unread_count) || 0);
+      } catch {
+        if (active) setUnreadChats(0);
+      }
+    };
+    load();
+    const timer = setInterval(load, 5000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -93,6 +134,7 @@ export default function PatientLayout() {
               className={({ isActive }) => (isActive ? "is-active" : undefined)}
             >
               {link.label === "Rx" ? "Prescriptions" : link.label === "Book" ? "Book" : link.label}
+              {link.to === "/chats" ? <ChatBadge count={unreadChats} /> : null}
             </NavLink>
           ))}
         </nav>
@@ -131,12 +173,13 @@ export default function PatientLayout() {
             className={({ isActive }) => (isActive ? "is-active" : undefined)}
           >
             {link.icon}
+            {link.to === "/chats" ? <ChatBadge count={unreadChats} floating /> : null}
             <span>{link.label}</span>
           </NavLink>
         ))}
       </nav>
 
-      <PatientChatWidget />
+      {onCenterChat ? null : <PatientChatWidget />}
     </div>
   );
 }

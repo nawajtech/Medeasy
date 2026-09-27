@@ -7,6 +7,8 @@ import PatientLogin from "./pages/PatientLogin";
 import PatientRegister from "./pages/PatientRegister";
 import Centres from "./pages/Centres";
 import CentreBooking from "./pages/CentreBooking";
+import PatientChats from "./pages/PatientChats";
+import PatientCenterChat from "./pages/PatientCenterChat";
 import Appointments from "./pages/Appointments";
 import AppointmentDetail from "./pages/AppointmentDetail";
 import BookingConfirmation from "./pages/BookingConfirmation";
@@ -29,7 +31,10 @@ export default function PatientApp() {
           <Route element={<PatientProtectedRoute />}>
             <Route element={<PatientLayout />}>
               <Route index element={<Centres />} />
+              <Route path="centres/:centreId/chat" element={<PatientCenterChat />} />
               <Route path="centres/:centreId" element={<CentreBooking />} />
+              <Route path="chats" element={<PatientChats />} />
+              <Route path="chats/:conversationId" element={<PatientCenterChat />} />
               <Route path="appointments" element={<Appointments />} />
               <Route path="appointments/:orderId" element={<AppointmentDetail />} />
               <Route path="appointments/:orderId/confirmation" element={<BookingConfirmation />} />

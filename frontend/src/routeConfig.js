@@ -102,6 +102,13 @@ export function getRouteMeta(pathname) {
       description: "Your patient queue for today — serial order with live status updates.",
     };
   }
+  if (pathname === "/diagnostics/chats") {
+    return {
+      title: "Patient chats",
+      breadcrumb: "Patient chats",
+      description: "Reply to patients who message this diagnostic centre.",
+    };
+  }
   if (pathname === "/diagnostics/referrals") {
     return {
       title: "Referral By",
