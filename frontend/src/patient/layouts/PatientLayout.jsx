@@ -91,7 +91,9 @@ export default function PatientLayout() {
   const { patient, logout } = usePatientAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const onCenterChat = pathname === "/chats" || pathname.startsWith("/chats/") || /\/centres\/\d+\/chat$/.test(pathname);
+  const onCenterChatThread =
+    pathname.startsWith("/chats/") || /\/centres\/\d+\/chat$/.test(pathname);
+  const onCenterChat = pathname === "/chats" || onCenterChatThread;
   const [unreadChats, setUnreadChats] = useState(0);
 
   useEffect(() => {
@@ -118,7 +120,7 @@ export default function PatientLayout() {
   };
 
   return (
-    <div className="pt-app">
+    <div className={`pt-app${onCenterChatThread ? " is-center-chat" : ""}`}>
       <header className="pt-header">
         <Link to="/" className="pt-header__brand">
           <img src="/apnamedi-logo.png" alt="ApnaMedi" className="pt-logo-full" />
@@ -154,15 +156,17 @@ export default function PatientLayout() {
         <Outlet />
       </main>
 
-      <footer className="pt-footer">
-        <span className="pt-powered">
-          Powered by{" "}
-          <strong>
-            <span className="pt-brand-apna">Apna</span>
-            <span className="pt-brand-medi">Medi</span>
-          </strong>
-        </span>
-      </footer>
+      {onCenterChatThread ? null : (
+        <footer className="pt-footer">
+          <span className="pt-powered">
+            Powered by{" "}
+            <strong>
+              <span className="pt-brand-apna">Apna</span>
+              <span className="pt-brand-medi">Medi</span>
+            </strong>
+          </span>
+        </footer>
+      )}
 
       <nav className="pt-bottom-nav" aria-label="Primary">
         {links.map((link) => (

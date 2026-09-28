@@ -8,7 +8,9 @@ use App\Models\CenterMessage;
 use App\Models\Company;
 use App\Models\Patient;
 use App\Models\User;
+use App\Support\MediaStorage;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -98,28 +100,62 @@ class CenterChatService
         }
     }
 
-    public function send(CenterConversation $conversation, string $senderType, ?User $staff, string $body): CenterMessage
-    {
-        $text = trim($body);
-        abort_if($text === '', 422, 'Message cannot be empty.');
+    public function send(
+        CenterConversation $conversation,
+        string $senderType,
+        ?User $staff,
+        ?string $body = null,
+        ?UploadedFile $image = null,
+    ): CenterMessage {
+        $text = trim((string) $body);
+        $hasImage = $image instanceof UploadedFile;
+
+        abort_if($text === '' && ! $hasImage, 422, 'Message cannot be empty.');
+
+        $imagePath = null;
+        if ($hasImage) {
+            $imagePath = MediaStorage::upload($image, 'center-chat');
+        }
+
+        $messageType = $hasImage ? CenterMessage::MESSAGE_IMAGE : CenterMessage::MESSAGE_TEXT;
+        $storedBody = $hasImage
+            ? ($text !== '' ? $text : '📷 Image')
+            : $text;
 
         $message = $conversation->messages()->create([
             'sender_type' => $senderType,
             'sender_user_id' => $senderType === CenterMessage::TYPE_STAFF ? $staff?->id : null,
-            'body' => $text,
+            'body' => $storedBody,
+            'message_type' => $messageType,
+            'image_path' => $imagePath,
         ]);
 
         $cursor = $senderType === CenterMessage::TYPE_PATIENT
             ? 'patient_read_message_id'
             : 'staff_read_message_id';
 
+        $preview = $hasImage
+            ? ($text !== '' ? Str::limit($text, 180, '') : '📷 Image')
+            : Str::limit($storedBody, 180, '');
+
         $conversation->forceFill([
             'last_message_at' => $message->created_at,
-            'last_message_preview' => Str::limit($text, 180, ''),
+            'last_message_preview' => $preview,
             $cursor => $message->id,
         ])->save();
 
-        return $message->load('sender:id,name');
+        $message->load('sender:id,name');
+
+        app(CenterChatRealtime::class)->emit(
+            (int) $conversation->id,
+            'message',
+            [
+                'message' => $this->messagePayload($message, $conversation),
+                'conversation' => $this->conversationPayload($conversation, $senderType === CenterMessage::TYPE_PATIENT ? 'patient' : 'staff'),
+            ]
+        );
+
+        return $message;
     }
 
     public function messages(CenterConversation $conversation, int $after = 0): array
@@ -152,11 +188,16 @@ class CenterChatService
             default => 'ApnaMedi',
         };
 
+        $type = $message->message_type ?: CenterMessage::MESSAGE_TEXT;
+        $imageUrl = $message->image_path ? MediaStorage::url($message->image_path) : null;
+
         return [
             'id' => $message->id,
             'sender_type' => $message->sender_type,
             'sender_name' => $senderName,
             'body' => $message->body,
+            'type' => $type,
+            'image_url' => $imageUrl,
             'read' => $read,
             'created_at' => $message->created_at?->toIso8601String(),
         ];

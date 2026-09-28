@@ -72,12 +72,25 @@ class CenterChatController extends Controller
         $record = $this->find($companyId, $conversation);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['nullable', 'string', 'max:2000'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
         ]);
+
+        abort_if(
+            trim((string) ($data['body'] ?? '')) === '' && ! $request->hasFile('image'),
+            422,
+            'Message cannot be empty.'
+        );
 
         /** @var User $user */
         $user = $request->user();
-        $message = $this->chat->send($record, CenterMessage::TYPE_STAFF, $user, $data['body']);
+        $message = $this->chat->send(
+            $record,
+            CenterMessage::TYPE_STAFF,
+            $user,
+            $data['body'] ?? null,
+            $request->file('image')
+        );
         $this->chat->touchPresence('staff', $user->id, $companyId);
         $record->refresh();
 

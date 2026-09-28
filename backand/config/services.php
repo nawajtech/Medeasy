@@ -60,4 +60,9 @@ return [
         'max_tool_rounds' => (int) env('GEMINI_MAX_TOOL_ROUNDS', 8),
     ],
 
+    'center_chat_socket' => [
+        'url' => env('CENTER_CHAT_SOCKET_URL', 'http://127.0.0.1:3001'),
+        'secret' => env('CENTER_CHAT_SOCKET_SECRET', 'medeasy-center-chat-dev-secret'),
+    ],
+
 ];
