@@ -91,10 +91,16 @@ class PatientCenterChatController extends Controller
         $data = $request->validate([
             'body' => ['nullable', 'string', 'max:2000'],
             'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
+            'image_base64' => ['nullable', 'string'],
         ]);
 
+        $image = $request->file('image')
+            ?: ((! empty($data['image_base64']) && str_starts_with($data['image_base64'], 'data:image/'))
+                ? $data['image_base64']
+                : null);
+
         abort_if(
-            trim((string) ($data['body'] ?? '')) === '' && ! $request->hasFile('image'),
+            trim((string) ($data['body'] ?? '')) === '' && ! $image,
             422,
             'Message cannot be empty.'
         );
@@ -104,7 +110,7 @@ class PatientCenterChatController extends Controller
             CenterMessage::TYPE_PATIENT,
             null,
             $data['body'] ?? null,
-            $request->file('image')
+            $image
         );
         $this->chat->touchPresence('patient', $patient->id, null);
         $record->refresh();

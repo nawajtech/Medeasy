@@ -1,6 +1,6 @@
 .cc-page {
   display: grid;
-  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  grid-template-columns: 25% 75%;
   height: calc(100dvh - 140px);
   min-height: 520px;
   background: var(--me-surface);
@@ -28,7 +28,7 @@
 
 .cc-list__head,
 .cc-thread__head {
-  padding: 18px 20px;
+  padding: 22px 24px;
   border-bottom: 1px solid var(--me-border);
   flex: none;
 }
@@ -36,18 +36,19 @@
 .cc-list__head h1,
 .cc-thread__head h2 {
   margin: 0;
-  font-size: 1.35rem;
+  font-size: 1.65rem;
   line-height: 1.25;
+  font-weight: 700;
 }
 
 .cc-list__head p,
 .cc-thread__head p {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin: 6px 0 0;
+  gap: 10px;
+  margin: 8px 0 0;
   color: var(--me-text-muted);
-  font-size: 1rem;
+  font-size: 1.15rem;
 }
 
 .cc-list ul {
@@ -61,9 +62,9 @@
 .cc-list button {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
-  padding: 16px 18px;
+  padding: 18px 20px;
   border: 0;
   border-bottom: 1px solid var(--me-border);
   background: transparent;
@@ -86,11 +87,11 @@
 
 .cc-list__body {
   flex: 1;
-  gap: 4px;
+  gap: 6px;
 }
 
 .cc-list__body strong {
-  font-size: 1.05rem;
+  font-size: 1.2rem;
 }
 
 .cc-list__body strong,
@@ -104,7 +105,7 @@
 .cc-list__body span,
 .cc-list__side time {
   color: var(--me-text-muted);
-  font-size: 0.95rem;
+  font-size: 1.05rem;
 }
 
 .cc-list__side {
@@ -123,7 +124,7 @@
 .cc-thread__head {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   background: #fff;
 }
 
@@ -133,7 +134,7 @@
   background: transparent;
   color: var(--me-primary);
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.15rem;
   cursor: pointer;
 }
 
@@ -141,14 +142,14 @@
   flex: 1;
   overflow: auto;
   overflow-x: hidden;
-  padding: 20px;
+  padding: 24px;
   min-height: 0;
   -webkit-overflow-scrolling: touch;
 }
 
 .cc-row {
   display: flex;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .cc-row.is-mine {
@@ -156,11 +157,11 @@
 }
 
 .cc-bubble {
-  max-width: min(82%, 520px);
-  padding: 12px 14px 8px;
-  border-radius: 14px;
+  max-width: min(78%, 640px);
+  padding: 16px 18px 10px;
+  border-radius: 16px;
   background: #fff;
-  box-shadow: 0 1px 1px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
 }
 
 .cc-row.is-mine .cc-bubble {
@@ -169,37 +170,38 @@
 
 .cc-bubble p {
   margin: 0;
-  font-size: 1.125rem;
-  line-height: 1.45;
+  font-size: 1.35rem;
+  line-height: 1.5;
   white-space: pre-wrap;
   word-break: break-word;
 }
 
 .cc-image-link {
   display: block;
-  margin: 0 0 8px;
+  margin: 0 0 10px;
 }
 
 .cc-image {
   display: block;
-  max-width: min(100%, 280px);
-  max-height: 280px;
-  border-radius: 10px;
+  width: 100%;
+  max-width: min(100%, 420px);
+  max-height: 420px;
+  border-radius: 12px;
   object-fit: cover;
 }
 
 .cc-meta,
 .cc-tick {
   color: #667781;
-  font-size: 0.9rem;
+  font-size: 1.05rem;
 }
 
 .cc-meta {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 8px;
 }
 
 .cc-tick.is-read {
@@ -209,19 +211,19 @@
 .cc-system {
   width: fit-content;
   max-width: 90%;
-  margin: 10px auto;
-  padding: 10px 14px;
-  border-radius: 10px;
+  margin: 12px auto;
+  padding: 12px 16px;
+  border-radius: 12px;
   background: #fff7d6;
   color: #5c4b16;
-  font-size: 1rem;
+  font-size: 1.15rem;
   text-align: center;
 }
 
 .cc-typing {
-  margin: 0 0 8px;
+  margin: 0 0 10px;
   color: #667781;
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   font-style: italic;
 }
 
@@ -229,34 +231,34 @@
   position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 12px 16px;
   background: #f8fafc;
   border-top: 1px solid var(--me-border);
   flex: none;
 }
 
 .cc-preview img {
-  width: 72px;
-  height: 72px;
+  width: 96px;
+  height: 96px;
   object-fit: cover;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .cc-preview button {
   border: 0;
-  width: 36px;
-  height: 36px;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
   background: #e2e8f0;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
   cursor: pointer;
 }
 
 .cc-form {
   display: flex;
-  gap: 10px;
-  padding: 14px;
+  gap: 12px;
+  padding: 16px 18px;
   background: #f0f2f5;
   flex: none;
 }
@@ -268,10 +270,10 @@
 .cc-attach {
   border: 0;
   border-radius: 999px;
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   background: #fff;
-  font-size: 1.25rem;
+  font-size: 1.45rem;
   cursor: pointer;
   flex: none;
 }
@@ -281,19 +283,19 @@
   min-width: 0;
   border: 0;
   border-radius: 999px;
-  padding: 14px 18px;
+  padding: 16px 22px;
   font: inherit;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
 }
 
 .cc-form button[type="submit"] {
   border: 0;
   border-radius: 999px;
-  padding: 0 22px;
+  padding: 0 28px;
   background: var(--me-primary);
   color: #fff;
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: 1.2rem;
   cursor: pointer;
 }
 
@@ -303,8 +305,8 @@
 }
 
 .cc-dot {
-  width: 10px;
-  height: 10px;
+  width: 12px;
+  height: 12px;
   border-radius: 50%;
   background: #94a3b8;
   flex: none;
@@ -315,13 +317,13 @@
 }
 
 .cc-badge {
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 8px;
   border-radius: 999px;
   background: var(--me-primary);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.95rem;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
@@ -331,9 +333,9 @@
 .cc-empty,
 .cc-error {
   margin: 0;
-  padding: 24px 18px;
+  padding: 28px 20px;
   color: var(--me-text-muted);
-  font-size: 1rem;
+  font-size: 1.15rem;
 }
 
 .cc-error {
@@ -341,7 +343,7 @@
   padding-bottom: 0;
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .cc-page {
     grid-template-columns: 1fr;
     height: calc(100dvh - 120px);
@@ -366,14 +368,18 @@
 
   .cc-list__head h1,
   .cc-thread__head h2 {
-    font-size: 1.4rem;
+    font-size: 1.55rem;
   }
 
   .cc-bubble p {
-    font-size: 1.15rem;
+    font-size: 1.3rem;
   }
 
   .cc-messages {
-    padding: 16px;
+    padding: 18px;
+  }
+
+  .cc-form input[type="text"] {
+    font-size: 1.2rem;
   }
 }
