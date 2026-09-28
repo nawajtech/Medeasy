@@ -261,7 +261,7 @@ export default function PatientCenterChat() {
               message.body && message.body !== "📷 Image" ? message.body : "";
             return (
               <div key={message.id} className={`pt-cc__row${mine ? " is-mine" : ""}`}>
-                <div className="pt-cc__bubble">
+                <div className={`pt-cc__bubble${imageUrl ? " has-image" : ""}`}>
                   {imageUrl ? (
                     <a
                       className="pt-cc__image-link"
