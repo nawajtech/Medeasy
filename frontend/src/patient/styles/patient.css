@@ -16,6 +16,7 @@ html:has(.pt-auth) {
   --pt-blue-soft: #e8f7fc;
   --pt-brand-grey: #707070;
 
+  
   /* Mapped aliases used across the portal */
   --pt-teal: var(--pt-blue);
   --pt-teal-dark: var(--pt-blue-dark);
