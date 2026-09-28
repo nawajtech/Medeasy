@@ -8,6 +8,7 @@ import "./MainLayout.css";
 function MainLayout() {
   const { pathname } = useLocation();
   const [navOpen, setNavOpen] = useState(false);
+  const isCenterChat = pathname.includes("/diagnostics/chats");
 
   const closeNav = useCallback(() => setNavOpen(false), []);
   const toggleNav = useCallback(() => setNavOpen((open) => !open), []);
@@ -34,7 +35,7 @@ function MainLayout() {
   }, [navOpen]);
 
   return (
-    <div className={`admin-wrapper${navOpen ? " nav-open" : ""}`}>
+    <div className={`admin-wrapper${navOpen ? " nav-open" : ""}${isCenterChat ? " is-center-chat" : ""}`}>
       {navOpen ? (
         <button
           type="button"
@@ -53,7 +54,7 @@ function MainLayout() {
           <Outlet />
         </main>
 
-        <Footer />
+        {isCenterChat ? null : <Footer />}
       </div>
     </div>
   );

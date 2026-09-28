@@ -15,11 +15,17 @@ class CenterMessage extends Model
 
     public const TYPE_SYSTEM = 'system';
 
+    public const MESSAGE_TEXT = 'text';
+
+    public const MESSAGE_IMAGE = 'image';
+
     protected $fillable = [
         'conversation_id',
         'sender_type',
         'sender_user_id',
         'body',
+        'message_type',
+        'image_path',
     ];
 
     public function conversation(): BelongsTo

@@ -33,3 +33,5 @@ function resolveApiBaseUrl() {
 }
 
 export const API_BASE_URL = resolveApiBaseUrl();
+
+export const CENTER_CHAT_SOCKET_URL = env("VITE_CENTER_CHAT_SOCKET_URL", "http://127.0.0.1:3001");

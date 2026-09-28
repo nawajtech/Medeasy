@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { getApiErrorMessage } from "../utils/apiError";
 import { applyChatRead, formatChatListTime, formatChatTime, mergeChatMessages } from "../utils/chatFormat";
+import { connectCenterChatSocket } from "../utils/centerChatSocket";
+import { resolveMediaUrl } from "../utils/mediaUrl";
 import {
   getStaffCenterChat,
   listStaffCenterChats,
@@ -8,7 +10,9 @@ import {
 } from "../api/centerChats";
 import "./CenterChats.css";
 
-const POLL_MS = 2000;
+const FALLBACK_POLL_MS = 12000;
+const IMAGE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 function Ticks({ read }) {
   return (
@@ -24,16 +28,30 @@ export default function CenterChats() {
   const [conversation, setConversation] = useState(null);
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
   const [loadingList, setLoadingList] = useState(true);
   const [loadingThread, setLoadingThread] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState("");
+  const [peerTyping, setPeerTyping] = useState(false);
+  const [socketLive, setSocketLive] = useState(false);
   const scroller = useRef(null);
+  const fileInput = useRef(null);
   const afterRef = useRef(0);
+  const socketRef = useRef(null);
+  const typingHideRef = useRef(null);
+  const conversationRef = useRef(null);
   const [openedId, setOpenedId] = useState(null);
 
   if (activeId !== openedId) {
     setOpenedId(activeId);
+    setPeerTyping(false);
+    setImageFile(null);
+    setImagePreview((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return "";
+    });
     if (activeId) {
       setLoadingThread(true);
       setMessages([]);
@@ -43,6 +61,10 @@ export default function CenterChats() {
       setMessages([]);
     }
   }
+
+  useEffect(() => {
+    conversationRef.current = conversation;
+  }, [conversation]);
 
   useEffect(() => {
     let active = true;
@@ -59,7 +81,7 @@ export default function CenterChats() {
       }
     };
     load();
-    const timer = setInterval(load, 4000);
+    const timer = setInterval(load, 8000);
     return () => {
       active = false;
       clearInterval(timer);
@@ -94,6 +116,55 @@ export default function CenterChats() {
 
   useEffect(() => {
     if (!conversation?.id) return undefined;
+
+    const token = localStorage.getItem("apna_medi_token");
+    const socket = connectCenterChatSocket({
+      token,
+      conversationId: conversation.id,
+      onConnectionChange: setSocketLive,
+      onMessage: (payload) => {
+        const incoming = payload?.message;
+        const nextConversation = payload?.conversation;
+        if (nextConversation) {
+          setConversation(nextConversation);
+          setChats((prev) =>
+            prev.map((chat) =>
+              chat.id === nextConversation.id
+                ? { ...chat, ...nextConversation, unread_count: 0 }
+                : chat
+            )
+          );
+        }
+        if (!incoming?.id) return;
+        afterRef.current = Math.max(afterRef.current, incoming.id);
+        setMessages((current) =>
+          applyChatRead(mergeChatMessages(current, [incoming]), nextConversation || conversationRef.current)
+        );
+        setPeerTyping(false);
+      },
+      onTyping: (payload) => {
+        if (payload?.actor_type === "patient") {
+          setPeerTyping(true);
+          if (typingHideRef.current) clearTimeout(typingHideRef.current);
+          typingHideRef.current = setTimeout(() => setPeerTyping(false), 2500);
+        }
+      },
+      onTypingStop: (payload) => {
+        if (payload?.actor_type === "patient") setPeerTyping(false);
+      },
+    });
+    socketRef.current = socket;
+
+    return () => {
+      if (typingHideRef.current) clearTimeout(typingHideRef.current);
+      socket.disconnect();
+      socketRef.current = null;
+      setSocketLive(false);
+    };
+  }, [conversation?.id]);
+
+  useEffect(() => {
+    if (!conversation?.id || socketLive) return undefined;
     let active = true;
     const poll = async () => {
       try {
@@ -107,41 +178,92 @@ export default function CenterChats() {
         if (incoming.length) afterRef.current = incoming.at(-1).id;
         setMessages((current) => {
           const merged = applyChatRead(mergeChatMessages(current, incoming), data.conversation);
-          const unchanged = merged.length === current.length
-            && merged.every((message, index) => message.id === current[index]?.id && message.read === current[index]?.read);
+          const unchanged =
+            merged.length === current.length &&
+            merged.every(
+              (message, index) =>
+                message.id === current[index]?.id && message.read === current[index]?.read
+            );
           return unchanged ? current : merged;
         });
       } catch {
         // Keep the open thread if a poll fails.
       }
     };
-    const timer = setInterval(poll, POLL_MS);
+    const timer = setInterval(poll, FALLBACK_POLL_MS);
     return () => {
       active = false;
       clearInterval(timer);
     };
-  }, [conversation?.id]);
+  }, [conversation?.id, socketLive]);
 
   const lastMessageId = messages.at(-1)?.id;
   useEffect(() => {
     const node = scroller.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [lastMessageId, loadingThread]);
+  }, [lastMessageId, loadingThread, peerTyping, imagePreview]);
+
+  useEffect(() => {
+    return () => {
+      if (imagePreview) URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
+  const clearImage = () => {
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setImageFile(null);
+    setImagePreview("");
+    if (fileInput.current) fileInput.current.value = "";
+  };
+
+  const handlePickImage = (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setError("Please choose an image file.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      setError("Image must be 5 MB or smaller.");
+      return;
+    }
+    if (imagePreview) URL.revokeObjectURL(imagePreview);
+    setError("");
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+  };
+
+  const handleDraftChange = (event) => {
+    setDraft(event.target.value);
+    socketRef.current?.emitTyping();
+  };
 
   const handleSend = async (event) => {
     event.preventDefault();
     const body = draft.trim();
-    if (!body || !conversation || sending) return;
+    if ((!body && !imageFile) || !conversation || sending) return;
     setSending(true);
     setError("");
+    socketRef.current?.emitTypingStop();
     try {
-      const { data } = await sendStaffCenterChatMessage(conversation.id, { body });
+      let payload;
+      if (imageFile) {
+        payload = new FormData();
+        if (body) payload.append("body", body);
+        payload.append("image", imageFile);
+      } else {
+        payload = { body };
+      }
+      const { data } = await sendStaffCenterChatMessage(conversation.id, payload);
       setDraft("");
+      clearImage();
       setConversation(data.conversation);
       setMessages((prev) => applyChatRead(mergeChatMessages(prev, [data.message]), data.conversation));
       afterRef.current = Math.max(afterRef.current, data.message?.id ?? 0);
       setChats((prev) =>
-        prev.map((chat) => (chat.id === data.conversation.id ? { ...chat, ...data.conversation, unread_count: 0 } : chat))
+        prev.map((chat) =>
+          chat.id === data.conversation.id ? { ...chat, ...data.conversation, unread_count: 0 } : chat
+        )
       );
     } catch (err) {
       setError(getApiErrorMessage(err, "Could not send the message."));
@@ -151,6 +273,7 @@ export default function CenterChats() {
   };
 
   const online = Boolean(conversation?.patient_online);
+  const canSend = Boolean(conversation) && !sending && !loadingThread && (draft.trim() || imageFile);
 
   return (
     <div className={`cc-page${activeId ? " has-thread" : ""}`}>
@@ -216,10 +339,24 @@ export default function CenterChats() {
                   );
                 }
                 const mine = message.sender_type === "staff";
+                const imageUrl = resolveMediaUrl(message.image_url);
                 return (
                   <div key={message.id} className={`cc-row${mine ? " is-mine" : ""}`}>
                     <div className="cc-bubble">
-                      <p>{message.body}</p>
+                      {imageUrl ? (
+                        <a
+                          className="cc-image-link"
+                          href={imageUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img src={imageUrl} alt={message.body || "Shared image"} className="cc-image" />
+                        </a>
+                      ) : null}
+                      {message.type === "image" && message.body && message.body !== "📷 Image" ? (
+                        <p>{message.body}</p>
+                      ) : null}
+                      {message.type !== "image" ? <p>{message.body}</p> : null}
                       <span className="cc-meta">
                         {formatChatTime(message.created_at)}
                         {mine ? <Ticks read={Boolean(message.read)} /> : null}
@@ -228,9 +365,39 @@ export default function CenterChats() {
                   </div>
                 );
               })}
+              {peerTyping ? (
+                <p className="cc-typing" aria-live="polite">
+                  Patient is typing...
+                </p>
+              ) : null}
             </div>
             {error ? <p className="cc-error">{error}</p> : null}
+            {imagePreview ? (
+              <div className="cc-preview">
+                <img src={imagePreview} alt="Selected preview" />
+                <button type="button" onClick={clearImage} aria-label="Remove image">
+                  ×
+                </button>
+              </div>
+            ) : null}
             <form className="cc-form" onSubmit={handleSend}>
+              <input
+                ref={fileInput}
+                type="file"
+                accept={IMAGE_ACCEPT}
+                className="cc-file"
+                onChange={handlePickImage}
+                disabled={loadingThread || !conversation}
+              />
+              <button
+                type="button"
+                className="cc-attach"
+                disabled={loadingThread || !conversation}
+                onClick={() => fileInput.current?.click()}
+                aria-label="Attach image"
+              >
+                📷
+              </button>
               <input
                 type="text"
                 value={draft}
@@ -238,9 +405,9 @@ export default function CenterChats() {
                 placeholder="Type a message"
                 aria-label="Message"
                 disabled={loadingThread || !conversation}
-                onChange={(event) => setDraft(event.target.value)}
+                onChange={handleDraftChange}
               />
-              <button type="submit" disabled={sending || !draft.trim() || !conversation}>
+              <button type="submit" disabled={!canSend}>
                 Send
               </button>
             </form>
