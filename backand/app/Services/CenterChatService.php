@@ -105,16 +105,19 @@ class CenterChatService
         string $senderType,
         ?User $staff,
         ?string $body = null,
-        ?UploadedFile $image = null,
+        UploadedFile|string|null $image = null,
     ): CenterMessage {
         $text = trim((string) $body);
-        $hasImage = $image instanceof UploadedFile;
+        $hasImage = $image instanceof UploadedFile
+            || (is_string($image) && str_starts_with($image, 'data:image/'));
 
         abort_if($text === '' && ! $hasImage, 422, 'Message cannot be empty.');
 
         $imagePath = null;
-        if ($hasImage) {
+        if ($image instanceof UploadedFile) {
             $imagePath = MediaStorage::upload($image, 'center-chat');
+        } elseif (is_string($image) && str_starts_with($image, 'data:image/')) {
+            $imagePath = MediaStorage::putBase64Image($image, 'center-chat');
         }
 
         $messageType = $hasImage ? CenterMessage::MESSAGE_IMAGE : CenterMessage::MESSAGE_TEXT;
