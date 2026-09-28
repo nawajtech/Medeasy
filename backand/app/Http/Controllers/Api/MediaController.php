@@ -22,7 +22,7 @@ class MediaController extends Controller
         }
 
         // Only serve known media prefixes.
-        if (! preg_match('#^(platform|settings|logos|prescriptions)/#', $relative)) {
+        if (! preg_match('#^(platform|settings|logos|prescriptions|center-chat)/#', $relative)) {
             abort(404);
         }
 

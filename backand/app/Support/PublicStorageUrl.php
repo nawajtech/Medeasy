@@ -13,7 +13,7 @@ class PublicStorageUrl
         // Already an absolute URL — normalize known media keys to /api/media.
         if (preg_match('#^https?://#i', $stored)) {
             $relative = self::toRelativePath($stored);
-            if ($relative && preg_match('#^(platform|settings|logos|prescriptions)/#', $relative)) {
+            if ($relative && preg_match('#^(platform|settings|logos|prescriptions|center-chat)/#', $relative)) {
                 return self::appMediaUrl($relative);
             }
 
@@ -75,7 +75,7 @@ class PublicStorageUrl
 
         if (preg_match('#^https?://[^/]+/(.+)$#i', $stored, $matches)) {
             $path = ltrim(rawurldecode($matches[1]), '/');
-            if (preg_match('#^(platform|settings|logos|prescriptions)/#', $path)) {
+            if (preg_match('#^(platform|settings|logos|prescriptions|center-chat)/#', $path)) {
                 return '/storage/'.$path;
             }
         }
@@ -97,7 +97,7 @@ class PublicStorageUrl
             return null;
         }
 
-        if (preg_match('#^(platform|settings|logos|prescriptions)/#', $stored)) {
+        if (preg_match('#^(platform|settings|logos|prescriptions|center-chat)/#', $stored)) {
             return $stored;
         }
 

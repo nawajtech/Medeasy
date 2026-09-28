@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router-dom";
 import { getApiErrorMessage } from "../../utils/apiError";
 import { applyChatRead, formatChatTime, mergeChatMessages } from "../../utils/chatFormat";
 import { connectCenterChatSocket } from "../../utils/centerChatSocket";
+import { fileToDataUrl } from "../../utils/fileToDataUrl";
 import { resolveMediaUrl } from "../../utils/mediaUrl";
 import { PATIENT_TOKEN_KEY } from "../api/axios";
 import { getCenterChat, sendCenterChatMessage, startCenterChat } from "../api/portal";
@@ -207,14 +208,9 @@ export default function PatientCenterChat() {
     setError("");
     socketRef.current?.emitTypingStop();
     try {
-      let payload;
-      if (imageFile) {
-        payload = new FormData();
-        if (body) payload.append("body", body);
-        payload.append("image", imageFile);
-      } else {
-        payload = { body };
-      }
+      const payload = {};
+      if (body) payload.body = body;
+      if (imageFile) payload.image_base64 = await fileToDataUrl(imageFile);
       const { data } = await sendCenterChatMessage(current.id, payload);
       setDraft("");
       clearImage();
@@ -261,6 +257,8 @@ export default function PatientCenterChat() {
             }
             const mine = message.sender_type === "patient";
             const imageUrl = resolveMediaUrl(message.image_url);
+            const caption =
+              message.body && message.body !== "📷 Image" ? message.body : "";
             return (
               <div key={message.id} className={`pt-cc__row${mine ? " is-mine" : ""}`}>
                 <div className="pt-cc__bubble">
@@ -271,13 +269,10 @@ export default function PatientCenterChat() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <img src={imageUrl} alt={message.body || "Shared image"} className="pt-cc__image" />
+                      <img src={imageUrl} alt={caption || "Shared image"} className="pt-cc__image" />
                     </a>
                   ) : null}
-                  {message.type === "image" && message.body && message.body !== "📷 Image" ? (
-                    <p>{message.body}</p>
-                  ) : null}
-                  {message.type !== "image" ? <p>{message.body}</p> : null}
+                  {caption || !imageUrl ? <p>{caption || message.body}</p> : null}
                   <span className="pt-cc__meta">
                     {formatChatTime(message.created_at)}
                     {mine ? <Ticks read={Boolean(message.read)} /> : null}
