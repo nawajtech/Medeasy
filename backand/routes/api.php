@@ -36,6 +36,7 @@ use App\Http\Controllers\Api\MediaController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TodayCentreController;
 use App\Http\Controllers\Api\CenterChatController;
+use App\Http\Controllers\Api\CenterChatRealtimeController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
 use App\Http\Controllers\Api\Patient\PatientCenterChatController;
 use App\Http\Controllers\Api\Patient\PatientChatController;
@@ -86,6 +87,9 @@ Route::prefix('patient')->group(function () {
 Route::get('theme', [ThemeController::class, 'show']);
 Route::get('platform-branding', [PlatformSettingController::class, 'show']);
 Route::get('media/{path}', [MediaController::class, 'show'])->where('path', '.*');
+
+// Socket.IO server authorizes join with the client Bearer token (patient or staff).
+Route::post('realtime/center-chat/authorize', [CenterChatRealtimeController::class, 'authorize']);
 
 // Public diagnostic report share (QR scan — no login)
 Route::get('public/share-report/{token}', [\App\Http\Controllers\PublicDiagnosticReportController::class, 'showJson'])

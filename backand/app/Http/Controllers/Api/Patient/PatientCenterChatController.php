@@ -89,10 +89,23 @@ class PatientCenterChatController extends Controller
         $record = $this->find($patient, $conversation);
 
         $data = $request->validate([
-            'body' => ['required', 'string', 'max:2000'],
+            'body' => ['nullable', 'string', 'max:2000'],
+            'image' => ['nullable', 'image', 'mimes:jpeg,jpg,png,gif,webp', 'max:5120'],
         ]);
 
-        $message = $this->chat->send($record, CenterMessage::TYPE_PATIENT, null, $data['body']);
+        abort_if(
+            trim((string) ($data['body'] ?? '')) === '' && ! $request->hasFile('image'),
+            422,
+            'Message cannot be empty.'
+        );
+
+        $message = $this->chat->send(
+            $record,
+            CenterMessage::TYPE_PATIENT,
+            null,
+            $data['body'] ?? null,
+            $request->file('image')
+        );
         $this->chat->touchPresence('patient', $patient->id, null);
         $record->refresh();
 
