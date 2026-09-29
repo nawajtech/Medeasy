@@ -744,7 +744,7 @@ function DiagnosticOrders() {
 
   return (
     <section className="page-card dgn-page">
-      <div className="page-card-header">
+      <div className="page-card-header dgn-page-header">
         <h2>Diagnostic Orders</h2>
         <p>Book, schedule, and manage diagnostic test orders for patients.</p>
       </div>
@@ -795,39 +795,65 @@ function DiagnosticOrders() {
         )}
       </div>
 
-      <div className="crud-table-wrap">
-        <table className="crud-table">
+      <div className="crud-table-wrap dgn-orders-table-wrap">
+        <table className="crud-table dgn-orders-table">
           <thead>
-            <tr><th>Order #</th><th>Patient</th><th>Test</th><th>Payable</th><th>Paid</th><th>Due</th><th>Payment</th><th>Status / Schedule</th><th>Actions</th></tr>
+            <tr>
+              <th>Order</th>
+              <th>Patient / Test</th>
+              <th>Payment</th>
+              <th>Status / Schedule</th>
+              <th>Actions</th>
+            </tr>
           </thead>
           <tbody>
             {!loading && orders.length === 0 && (
-              <tr><td colSpan={9} className="crud-empty">No diagnostic orders found.</td></tr>
+              <tr><td colSpan={5} className="crud-empty">No diagnostic orders found.</td></tr>
             )}
             {orders.map((order) => (
               <tr key={order.id}>
-                <td><strong className="lab-order-num">{order.order_number}</strong></td>
-                <td>{order.patient?.name || "—"}</td>
                 <td>
-                  <strong>{order.test_type?.name || "—"}</strong>
-                  {order.package_id && (
-                    <div className="company-modules-hint">Package: {order.package?.package_name || `#${order.package_id}`}</div>
-                  )}
+                  <strong className="lab-order-num">{order.order_number}</strong>
                 </td>
-                <td>{money(orderPayable(order))}</td>
-                <td>{money(order.paid_amount)}</td>
-                <td className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>{money(order.due_amount)}</td>
-                <td><PaymentBadge status={order.payment_status} refundedTotal={order.refunded_total} /></td>
                 <td>
-                  <StatusBadge status={order.status} />
-                  <div className="dgn-schedule-date">
-                    {order.scheduled_at
-                      ? formatDateTime(order.scheduled_at)
-                      : `Booked ${formatDateTime(order.created_at)}`}
+                  <div className="dgn-cell-stack">
+                    <strong className="dgn-patient-name">{order.patient?.name || "—"}</strong>
+                    <span className="dgn-test-name">{order.test_type?.name || "—"}</span>
+                    {order.package_id ? (
+                      <span className="company-modules-hint">
+                        Package: {order.package?.package_name || `#${order.package_id}`}
+                      </span>
+                    ) : null}
                   </div>
                 </td>
                 <td>
-                  <div className="crud-actions">
+                  <div className="dgn-cell-stack dgn-payment-stack">
+                    <PaymentBadge status={order.payment_status} refundedTotal={order.refunded_total} />
+                    <span className="dgn-money-line">
+                      Payable <strong>{money(orderPayable(order))}</strong>
+                    </span>
+                    <span className="dgn-money-line">
+                      Paid {money(order.paid_amount)}
+                      <span className="dgn-money-sep">·</span>
+                      Due{" "}
+                      <strong className={Number(order.due_amount) > 0 ? "dgn-due-cell" : ""}>
+                        {money(order.due_amount)}
+                      </strong>
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div className="dgn-cell-stack">
+                    <StatusBadge status={order.status} />
+                    <div className="dgn-schedule-date">
+                      {order.scheduled_at
+                        ? formatDateTime(order.scheduled_at)
+                        : `Booked ${formatDateTime(order.created_at)}`}
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="crud-actions dgn-row-actions">
                     <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => openDetail(order)}>View</button>
                     <button type="button" className="crud-btn crud-btn--ghost crud-btn--sm" onClick={() => handleOpenBill(order)}>Bill</button>
                     {Number(order.due_amount) > 0 && order.status !== "cancelled" && (
