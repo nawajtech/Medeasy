@@ -116,6 +116,27 @@ export function getRouteMeta(pathname) {
       description: "Manage referral partners — doctors, clinics, hospitals, and agents.",
     };
   }
+  if (pathname === "/diagnostics/orders") {
+    return {
+      title: "Diagnostic Orders",
+      breadcrumb: "Diagnostic Orders",
+      description: "Book, schedule, and manage diagnostic test orders for patients.",
+    };
+  }
+  if (pathname === "/diagnostics/catalog") {
+    return {
+      title: "Diagnostic Catalog",
+      breadcrumb: "Catalog",
+      description: "Manage diagnostic categories, tests, packages, and pricing.",
+    };
+  }
+  if (pathname === "/lab/orders") {
+    return {
+      title: "Lab Orders",
+      breadcrumb: "Lab Orders",
+      description: "Book and manage laboratory test orders.",
+    };
+  }
   const patientMatch = pathname.match(/^\/patients\/(\d+)$/);
   if (patientMatch) {
     return {
