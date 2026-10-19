@@ -12,3 +12,18 @@ export const getAdminSubscriptions = () => api.get("/admin/subscriptions");
 export const assignCompanySubscription = (companyId, payload) =>
   api.post(`/admin/companies/${companyId}/subscription`, payload);
 export const getAdminPayments = () => api.get("/admin/subscription-payments");
+
+export async function downloadAdminInvoicePdf(paymentId, invoiceNumber) {
+  const { data } = await api.get(`/admin/subscription-payments/${paymentId}/pdf`, {
+    responseType: "blob",
+  });
+  const blob = new Blob([data], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ApnaMedi_Invoice_${invoiceNumber || paymentId}.pdf`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
