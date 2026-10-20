@@ -12,9 +12,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # If your secrets are inside Settings > Environments > production, use 'production'.
-    # If your secrets are inside Settings > Secrets and variables > Actions > Repository secrets, REMOVE this line completely:
-    environment: production
+    # REMOVED: environment: EC2_HOST
 
     steps:
       - name: Checkout Repository
@@ -33,14 +31,10 @@ jobs:
       - name: Checkout Main
         run: git checkout -B main origin/main
 
-      - name: Merge Staging into Main (Prevent Workflow Conflicts)
+      - name: Merge Staging into Main
         run: |
-          # Merge without committing so we can preserve main's workflows
           git merge origin/staging --no-commit --no-ff || true
-          
-          # Keep main branch's workflow files to avoid conflict exit
           git checkout HEAD -- .github/workflows/
-          
           git add -A
           git commit -m "Auto-merge staging to main [skip ci]" || true
           git push origin main
@@ -57,80 +51,41 @@ jobs:
             set -e
 
             echo "================================"
-            echo "Starting Deployment on Server"
+            echo "Starting Deployment"
             echo "================================"
 
-            whoami
-            pwd
-
             cd /var/www/Medeasy
-
-            echo "Updating Repository..."
-
             git fetch --all --prune
             git checkout main
             git reset --hard origin/main
             git clean -fd
 
-            git status
-            git log --oneline -1
-
-            #################################
             # Laravel Backend
-            #################################
-
             cd backand
-
-            echo "Fixing Laravel permissions..."
-
             sudo chown -R ubuntu:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             sudo find storage -type f -exec chmod 664 {} \;
             sudo find bootstrap/cache -type f -exec chmod 664 {} \;
 
-            echo "Installing Composer dependencies..."
-
-            composer install \
-              --no-dev \
-              --prefer-dist \
-              --optimize-autoloader \
-              --no-interaction
-
+            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
             php artisan storage:link || true
             php artisan migrate --force
-
             php artisan optimize:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
-
             sudo chown -R www-data:www-data storage bootstrap/cache
 
-            #################################
             # React Frontend
-            #################################
-
             cd ../frontend
-
-            echo "Installing Node packages..."
-
             if [ -f package-lock.json ]; then
               npm ci
             else
               npm install
             fi
-
-            echo "Building React..."
-
             npm run build
 
-            #################################
-            # Restart Services
-            #################################
-
-            echo "Reloading Services..."
-
-            # Reload PHP-FPM (update version if your server uses 8.2 or 8.3 instead of 8.5)
+            # Reload Services
             sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm
             sudo systemctl reload nginx
 
