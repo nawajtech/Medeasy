@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   assignCompanySubscription,
+  downloadAdminInvoicePdf,
   getAdminPayments,
   getAdminPlans,
   getAdminSubscriptions,
@@ -31,6 +32,7 @@ function AdminSubscriptions() {
   const [selected, setSelected] = useState(null);
   const [assignForm, setAssignForm] = useState({ plan_id: "", start_trial: true, billing_cycle: "monthly" });
   const [saving, setSaving] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -54,6 +56,18 @@ function AdminSubscriptions() {
   useEffect(() => {
     load();
   }, [load]);
+
+  const handleDownload = async (payment) => {
+    setDownloadingId(payment.id);
+    setError("");
+    try {
+      await downloadAdminInvoicePdf(payment.id, payment.invoice_number);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to download invoice."));
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   const openAssign = (row) => {
     setSelected(row);
@@ -145,6 +159,7 @@ function AdminSubscriptions() {
                       <th>Status</th>
                       <th>Reference</th>
                       <th>Date</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -157,6 +172,16 @@ function AdminSubscriptions() {
                         <td className="subscription-capitalize">{p.payment_status}</td>
                         <td>{p.transaction_reference || "—"}</td>
                         <td>{formatDate(p.payment_date || p.created_at)}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="crud-btn crud-btn--sm"
+                            onClick={() => handleDownload(p)}
+                            disabled={downloadingId === p.id}
+                          >
+                            {downloadingId === p.id ? "Downloading…" : "Download PDF"}
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>

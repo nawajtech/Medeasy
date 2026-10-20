@@ -59,4 +59,21 @@ return [
         'cash' => 'Cash',
     ],
 
+    /** Issuer block printed on platform subscription invoices. */
+    'issuer' => [
+        'legal_name' => 'ApnaMedi (Proprietorship)',
+        'udyam_urn' => 'UDYAM-XX-00-0000000',
+        'email' => 'billing@apnamedi.com',
+        'phone' => '+91 00000 00000',
+        'address' => 'India',
+        'bank' => [
+            'account_name' => 'ApnaMedi',
+            'bank_name' => 'Bank name',
+            'account_number' => '000000000000',
+            'ifsc' => 'XXXX0000000',
+            'upi_id' => 'apnamedi@upi',
+        ],
+        'signatory' => 'Authorized signatory — ApnaMedi',
+    ],
+
 ];
