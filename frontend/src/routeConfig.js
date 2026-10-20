@@ -22,7 +22,7 @@ export const routeMeta = {
   "/admin/subscriptions": {
     title: "Company Subscriptions",
     breadcrumb: "Subscriptions",
-    description: "View and assign subscription plans to organizations.",
+    description: "Verify customer purchases, assign plans, and review payment history.",
   },
   "/departments": {
     title: "Departments",

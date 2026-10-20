@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use InvalidArgumentException;
 
 class AdminPlanController extends Controller
 {
@@ -183,30 +184,98 @@ class AdminPlanController extends Controller
     {
         $payments = SubscriptionPayment::query()
             ->with(['subscription.company:id,name,code', 'subscription.plan:id,name'])
+            ->orderByRaw("CASE payment_status WHEN 'awaiting_verification' THEN 0 WHEN 'pending' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
-            ->limit(100)
+            ->limit(150)
             ->get()
-            ->map(fn (SubscriptionPayment $payment) => [
-                'id' => $payment->id,
-                'invoice_number' => $payment->invoice_number,
-                'amount' => $payment->amount,
-                'currency' => $payment->currency,
-                'payment_status' => $payment->payment_status,
-                'payment_method' => $payment->payment_method,
-                'transaction_reference' => $payment->transaction_reference,
-                'payment_date' => $payment->payment_date,
-                'plan_name' => $payment->notes['plan_name'] ?? $payment->subscription?->plan?->name,
-                'company_name' => $payment->subscription?->company?->name,
-                'company_code' => $payment->subscription?->company?->code,
-                'created_at' => $payment->created_at,
-            ]);
+            ->map(fn (SubscriptionPayment $payment) => $this->paymentAdminPayload($payment));
 
-        return response()->json(['payments' => $payments]);
+        $pendingVerification = $payments
+            ->where('payment_status', SubscriptionPayment::STATUS_AWAITING_VERIFICATION)
+            ->values();
+
+        return response()->json([
+            'payments' => $payments->values(),
+            'pending_verification' => $pendingVerification,
+            'pending_count' => $pendingVerification->count(),
+        ]);
+    }
+
+    public function verifyPayment(
+        Request $request,
+        SubscriptionPayment $payment,
+        SubscriptionService $subscriptions
+    ): JsonResponse {
+        try {
+            $subscription = $subscriptions->verifyPayment($payment, $request->user()?->id);
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        $company = $subscription->company;
+
+        return response()->json([
+            'message' => 'Purchase verified. '.$company?->name.' is now on the '.$subscription->plan?->name.' plan.',
+            'payment' => $this->paymentAdminPayload($payment->fresh(['subscription.company', 'subscription.plan'])),
+            'subscription' => $subscriptions->subscriptionSummary($company),
+        ]);
+    }
+
+    public function rejectPayment(
+        Request $request,
+        SubscriptionPayment $payment,
+        SubscriptionService $subscriptions
+    ): JsonResponse {
+        $validated = $request->validate([
+            'reason' => ['required', 'string', 'max:500'],
+        ]);
+
+        try {
+            $updated = $subscriptions->rejectPayment(
+                $payment,
+                $validated['reason'],
+                $request->user()?->id
+            );
+        } catch (InvalidArgumentException $e) {
+            return response()->json(['message' => $e->getMessage()], 422);
+        }
+
+        return response()->json([
+            'message' => 'Purchase rejected. The organization can submit payment proof again.',
+            'payment' => $this->paymentAdminPayload($updated->load(['subscription.company', 'subscription.plan'])),
+        ]);
     }
 
     public function invoicePdf(SubscriptionPayment $payment, SubscriptionInvoicePdf $pdf): Response
     {
         return $pdf->download($payment);
+    }
+
+    protected function paymentAdminPayload(SubscriptionPayment $payment): array
+    {
+        $notes = $payment->notes ?? [];
+
+        return [
+            'id' => $payment->id,
+            'invoice_number' => $payment->invoice_number,
+            'amount' => $payment->amount,
+            'subtotal' => $payment->subtotal,
+            'currency' => $payment->currency,
+            'payment_status' => $payment->payment_status,
+            'payment_method' => $payment->payment_method,
+            'transaction_reference' => $payment->transaction_reference,
+            'payment_date' => $payment->payment_date,
+            'billing_cycle' => $notes['billing_cycle'] ?? null,
+            'plan_name' => $notes['plan_name'] ?? $payment->subscription?->plan?->name,
+            'company_id' => $payment->subscription?->company_id,
+            'company_name' => $payment->subscription?->company?->name,
+            'company_code' => $payment->subscription?->company?->code,
+            'rejection_reason' => $notes['rejection_reason'] ?? null,
+            'submitted_at' => $notes['submitted_at'] ?? null,
+            'verified_at' => $notes['verified_at'] ?? null,
+            'created_at' => $payment->created_at,
+            'needs_verification' => $payment->payment_status === SubscriptionPayment::STATUS_AWAITING_VERIFICATION,
+        ];
     }
 
     protected function validatePlan(Request $request, ?int $planId = null): array
