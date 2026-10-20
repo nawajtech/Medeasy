@@ -23,15 +23,17 @@ class SubscriptionInvoicePdf
             : $issuedAt->copy()->addMonth()->subDay();
 
         $methods = config('subscription.payment_methods', []);
+        $tz = config('app.timezone');
         $html = view('documents.subscription-invoice', [
             'payment' => $payment,
             'company' => $company,
             'issuer' => config('subscription.issuer'),
+            'logoDataUri' => $this->platformLogoDataUri(),
             'planName' => $planName,
             'billingCycle' => $billingCycle,
-            'invoiceDate' => $issuedAt->timezone(config('app.timezone'))->format('d M Y'),
-            'periodLabel' => $issuedAt->timezone(config('app.timezone'))->format('d M Y')
-                .' – '.$periodEnd->timezone(config('app.timezone'))->format('d M Y'),
+            'invoiceDate' => $issuedAt->timezone($tz)->format('jS M, Y'),
+            'periodLabel' => $issuedAt->timezone($tz)->format('jS M, Y')
+                .' – '.$periodEnd->timezone($tz)->format('jS M, Y'),
             'subtotal' => $payment->subtotal ?? ($notes['subtotal'] ?? $payment->amount),
             'isPaid' => $payment->payment_status === SubscriptionPayment::STATUS_PAID,
             'isPending' => $payment->payment_status === SubscriptionPayment::STATUS_PENDING,
@@ -60,5 +62,33 @@ class SubscriptionInvoicePdf
             'Content-Type' => 'application/pdf',
             'Content-Disposition' => 'attachment; filename="'.$filename.'"',
         ]);
+    }
+
+    /**
+     * Embed the platform logo as a data URI so Dompdf can render it offline.
+     */
+    private function platformLogoDataUri(): ?string
+    {
+        try {
+            $stored = app(PlatformBrandingService::class)->rawValues()['company_logo'] ?? null;
+            $relative = \App\Support\PublicStorageUrl::toRelativePath(is_string($stored) ? $stored : null);
+            if (! $relative) {
+                return null;
+            }
+
+            $absolute = storage_path('app/public/'.$relative);
+            if (! is_file($absolute) || ! is_readable($absolute)) {
+                return null;
+            }
+
+            $mime = mime_content_type($absolute) ?: 'image/png';
+            if (! str_starts_with($mime, 'image/')) {
+                return null;
+            }
+
+            return 'data:'.$mime.';base64,'.base64_encode((string) file_get_contents($absolute));
+        } catch (\Throwable) {
+            return null;
+        }
     }
 }
