@@ -54,9 +54,4 @@ jobs:
       - name: Push Main
         run: git push origin main
 
-      # Step 7: Trigger the Deploy Production workflow on main
-      - name: Trigger Deploy Production Workflow
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh workflow run "Deploy Production" --ref main
+      
