@@ -12,6 +12,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Notice: NO "environment:" line here so it reads Repository Secrets directly
 
     steps:
       - name: Checkout Repository
@@ -19,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Configure Git
+      - name: Configure Git Identity
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -27,16 +28,52 @@ jobs:
       - name: Fetch Remote Branches
         run: git fetch origin
 
-      - name: Checkout Main
+      - name: Checkout Main Branch
         run: git checkout -B main origin/main
 
-      - name: Merge Staging into Main
+      - name: Auto-Merge Staging to Main
         run: |
+          # Merge without committing so workflow conflicts can be overridden
           git merge origin/staging --no-commit --no-ff || true
+          
+          # Force preserve main branch's workflow files
           git checkout HEAD -- .github/workflows/
+          
           git add -A
           git commit -m "Auto-merge staging to main [skip ci]" || true
           git push origin main
+
+      # Diagnostic step: Verifies whether GitHub passes the secret to the runner
+      - name: Verify Secret Availability
+        env:
+          CHECK_HOST: ${{ secrets.EC2_HOST }}
+          CHECK_USER: ${{ secrets.EC2_USERNAME }}
+          CHECK_KEY: ${{ secrets.EC2_SSH_KEY }}
+        run: |
+          echo "=========================================="
+          echo "Checking Secret Availability..."
+          echo "=========================================="
+          
+          if [ -z "$CHECK_HOST" ]; then
+            echo "::error::EC2_HOST is EMPTY! Check Repository Secrets in GitHub Settings."
+            exit 1
+          else
+            echo "✓ EC2_HOST is present (length: ${#CHECK_HOST} chars)"
+          fi
+
+          if [ -z "$CHECK_USER" ]; then
+            echo "::error::EC2_USERNAME is EMPTY!"
+            exit 1
+          else
+            echo "✓ EC2_USERNAME is present (${CHECK_USER})"
+          fi
+
+          if [ -z "$CHECK_KEY" ]; then
+            echo "::error::EC2_SSH_KEY is EMPTY!"
+            exit 1
+          else
+            echo "✓ EC2_SSH_KEY is present"
+          fi
 
       - name: Deploy to AWS EC2
         uses: appleboy/ssh-action@v1.2.0
@@ -49,24 +86,42 @@ jobs:
           script: |
             set -e
 
-            echo "================================"
-            echo "Starting Deployment"
-            echo "================================"
+            echo "=========================================="
+            echo "Connected to AWS EC2. Starting deploy..."
+            echo "=========================================="
+
+            whoami
+            pwd
 
             cd /var/www/Medeasy
+
+            echo "Pulling latest code on main..."
             git fetch --all --prune
             git checkout main
             git reset --hard origin/main
             git clean -fd
 
+            git status
+            git log --oneline -1
+
+            ##########################################
             # Laravel Backend
+            ##########################################
             cd backand
+
+            echo "Configuring permissions..."
             sudo chown -R ubuntu:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             sudo find storage -type f -exec chmod 664 {} \;
             sudo find bootstrap/cache -type f -exec chmod 664 {} \;
 
-            composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction
+            echo "Installing composer dependencies..."
+            composer install \
+              --no-dev \
+              --prefer-dist \
+              --optimize-autoloader \
+              --no-interaction
+
             php artisan storage:link || true
             php artisan migrate --force
             php artisan optimize:clear
@@ -75,8 +130,12 @@ jobs:
             php artisan view:cache
             sudo chown -R www-data:www-data storage bootstrap/cache
 
+            ##########################################
             # React Frontend
+            ##########################################
             cd ../frontend
+
+            echo "Installing npm dependencies & building..."
             if [ -f package-lock.json ]; then
               npm ci
             else
@@ -84,10 +143,13 @@ jobs:
             fi
             npm run build
 
-            # Reload Web Server
-            sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm
+            ##########################################
+            # Reload Services
+            ##########################################
+            echo "Reloading Nginx and PHP-FPM..."
+            sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm || true
             sudo systemctl reload nginx
 
-            echo "================================"
-            echo "Deployment Completed Successfully"
-            echo "================================"
+            echo "=========================================="
+            echo "Deployment Completed Successfully!"
+            echo "=========================================="
