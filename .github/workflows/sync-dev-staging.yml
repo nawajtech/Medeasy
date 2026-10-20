@@ -48,7 +48,6 @@ jobs:
         run: |
           git merge origin/nawaj --no-edit
 
-
       # Step 6: Push the updated dev_staging branch
       - name: Push dev_staging
         run: |
