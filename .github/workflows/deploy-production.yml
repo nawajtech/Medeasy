@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - staging
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -11,7 +12,9 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: EC2_HOST
+    # If your secrets are inside Settings > Environments > production, use 'production'.
+    # If your secrets are inside Settings > Secrets and variables > Actions > Repository secrets, REMOVE this line completely:
+    environment: production
 
     steps:
       - name: Checkout Repository
@@ -21,14 +24,25 @@ jobs:
 
       - name: Configure Git
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Merge staging into main
+      - name: Fetch Remote Branches
+        run: git fetch origin
+
+      - name: Checkout Main
+        run: git checkout -B main origin/main
+
+      - name: Merge Staging into Main (Prevent Workflow Conflicts)
         run: |
-          git fetch origin
-          git checkout main
-          git merge origin/staging --no-edit
+          # Merge without committing so we can preserve main's workflows
+          git merge origin/staging --no-commit --no-ff || true
+          
+          # Keep main branch's workflow files to avoid conflict exit
+          git checkout HEAD -- .github/workflows/
+          
+          git add -A
+          git commit -m "Auto-merge staging to main [skip ci]" || true
           git push origin main
 
       - name: Deploy to AWS EC2
@@ -37,12 +51,13 @@ jobs:
           host: ${{ secrets.EC2_HOST }}
           username: ${{ secrets.EC2_USERNAME }}
           key: ${{ secrets.EC2_SSH_KEY }}
-          port: ${{ secrets.EC2_PORT }}
+          port: ${{ secrets.EC2_PORT || 22 }}
+          script_stop: true
           script: |
             set -e
 
             echo "================================"
-            echo "Starting Deployment"
+            echo "Starting Deployment on Server"
             echo "================================"
 
             whoami
@@ -82,7 +97,6 @@ jobs:
               --no-interaction
 
             php artisan storage:link || true
-
             php artisan migrate --force
 
             php artisan optimize:clear
@@ -116,7 +130,8 @@ jobs:
 
             echo "Reloading Services..."
 
-            sudo systemctl reload php8.5-fpm
+            # Reload PHP-FPM (update version if your server uses 8.2 or 8.3 instead of 8.5)
+            sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm
             sudo systemctl reload nginx
 
             echo "================================"
