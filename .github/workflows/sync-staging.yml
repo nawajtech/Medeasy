@@ -1,3 +1,4 @@
+```yaml
 name: Sync Staging to Main
 
 on:
@@ -29,15 +30,27 @@ jobs:
       - name: Checkout Main
         run: git checkout -B main origin/main
 
-      - name: Merge Staging into Main
-        run: git merge origin/staging --no-edit
-
-      - name: Keep Main Workflow Files
+      - name: Save Main Workflow Files
         run: |
-          git checkout HEAD^ -- .github/workflows/ 2>/dev/null || true
-          git checkout origin/main -- .github/workflows/
-          git add .github/workflows/
-          git commit -m "Preserve main workflow files" || true
+          mkdir -p /tmp/main-workflows
+          cp -a .github/workflows/. /tmp/main-workflows/
+
+      - name: Merge Staging Without Workflow Conflicts
+        run: |
+          git merge -s ours --no-commit --no-ff origin/staging
+          git read-tree -m -u HEAD origin/staging
+          git checkout HEAD -- .github/workflows/
+          git add -A
+          git commit -m "Sync staging into main while preserving main workflows"
+
+      - name: Restore Main Workflow Files
+        run: |
+          rm -rf .github/workflows
+          mkdir -p .github/workflows
+          cp -a /tmp/main-workflows/. .github/workflows/
+          git add -A .github/workflows/
+          git commit -m "Preserve main-specific workflows" || true
 
       - name: Push Main
         run: git push origin main
+```
