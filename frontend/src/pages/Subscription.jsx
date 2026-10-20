@@ -194,7 +194,8 @@ function PaymentModal({
     <Modal title={`Pay for ${plan?.name}`} open={open} onClose={onClose} wide>
       <div className="subscription-payment-modal">
         <p className="crud-muted">
-          Complete payment before your plan is changed. The new plan activates only after payment is confirmed.
+          Pay using the invoice amount, then submit your transaction reference. ApnaMedi Super Admin will verify the
+          purchase before your plan is activated.
         </p>
 
         <div className="subscription-payment-summary">
@@ -312,7 +313,7 @@ function PaymentModal({
                 disabled={busy || !paymentMethod || !transactionReference.trim()}
                 onClick={onConfirmPayment}
               >
-                {busy ? "Confirming…" : "Confirm payment & activate plan"}
+                {busy ? "Submitting…" : "Submit for verification"}
               </button>
             </div>
           </>
@@ -420,7 +421,12 @@ function Subscription() {
         payment_method: paymentMethod,
         transaction_reference: transactionReference.trim(),
       });
-      setNotice({ type: "success", text: data.message });
+      setNotice({
+        type: "success",
+        text:
+          data.message ||
+          "Payment proof submitted. ApnaMedi will verify your purchase before activating the plan.",
+      });
       closePaymentModal();
       await refreshMe();
       loadPayments();

@@ -370,6 +370,23 @@
   line-height: 1.45;
 }
 
+.subscription-verify-section {
+  border: 1px solid var(--me-primary-ring, rgba(37, 99, 235, 0.22));
+  background: var(--me-primary-soft, rgba(37, 99, 235, 0.06));
+}
+
+.subscription-verify-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--me-space-3);
+  margin-bottom: var(--me-space-3);
+}
+
+.subscription-verify-head h3 {
+  margin: 0 0 0.35rem;
+}
+
 .subscription-plan-card-price {
   margin: 0;
   font-size: 1.5rem;

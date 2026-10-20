@@ -256,35 +256,78 @@ class SubscriptionService
         ]);
     }
 
-    /** Confirm payment and activate the purchased plan. */
-    public function confirmPayment(
+    /**
+     * Customer submits payment proof. Plan stays inactive until Super Admin verifies.
+     */
+    public function submitPaymentProof(
         SubscriptionPayment $payment,
         string $paymentMethod,
         string $transactionReference
-    ): Subscription {
-        if ($payment->payment_status !== SubscriptionPayment::STATUS_PENDING) {
-            throw new InvalidArgumentException('This invoice has already been processed.');
+    ): SubscriptionPayment {
+        if (! in_array($payment->payment_status, [
+            SubscriptionPayment::STATUS_PENDING,
+            SubscriptionPayment::STATUS_REJECTED,
+        ], true)) {
+            throw new InvalidArgumentException('This invoice cannot accept payment proof right now.');
         }
 
-        $notes = $payment->notes ?? [];
-        $planId = $notes['plan_id'] ?? null;
-        $billingCycle = $notes['billing_cycle'] ?? Subscription::BILLING_MONTHLY;
-
-        if (! $planId) {
+        $plan = $this->planFromPayment($payment);
+        if (! $plan) {
             throw new InvalidArgumentException('Invalid payment record — no plan attached.');
         }
 
-        $plan = Plan::query()
-            ->where('id', $planId)
-            ->where('status', Plan::STATUS_ACTIVE)
-            ->firstOrFail();
+        if (! $plan->isPurchasable()) {
+            throw new InvalidArgumentException(
+                $plan->availability_note
+                    ?: ($plan->name.' is '.$plan->availabilityLabel().' and cannot be purchased yet.')
+            );
+        }
 
-        return DB::transaction(function () use ($payment, $plan, $billingCycle, $paymentMethod, $transactionReference) {
+        $payment->update([
+            'payment_status' => SubscriptionPayment::STATUS_AWAITING_VERIFICATION,
+            'payment_method' => $paymentMethod,
+            'transaction_reference' => $transactionReference,
+            'payment_date' => now(),
+            'notes' => array_merge($payment->notes ?? [], [
+                'submitted_at' => now()->toIso8601String(),
+                'rejection_reason' => null,
+                'verified_at' => null,
+                'verified_by' => null,
+                'rejected_at' => null,
+                'rejected_by' => null,
+            ]),
+        ]);
+
+        return $payment->fresh();
+    }
+
+    /** Super Admin approves a submitted payment and activates the plan. */
+    public function verifyPayment(SubscriptionPayment $payment, ?int $adminId = null): Subscription
+    {
+        if ($payment->payment_status !== SubscriptionPayment::STATUS_AWAITING_VERIFICATION) {
+            throw new InvalidArgumentException('Only payments awaiting verification can be approved.');
+        }
+
+        if (! filled($payment->transaction_reference)) {
+            throw new InvalidArgumentException('This payment has no transaction reference to verify.');
+        }
+
+        $plan = $this->planFromPayment($payment);
+        if (! $plan) {
+            throw new InvalidArgumentException('Invalid payment record — no plan attached.');
+        }
+
+        $billingCycle = $payment->notes['billing_cycle'] ?? Subscription::BILLING_MONTHLY;
+
+        return DB::transaction(function () use ($payment, $plan, $billingCycle, $adminId) {
             $payment->update([
                 'payment_status' => SubscriptionPayment::STATUS_PAID,
-                'payment_method' => $paymentMethod,
-                'transaction_reference' => $transactionReference,
-                'payment_date' => now(),
+                'payment_date' => $payment->payment_date ?? now(),
+                'notes' => array_merge($payment->notes ?? [], [
+                    'verified_at' => now()->toIso8601String(),
+                    'verified_by' => $adminId,
+                    'rejection_reason' => null,
+                ]),
             ]);
 
             $subscription = $payment->subscription()->lockForUpdate()->firstOrFail();
@@ -304,7 +347,7 @@ class SubscriptionService
                 'meta' => array_merge($subscription->meta ?? [], [
                     'last_payment_id' => $payment->id,
                     'last_invoice' => $payment->invoice_number,
-                    'activated_via' => 'payment',
+                    'activated_via' => 'admin_verified_payment',
                 ]),
             ]);
 
@@ -312,6 +355,43 @@ class SubscriptionService
 
             return $subscription->fresh(['plan.limits', 'plan.features']);
         });
+    }
+
+    /** Super Admin rejects a submitted payment (customer can resubmit proof). */
+    public function rejectPayment(
+        SubscriptionPayment $payment,
+        string $reason,
+        ?int $adminId = null
+    ): SubscriptionPayment {
+        if ($payment->payment_status !== SubscriptionPayment::STATUS_AWAITING_VERIFICATION) {
+            throw new InvalidArgumentException('Only payments awaiting verification can be rejected.');
+        }
+
+        $payment->update([
+            'payment_status' => SubscriptionPayment::STATUS_REJECTED,
+            'notes' => array_merge($payment->notes ?? [], [
+                'rejection_reason' => $reason,
+                'rejected_at' => now()->toIso8601String(),
+                'rejected_by' => $adminId,
+                'verified_at' => null,
+                'verified_by' => null,
+            ]),
+        ]);
+
+        return $payment->fresh();
+    }
+
+    protected function planFromPayment(SubscriptionPayment $payment): ?Plan
+    {
+        $planId = $payment->notes['plan_id'] ?? null;
+        if (! $planId) {
+            return null;
+        }
+
+        return Plan::query()
+            ->where('id', $planId)
+            ->where('status', Plan::STATUS_ACTIVE)
+            ->first();
     }
 
     protected function paymentPayload(SubscriptionPayment $payment): array

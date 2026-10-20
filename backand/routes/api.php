@@ -140,6 +140,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('subscriptions', [AdminPlanController::class, 'subscriptions']);
         Route::middleware('permission:company.edit')->post('companies/{company}/subscription', [AdminPlanController::class, 'assignSubscription']);
         Route::get('subscription-payments', [AdminPlanController::class, 'payments']);
+        Route::middleware('permission:company.edit')->post('subscription-payments/{payment}/verify', [AdminPlanController::class, 'verifyPayment']);
+        Route::middleware('permission:company.edit')->post('subscription-payments/{payment}/reject', [AdminPlanController::class, 'rejectPayment']);
         Route::get('subscription-payments/{payment}/pdf', [AdminPlanController::class, 'invoicePdf']);
     });
 

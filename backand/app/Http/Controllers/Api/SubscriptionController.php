@@ -158,7 +158,10 @@ class SubscriptionController extends Controller
         return $pdf->download($payment);
     }
 
-    /** Step 2: confirm payment — only then is the plan activated. */
+    /**
+     * Step 2: customer submits payment proof.
+     * Plan activates only after Super Admin verifies the purchase.
+     */
     public function confirmPayment(Request $request, SubscriptionService $subscriptions, int $paymentId): JsonResponse
     {
         $validated = $request->validate([
@@ -178,7 +181,7 @@ class SubscriptionController extends Controller
             ->firstOrFail();
 
         try {
-            $subscriptions->confirmPayment(
+            $updated = $subscriptions->submitPaymentProof(
                 $payment,
                 $validated['payment_method'],
                 $validated['transaction_reference']
@@ -188,7 +191,13 @@ class SubscriptionController extends Controller
         }
 
         return response()->json([
-            'message' => 'Payment confirmed. Your subscription plan is now active.',
+            'message' => 'Payment proof submitted. ApnaMedi will verify your purchase shortly. Your plan activates after approval.',
+            'payment' => [
+                'id' => $updated->id,
+                'invoice_number' => $updated->invoice_number,
+                'payment_status' => $updated->payment_status,
+                'transaction_reference' => $updated->transaction_reference,
+            ],
             'subscription' => $subscriptions->subscriptionSummary($company),
         ]);
     }

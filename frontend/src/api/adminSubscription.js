@@ -12,6 +12,10 @@ export const getAdminSubscriptions = () => api.get("/admin/subscriptions");
 export const assignCompanySubscription = (companyId, payload) =>
   api.post(`/admin/companies/${companyId}/subscription`, payload);
 export const getAdminPayments = () => api.get("/admin/subscription-payments");
+export const verifySubscriptionPayment = (paymentId) =>
+  api.post(`/admin/subscription-payments/${paymentId}/verify`);
+export const rejectSubscriptionPayment = (paymentId, payload) =>
+  api.post(`/admin/subscription-payments/${paymentId}/reject`, payload);
 
 export async function downloadAdminInvoicePdf(paymentId, invoiceNumber) {
   const { data } = await api.get(`/admin/subscription-payments/${paymentId}/pdf`, {
