@@ -12,8 +12,7 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # REPLACE 'production' WITH YOUR EXACT ENVIRONMENT NAME FROM STEP 1
-    environment: production
+    environment: EC2_HOST
 
     steps:
       - name: Checkout Repository
@@ -34,12 +33,17 @@ jobs:
 
       - name: Auto-Merge Staging to Main
         run: |
+          # Merge staging into main without auto-commit
           git merge origin/staging --no-commit --no-ff || true
+          
+          # Keep main's workflow definitions intact to avoid merge conflicts
           git checkout HEAD -- .github/workflows/
+          
           git add -A
           git commit -m "Auto-merge staging to main [skip ci]" || true
           git push origin main
 
+      # Diagnostic check to ensure EC2_HOST environment secrets are unlocked
       - name: Verify Secret Availability
         env:
           CHECK_HOST: ${{ secrets.EC2_HOST }}
@@ -51,7 +55,7 @@ jobs:
           echo "=========================================="
           
           if [ -z "$CHECK_HOST" ]; then
-            echo "::error::EC2_HOST is EMPTY! Check that environment name matches exactly."
+            echo "::error::EC2_HOST is EMPTY! Check environment branch restrictions."
             exit 1
           else
             echo "✓ EC2_HOST is present (length: ${#CHECK_HOST} chars)"
@@ -100,9 +104,12 @@ jobs:
             git status
             git log --oneline -1
 
+            ##########################################
+            # Laravel Backend
+            ##########################################
             cd backand
 
-            echo "Configuring permissions..."
+            echo "Configuring Laravel permissions..."
             sudo chown -R ubuntu:www-data storage bootstrap/cache
             sudo chmod -R 775 storage bootstrap/cache
             sudo find storage -type f -exec chmod 664 {} \;
@@ -123,9 +130,12 @@ jobs:
             php artisan view:cache
             sudo chown -R www-data:www-data storage bootstrap/cache
 
+            ##########################################
+            # React Frontend
+            ##########################################
             cd ../frontend
 
-            echo "Installing npm dependencies & building..."
+            echo "Installing npm packages & building React..."
             if [ -f package-lock.json ]; then
               npm ci
             else
@@ -133,6 +143,9 @@ jobs:
             fi
             npm run build
 
+            ##########################################
+            # Reload Services
+            ##########################################
             echo "Reloading Nginx and PHP-FPM..."
             sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm || true
             sudo systemctl reload nginx
