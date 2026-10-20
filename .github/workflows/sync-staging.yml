@@ -1,45 +1,55 @@
-name: Deploy Production
+name: Sync Staging to Main
 
 on:
   push:
     branches:
-      - main
-  workflow_dispatch:
+      - staging
+
+permissions:
+  contents: write
 
 jobs:
-  deploy:
+  sync:
     runs-on: ubuntu-latest
-    # Replace 'production' below with the EXACT name from Settings > Environments
-    environment: production
 
     steps:
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Checkout Repository
+        uses: actions/checkout@v4
         with:
-          host: ${{ secrets.EC2_HOST }}
-          port: ${{ secrets.EC2_PORT }}
-          username: ${{ secrets.EC2_USERNAME }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script_stop: true
-          script: |
-            cd /var/www/Medeasy
-            git fetch origin main
-            git checkout main
-            git pull origin main
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_PAT }}
 
-            # Backend: Laravel Updates
-            cd backend
-            composer install --no-dev --optimize-autoloader
-            php artisan migrate --force
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-            # Frontend: React / Vite Build
-            cd ../frontend
-            npm ci
-            npm run build
+      - name: Fetch All Branches
+        run: git fetch origin
 
-            # Web Server
-            sudo systemctl reload nginx
-            sudo systemctl reload php8.2-fpm
+      - name: Checkout Main
+        run: git checkout -B main origin/main
+
+      - name: Save Main Workflow Files
+        run: |
+          mkdir -p /tmp/main-workflows
+          cp -a .github/workflows/. /tmp/main-workflows/
+
+      - name: Merge Staging Without Workflow Conflicts
+        run: |
+          git merge -s ours --no-commit --no-ff origin/staging
+          git read-tree -m -u HEAD origin/staging
+          git checkout HEAD -- .github/workflows/
+          git add -A
+          git commit -m "Sync staging into main while preserving main workflows"
+
+      - name: Restore Main Workflow Files
+        run: |
+          rm -rf .github/workflows
+          mkdir -p .github/workflows
+          cp -a /tmp/main-workflows/. .github/workflows/
+          git add -A .github/workflows/
+          git commit -m "Preserve main-specific workflows" || true
+
+      - name: Push Main
+        run: git push origin main
