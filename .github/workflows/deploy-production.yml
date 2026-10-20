@@ -12,7 +12,6 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Do NOT include an 'environment:' line here
 
     steps:
       - name: Checkout Repository
@@ -85,7 +84,7 @@ jobs:
             fi
             npm run build
 
-            # Reload Web Server Services
+            # Reload Web Server
             sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm
             sudo systemctl reload nginx
 
