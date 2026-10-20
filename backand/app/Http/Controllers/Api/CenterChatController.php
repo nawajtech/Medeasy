@@ -106,6 +106,15 @@ class CenterChatController extends Controller
         ], 201);
     }
 
+    public function destroy(Request $request, int $conversation): JsonResponse
+    {
+        $companyId = $this->companyId($request);
+        $record = $this->find($companyId, $conversation);
+        $this->chat->softDelete($record);
+
+        return response()->json(['message' => 'Chat deleted.']);
+    }
+
     private function companyId(Request $request, bool $required = true): ?int
     {
         /** @var User $user */

@@ -27,6 +27,7 @@ export const listCenterChats = () => patientApi.get("/patient/center-chats");
 export const getCenterChatUnread = () => patientApi.get("/patient/center-chats/unread");
 export const startCenterChat = (payload) => patientApi.post("/patient/center-chats", payload);
 export const getCenterChat = (id, params) => patientApi.get(`/patient/center-chats/${id}`, { params });
+export const deleteCenterChat = (id) => patientApi.delete(`/patient/center-chats/${id}`);
 export const sendCenterChatMessage = (id, payload) => {
   if (payload instanceof FormData) {
     return patientApi.post(`/patient/center-chats/${id}/messages`, payload);

@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { checkout, confirmPayment, getPayments, getPlans } from "../api/subscription";
+import {
+  checkout,
+  confirmPayment,
+  downloadSubscriptionInvoicePdf,
+  getPayments,
+  getPlans,
+} from "../api/subscription";
 import { useAuth } from "../auth/AuthContext";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
@@ -293,12 +299,25 @@ function Subscription() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState(null);
   const [modalError, setModalError] = useState("");
+  const [downloadingId, setDownloadingId] = useState(null);
 
   const loadPayments = useCallback(() => {
     getPayments()
       .then(({ data }) => setPayments(data.payments || []))
       .catch(() => setPayments([]));
   }, []);
+
+  const handleDownloadInvoice = async (payment) => {
+    setDownloadingId(payment.id);
+    setNotice(null);
+    try {
+      await downloadSubscriptionInvoicePdf(payment.id, payment.invoice_number);
+    } catch (err) {
+      setNotice({ type: "error", text: getApiErrorMessage(err, "Failed to download invoice.") });
+    } finally {
+      setDownloadingId(null);
+    }
+  };
 
   useEffect(() => {
     refreshMe();
@@ -545,6 +564,7 @@ function Subscription() {
                   <th>Reference</th>
                   <th>Status</th>
                   <th>Date</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -557,6 +577,16 @@ function Subscription() {
                     <td>{row.transaction_reference || "—"}</td>
                     <td className="subscription-capitalize">{row.payment_status}</td>
                     <td>{formatDate(row.payment_date || row.created_at)}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="crud-btn crud-btn--sm"
+                        onClick={() => handleDownloadInvoice(row)}
+                        disabled={downloadingId === row.id}
+                      >
+                        {downloadingId === row.id ? "Downloading…" : "Download PDF"}
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
