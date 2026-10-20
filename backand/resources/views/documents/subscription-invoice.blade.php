@@ -82,8 +82,14 @@
         .greeting {
             font-size: 11px;
             color: #334155;
-            margin: 0 0 14px 0;
-            line-height: 1.5;
+            margin: 0 0 16px 0;
+            line-height: 1.55;
+        }
+        .greeting p {
+            margin: 0 0 8px 0;
+        }
+        .greeting p:last-child {
+            margin-bottom: 0;
         }
 
         .label {
@@ -254,7 +260,7 @@
                             <p class="issuer-line" style="margin-top:2px;">{{ $tagline }}</p>
                         @endif
                         @if(!empty($issuer['udyam_urn']))
-                            <p class="issuer-line">Udyam: {{ $issuer['udyam_urn'] }}</p>
+                            <p class="issuer-line">UEN No.: {{ $issuer['udyam_urn'] }}</p>
                         @endif
                         @foreach($addressLines as $line)
                             <p class="issuer-line">{{ $line }}</p>
@@ -303,10 +309,17 @@
 
 <hr class="rule">
 
-<p class="greeting">
-    Dear {{ $clientName }},<br>
-    Please find below your ApnaMedi subscription invoice. Thank you for your continued trust.
-</p>
+<div class="greeting">
+    <p>Dear {{ $clientName }},</p>
+    <p>Thank you for choosing ApnaMedi and purchasing your subscription!</p>
+    @if($isPaid)
+        <p>We’re pleased to have you on board. Your subscription payment has been received successfully, and your invoice is provided below for your reference.</p>
+    @else
+        <p>We’re pleased to have you on board. Your subscription invoice is provided below for your reference.</p>
+    @endif
+    <p>Thank you for trusting ApnaMedi to support your healthcare business. We look forward to helping you streamline your operations and grow with confidence.</p>
+    <p>Warm regards,<br>Team ApnaMedi</p>
+</div>
 
 {{-- Parties --}}
 <table class="w-full" cellpadding="0" cellspacing="0">
@@ -406,7 +419,6 @@
 <div class="thanks">Thank you for choosing {{ $brand }}</div>
 <div class="thanks-sub">
     {{ $tagline ?: 'Healthcare Operations, Simplified' }}
-    @if(!empty($issuer['email'])) · {{ $issuer['email'] }}@endif
 </div>
 
 <div class="sign-wrap">
