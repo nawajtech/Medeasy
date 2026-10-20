@@ -1,55 +1,62 @@
+# Workflow Name
 name: Sync Staging to Main
 
+# When should this workflow run?
 on:
   push:
     branches:
-      - staging
+      - staging          # Runs only when code is pushed/merged to staging
 
+# Allow GitHub Actions to push code back to the repository and trigger workflows
 permissions:
   contents: write
+  actions: write
 
+# Create a job called "sync"
 jobs:
   sync:
+
+    # GitHub creates a temporary Ubuntu machine
     runs-on: ubuntu-latest
 
+    # Steps to execute
     steps:
+
+      # Step 1: Download the repository to the GitHub runner
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.SYNC_PAT }}
 
+      # Step 2: Configure Git identity
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
+      # Step 3: Download the latest branches from GitHub
       - name: Fetch All Branches
-        run: git fetch origin
-
-      - name: Checkout Main
-        run: git checkout -B main origin/main
-
-      - name: Save Main Workflow Files
         run: |
-          mkdir -p /tmp/main-workflows
-          cp -a .github/workflows/. /tmp/main-workflows/
+          git fetch origin
 
-      - name: Merge Staging Without Workflow Conflicts
+      # Step 4: Switch to main branch
+      - name: Checkout main
         run: |
-          git merge -s ours --no-commit --no-ff origin/staging
-          git read-tree -m -u HEAD origin/staging
-          git checkout HEAD -- .github/workflows/
-          git add -A
-          git commit -m "Sync staging into main while preserving main workflows"
+          git checkout main
 
-      - name: Restore Main Workflow Files
+      # Step 5: Merge staging into main
+      - name: Merge staging into main
         run: |
-          rm -rf .github/workflows
-          mkdir -p .github/workflows
-          cp -a /tmp/main-workflows/. .github/workflows/
-          git add -A .github/workflows/
-          git commit -m "Preserve main-specific workflows" || true
+          git merge origin/staging --no-edit
 
-      - name: Push Main
-        run: git push origin main
+      # Step 6: Push the updated main branch
+      - name: Push main
+        run: |
+          git push origin main
+
+      # Step 7: Trigger the Production Deploy workflow on main
+      - name: Trigger Deploy Production Workflow
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Deploy Production" --ref main
