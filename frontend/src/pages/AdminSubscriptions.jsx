@@ -202,11 +202,13 @@ function AdminSubscriptions() {
               required
             >
               <option value="">Select plan</option>
-              {plans.filter((p) => p.status === "active").map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
+              {plans
+                .filter((p) => p.status === "active" && p.is_purchasable !== false)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
             </select>
           </label>
           <label className="crud-field">
