@@ -1,13 +1,10 @@
-# Workflow Name
 name: Sync Staging to Main
 
-# Trigger on push to the staging branch
 on:
   push:
     branches:
       - staging
 
-# Permissions required to commit to main and trigger downstream workflows
 permissions:
   contents: write
   actions: write
@@ -17,41 +14,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Step 1: Check out the repository with full commit history
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      # Step 2: Configure Git committer identity
       - name: Configure Git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      # Step 3: Fetch all remote branches
       - name: Fetch All Branches
         run: git fetch origin
 
-      # Step 4: Checkout the main branch
       - name: Checkout Main
         run: git checkout -B main origin/main
 
-      # Step 5: Merge staging while preventing workflow file conflicts
       - name: Merge Staging into Main
         run: |
-          # 1. Attempt merge without auto-committing
           git merge origin/staging --no-commit --no-ff || true
-
-          # 2. Force preserve main's workflow directory to prevent workflow merge conflicts
           git checkout HEAD -- .github/workflows/
-
-          # 3. Stage all resolved files and commit
           git add -A
-          git commit -m "Auto-merge staging into main (preserving main workflows)" || true
+          git commit -m "Auto-merge staging into main" || true
 
-      # Step 6: Push the updated main branch to GitHub
       - name: Push Main
         run: git push origin main
 
-      
+      - name: Trigger Server Deploy on Main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run deploy-production.yml --ref main
