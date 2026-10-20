@@ -4,15 +4,16 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual trigger from Actions tab for testing
+  workflow_dispatch:
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    environment: production # Change this to match your exact environment name from Step 1
+    # Replace 'production' below with the EXACT name from Settings > Environments
+    environment: production
 
     steps:
-      - name: Deploy to EC2 via SSH
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.EC2_HOST }}
@@ -21,32 +22,24 @@ jobs:
           key: ${{ secrets.EC2_SSH_KEY }}
           script_stop: true
           script: |
-            echo "Connected to EC2. Starting deployment..."
-
-            # 1. Navigate to your project directory
-            cd /var/www/Medeasy # Update with your actual server root if different
-
-            # 2. Fetch and pull latest code from main
+            cd /var/www/Medeasy
             git fetch origin main
             git checkout main
             git pull origin main
 
-            # 3. Backend (Laravel) Setup
+            # Backend: Laravel Updates
             cd backend
             composer install --no-dev --optimize-autoloader
             php artisan migrate --force
-            php artisan config:clear
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
 
-            # 4. Frontend (React / Vite) Build
+            # Frontend: React / Vite Build
             cd ../frontend
             npm ci
             npm run build
 
-            # 5. Reload Server Services
+            # Web Server
             sudo systemctl reload nginx
-            sudo systemctl reload php8.2-fpm # Update version if your server uses php8.1-fpm or php8.3-fpm
-
-            echo "Deployment completed successfully!"
+            sudo systemctl reload php8.2-fpm
