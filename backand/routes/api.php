@@ -77,6 +77,7 @@ Route::prefix('patient')->group(function () {
         Route::post('center-chats', [PatientCenterChatController::class, 'start']);
         Route::get('center-chats/{conversation}', [PatientCenterChatController::class, 'show'])->whereNumber('conversation');
         Route::post('center-chats/{conversation}/messages', [PatientCenterChatController::class, 'send'])->whereNumber('conversation');
+        Route::delete('center-chats/{conversation}', [PatientCenterChatController::class, 'destroy'])->whereNumber('conversation');
 
         Route::get('reports', [PatientPortalController::class, 'reports']);
         Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
@@ -121,6 +122,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Outside the subscription gate so an expired company can still upgrade.
     Route::get('subscription/plans', [SubscriptionController::class, 'plans']);
     Route::get('subscription/payments', [SubscriptionController::class, 'payments']);
+    Route::middleware('role:company_admin')->get('subscription/payments/{paymentId}/pdf', [SubscriptionController::class, 'invoicePdf']);
     Route::middleware('role:company_admin')->post('subscription/checkout', [SubscriptionController::class, 'checkout']);
     Route::middleware('role:company_admin')->post('subscription/payments/{paymentId}/confirm', [SubscriptionController::class, 'confirmPayment']);
 
@@ -333,6 +335,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('diagnostics/center-chats', [CenterChatController::class, 'index']);
     Route::get('diagnostics/center-chats/{conversation}', [CenterChatController::class, 'show'])->whereNumber('conversation');
     Route::post('diagnostics/center-chats/{conversation}/messages', [CenterChatController::class, 'send'])->whereNumber('conversation');
+    Route::delete('diagnostics/center-chats/{conversation}', [CenterChatController::class, 'destroy'])->whereNumber('conversation');
 
     // ── Diagnostic module ─────────────────────────────────────────
     Route::middleware('permission:diagnostic.view')->group(function () {

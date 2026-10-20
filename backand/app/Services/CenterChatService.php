@@ -17,9 +17,14 @@ use Illuminate\Support\Str;
 
 class CenterChatService
 {
-    public const WELCOME = 'Hi! Thanks for choosing ApnaMedi. Mr. Sarif will connect with you shortly.';
-
     public const ONLINE_SECONDS = 45;
+
+    public function welcomeMessage(Patient $patient): string
+    {
+        $name = trim((string) $patient->name) ?: 'there';
+
+        return "Hi {$name}, our team will connect you shortly.";
+    }
 
     public function isDiagnosticCentre(Company $company): bool
     {
@@ -41,27 +46,33 @@ class CenterChatService
 
     public function openForPatient(Patient $patient, Company $company): CenterConversation
     {
-        $existing = CenterConversation::query()
+        $existing = CenterConversation::withTrashed()
             ->where('company_id', $company->id)
             ->where('patient_id', $patient->id)
             ->first();
 
         if ($existing) {
+            if ($existing->trashed()) {
+                $existing->restore();
+            }
+
             return $existing->load(['company:id,name', 'patient:id,name']);
         }
 
+        $welcome = $this->welcomeMessage($patient);
+
         try {
-            return DB::transaction(function () use ($patient, $company) {
+            return DB::transaction(function () use ($patient, $company, $welcome) {
                 $conversation = CenterConversation::create([
                     'company_id' => $company->id,
                     'patient_id' => $patient->id,
                     'last_message_at' => now(),
-                    'last_message_preview' => Str::limit(self::WELCOME, 180, ''),
+                    'last_message_preview' => Str::limit($welcome, 180, ''),
                 ]);
 
                 $message = $conversation->messages()->create([
                     'sender_type' => CenterMessage::TYPE_SYSTEM,
-                    'body' => self::WELCOME,
+                    'body' => $welcome,
                 ]);
 
                 $conversation->forceFill([
@@ -77,6 +88,11 @@ class CenterChatService
                 ->firstOrFail()
                 ->load(['company:id,name', 'patient:id,name']);
         }
+    }
+
+    public function softDelete(CenterConversation $conversation): void
+    {
+        $conversation->delete();
     }
 
     public function touchPresence(string $actorType, int $actorId, ?int $companyId): void
