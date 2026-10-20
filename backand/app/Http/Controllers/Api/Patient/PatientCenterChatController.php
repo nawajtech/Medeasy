@@ -121,6 +121,16 @@ class PatientCenterChatController extends Controller
         ], 201);
     }
 
+    public function destroy(Request $request, int $conversation): JsonResponse
+    {
+        /** @var Patient $patient */
+        $patient = $request->user();
+        $record = $this->find($patient, $conversation);
+        $this->chat->softDelete($record);
+
+        return response()->json(['message' => 'Chat deleted.']);
+    }
+
     private function find(Patient $patient, int $id): CenterConversation
     {
         $conversation = CenterConversation::query()

@@ -2212,6 +2212,33 @@ html:has(.pt-auth) {
   gap: 12px;
 }
 
+.pt-cc-list__row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.pt-cc-list__row .pt-cc-list__item {
+  flex: 1;
+}
+
+.pt-cc-delete {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  border-radius: var(--pt-radius-sm);
+  padding: 0 14px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex: none;
+}
+
+.pt-cc-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .pt-cc-list__item {
   display: flex;
   align-items: center;

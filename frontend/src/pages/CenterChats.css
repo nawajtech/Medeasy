@@ -128,6 +128,27 @@
   background: #fff;
 }
 
+.cc-thread__head > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.cc-delete {
+  border: 1px solid #fecaca;
+  background: #fff;
+  color: #b91c1c;
+  border-radius: 8px;
+  padding: 6px 12px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-delete:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .cc-back {
   display: none;
   border: 0;

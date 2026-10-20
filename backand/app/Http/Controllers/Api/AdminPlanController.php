@@ -13,8 +13,7 @@ use App\Models\SubscriptionPayment;
 use App\Services\SubscriptionService;
 use App\Services\TaxSettingsService;
 use App\Support\TaxCalculator;
-use Dompdf\Dompdf;
-use Dompdf\Options;
+use App\Services\SubscriptionInvoicePdf;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -199,56 +198,9 @@ class AdminPlanController extends Controller
         return response()->json(['payments' => $payments]);
     }
 
-    public function invoicePdf(SubscriptionPayment $payment): Response
+    public function invoicePdf(SubscriptionPayment $payment, SubscriptionInvoicePdf $pdf): Response
     {
-        $payment->load(['subscription.company', 'subscription.plan']);
-
-        $notes = $payment->notes ?? [];
-        $company = $payment->subscription?->company;
-        $planName = $notes['plan_name'] ?? $payment->subscription?->plan?->name ?? 'Subscription';
-        $billingCycle = $notes['billing_cycle'] ?? $payment->subscription?->billing_cycle ?? 'monthly';
-        $issuedAt = $payment->payment_date ?? $payment->created_at;
-        $periodEnd = $billingCycle === 'yearly'
-            ? $issuedAt->copy()->addYear()->subDay()
-            : $issuedAt->copy()->addMonth()->subDay();
-
-        $methods = config('subscription.payment_methods', []);
-        $html = view('documents.subscription-invoice', [
-            'payment' => $payment,
-            'company' => $company,
-            'issuer' => config('subscription.issuer'),
-            'planName' => $planName,
-            'billingCycle' => $billingCycle,
-            'invoiceDate' => $issuedAt->timezone(config('app.timezone'))->format('d M Y'),
-            'periodLabel' => $issuedAt->timezone(config('app.timezone'))->format('d M Y')
-                .' – '.$periodEnd->timezone(config('app.timezone'))->format('d M Y'),
-            'subtotal' => $payment->subtotal ?? ($notes['subtotal'] ?? $payment->amount),
-            'isPaid' => $payment->payment_status === SubscriptionPayment::STATUS_PAID,
-            'isPending' => $payment->payment_status === SubscriptionPayment::STATUS_PENDING,
-            'methodLabel' => $methods[$payment->payment_method] ?? ($payment->payment_method ? ucfirst(str_replace('_', ' ', $payment->payment_method)) : '—'),
-            'money' => function ($amount) use ($payment) {
-                $value = number_format((float) $amount, 2);
-
-                return ($payment->currency === 'INR' ? 'Rs. ' : ($payment->currency.' ')).$value;
-            },
-        ])->render();
-
-        $options = new Options;
-        $options->set('isRemoteEnabled', false);
-        $options->set('isHtml5ParserEnabled', true);
-        $options->set('defaultFont', 'DejaVu Sans');
-
-        $dompdf = new Dompdf($options);
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        $filename = 'ApnaMedi_Invoice_'.$payment->invoice_number.'.pdf';
-
-        return response($dompdf->output(), 200, [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
-        ]);
+        return $pdf->download($payment);
     }
 
     protected function validatePlan(Request $request, ?int $planId = null): array

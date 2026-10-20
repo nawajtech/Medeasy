@@ -5,6 +5,7 @@ import { connectCenterChatSocket } from "../utils/centerChatSocket";
 import { fileToDataUrl } from "../utils/fileToDataUrl";
 import { resolveMediaUrl } from "../utils/mediaUrl";
 import {
+  deleteStaffCenterChat,
   getStaffCenterChat,
   listStaffCenterChats,
   sendStaffCenterChatMessage,
@@ -37,6 +38,7 @@ export default function CenterChats() {
   const [error, setError] = useState("");
   const [peerTyping, setPeerTyping] = useState(false);
   const [socketLive, setSocketLive] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const scroller = useRef(null);
   const fileInput = useRef(null);
   const afterRef = useRef(0);
@@ -239,6 +241,26 @@ export default function CenterChats() {
     socketRef.current?.emitTyping();
   };
 
+  const handleDelete = async () => {
+    if (!conversation || deleting) return;
+    const name = conversation.patient_name || "this patient";
+    if (!window.confirm(`Delete chat with ${name}?`)) return;
+
+    setDeleting(true);
+    setError("");
+    try {
+      await deleteStaffCenterChat(conversation.id);
+      setChats((prev) => prev.filter((chat) => chat.id !== conversation.id));
+      setActiveId(null);
+      setConversation(null);
+      setMessages([]);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Could not delete chat."));
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const handleSend = async (event) => {
     event.preventDefault();
     const body = draft.trim();
@@ -323,6 +345,14 @@ export default function CenterChats() {
                   {online ? "Online" : "Offline"}
                 </p>
               </div>
+              <button
+                type="button"
+                className="cc-delete"
+                disabled={deleting || loadingThread || !conversation}
+                onClick={handleDelete}
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
             </header>
             <div className="cc-messages" ref={scroller}>
               {loadingThread ? <p className="cc-empty">Loading messages…</p> : null}

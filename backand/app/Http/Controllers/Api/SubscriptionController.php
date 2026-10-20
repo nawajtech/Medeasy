@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Plan;
 use App\Models\SubscriptionPayment;
+use App\Services\SubscriptionInvoicePdf;
 use App\Services\SubscriptionService;
 use App\Services\TaxSettingsService;
 use App\Support\TaxCalculator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Validation\Rule;
 use InvalidArgumentException;
 
@@ -127,6 +129,22 @@ class SubscriptionController extends Controller
                 'tax_amount' => (float) $payment->tax_amount,
             ],
         ], 201);
+    }
+
+    public function invoicePdf(Request $request, int $paymentId, SubscriptionInvoicePdf $pdf): Response
+    {
+        $company = $request->user()->company;
+
+        if (! $company) {
+            abort(404, 'No organization linked to this account.');
+        }
+
+        $payment = SubscriptionPayment::query()
+            ->where('id', $paymentId)
+            ->whereHas('subscription', fn ($q) => $q->where('company_id', $company->id))
+            ->firstOrFail();
+
+        return $pdf->download($payment);
     }
 
     /** Step 2: confirm payment — only then is the plan activated. */
