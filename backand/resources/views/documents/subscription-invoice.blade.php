@@ -18,15 +18,23 @@
         .right { text-align: right; }
         .top { vertical-align: top; }
 
-        .logo {
-            width: 54px;
-            height: 54px;
+        .logo-cell {
+            width: 72px;
+            height: 56px;
             background: #0f766e;
             color: #fff;
             text-align: center;
-            line-height: 54px;
-            font-size: 15px;
+            vertical-align: middle;
+            font-size: 16px;
             font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .logo-img {
+            max-width: 88px;
+            max-height: 56px;
+            width: auto;
+            height: auto;
+            display: block;
         }
         .brand {
             font-size: 20px;
@@ -210,7 +218,7 @@
 <body>
 @php
     $brand = $issuer['brand_name'] ?? 'ApnaMedi';
-    $office = $issuer['office_name'] ?? ($issuer['legal_name'] ?? $brand);
+    $tagline = $issuer['tagline'] ?? ($issuer['office_name'] ?? null);
     $addressLines = $issuer['address_lines'] ?? array_filter([($issuer['address'] ?? null)]);
     $bank = $issuer['bank'] ?? [];
     $bankRows = collect([
@@ -229,31 +237,38 @@
         <td class="top" style="width:62%;">
             <table cellpadding="0" cellspacing="0">
                 <tr>
-                    <td class="top" style="width:58px;">
+                    <td class="top" style="width:92px; padding-right:10px;">
                         @if(!empty($logoDataUri))
-                            <img src="{{ $logoDataUri }}" alt="{{ $brand }}" width="54" height="54">
+                            <img class="logo-img" src="{{ $logoDataUri }}" alt="{{ $brand }}">
                         @else
-                            <div class="logo">AM</div>
+                            <table cellpadding="0" cellspacing="0" style="width:72px;height:56px;">
+                                <tr>
+                                    <td class="logo-cell">AM</td>
+                                </tr>
+                            </table>
                         @endif
                     </td>
-                    <td class="top" style="padding-left:12px;">
+                    <td class="top">
                         <div class="brand">{{ $brand }}</div>
-                        <p class="issuer-line" style="margin-top:3px;">
-                            {{ $office }}
-                            @if(!empty($issuer['udyam_urn']))
-                                &nbsp;·&nbsp;Udyam: {{ $issuer['udyam_urn'] }}
-                            @endif
-                        </p>
+                        @if(!empty($tagline))
+                            <p class="issuer-line" style="margin-top:2px;">{{ $tagline }}</p>
+                        @endif
+                        @if(!empty($issuer['udyam_urn']))
+                            <p class="issuer-line">Udyam: {{ $issuer['udyam_urn'] }}</p>
+                        @endif
                         @foreach($addressLines as $line)
                             <p class="issuer-line">{{ $line }}</p>
                         @endforeach
                         <p class="issuer-line">
-                            @if(!empty($issuer['phone']))Mob: {{ $issuer['phone'] }}@endif
+                            @if(!empty($issuer['phone'])){{ $issuer['phone'] }}@endif
                             @if(!empty($issuer['email']))
                                 @if(!empty($issuer['phone'])) &nbsp;·&nbsp; @endif
                                 {{ $issuer['email'] }}
                             @endif
                         </p>
+                        @if(!empty($issuer['website']))
+                            <p class="issuer-line">{{ $issuer['website'] }}</p>
+                        @endif
                     </td>
                 </tr>
             </table>
@@ -388,8 +403,11 @@
     </div>
 </div>
 
-<div class="thanks">Thank you for choosing ApnaMedi</div>
-<div class="thanks-sub">Healthcare Operations, Simplified · {{ $issuer['email'] ?? 'info.apnamedi@gmail.com' }}</div>
+<div class="thanks">Thank you for choosing {{ $brand }}</div>
+<div class="thanks-sub">
+    {{ $tagline ?: 'Healthcare Operations, Simplified' }}
+    @if(!empty($issuer['email'])) · {{ $issuer['email'] }}@endif
+</div>
 
 <div class="sign-wrap">
     <div class="sign-line">{{ $issuer['signatory'] ?? 'Authorized Signatory — ApnaMedi' }}</div>
