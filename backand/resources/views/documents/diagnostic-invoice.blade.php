@@ -210,7 +210,8 @@
                     @endif
                     @if(!empty($branding['email']))
                         @if(!empty($branding['phone'])) &nbsp; @endif
-                        {{ $branding['email'] }}
+                        {{-- Prevent Cloudflare / scanners from replacing email with "[email protected]" --}}
+                        <!--email_off-->{!! str_replace('@', '&#64;', e($branding['email'])) !!}<!--/email_off-->
                     @endif
                 </p>
                 @if(!empty($branding['website']))
@@ -340,7 +341,7 @@
 
         <div class="bill-footer">
             <span>Posted By : {{ $postedBy }} {{ $printedAt->format('d/m/Y H:i') }}</span>
-            <span>Your User Id: {{ $order->order_number }}</span>
+            <span>Bill Ref : {{ $order->order_number }}</span>
         </div>
 
         @if(!empty($branding['invoice_footer']))
