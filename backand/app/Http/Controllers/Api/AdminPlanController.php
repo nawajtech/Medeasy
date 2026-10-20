@@ -160,6 +160,12 @@ class AdminPlanController extends Controller
             ->where('status', Plan::STATUS_ACTIVE)
             ->firstOrFail();
 
+        if (! $plan->isPurchasable()) {
+            return response()->json([
+                'message' => $plan->name.' is marked as '.$plan->availabilityLabel().' and cannot be assigned yet.',
+            ], 422);
+        }
+
         $subscription = $subscriptions->assignPlanByAdmin(
             $company,
             $plan,
@@ -215,6 +221,8 @@ class AdminPlanController extends Controller
             'currency' => ['required', 'string', 'max:10'],
             'trial_days' => ['required', 'integer', 'min:0'],
             'status' => ['required', Rule::in([Plan::STATUS_ACTIVE, Plan::STATUS_INACTIVE])],
+            'availability' => ['required', Rule::in(Plan::AVAILABILITIES)],
+            'availability_note' => ['nullable', 'string', 'max:255'],
             'display_order' => ['required', 'integer', 'min:0'],
             'tax_enabled' => ['required', 'boolean'],
             'tax_mode' => ['required', Rule::in([TaxCalculator::MODE_CGST_SGST, TaxCalculator::MODE_IGST])],
@@ -276,6 +284,10 @@ class AdminPlanController extends Controller
             'tax_inclusive' => (bool) $plan->tax_inclusive,
             'trial_days' => $plan->trial_days,
             'status' => $plan->status,
+            'availability' => $plan->availability ?? Plan::AVAILABILITY_AVAILABLE,
+            'availability_label' => $plan->availabilityLabel(),
+            'availability_note' => $plan->availability_note,
+            'is_purchasable' => $plan->isPurchasable(),
             'display_order' => $plan->display_order,
             'subscriptions_count' => $plan->subscriptions_count ?? $plan->subscriptions()->count(),
             'features' => $plan->features->where('pivot.is_enabled', true)->pluck('id')->values(),

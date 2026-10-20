@@ -149,6 +149,8 @@ class SubscriptionSeeder extends Seeder
                 'yearly_price' => 79990,
                 'trial_days' => 14,
                 'display_order' => 4,
+                'availability' => Plan::AVAILABILITY_COMING_SOON,
+                'availability_note' => 'AI-powered features and automation are planned for a future release. We are actively working on this.',
                 'features' => array_keys($features),
                 'limits' => [
                     PlanLimit::MAX_USERS => null,
@@ -172,6 +174,8 @@ class SubscriptionSeeder extends Seeder
                     'currency' => 'INR',
                     'trial_days' => $definition['trial_days'],
                     'status' => Plan::STATUS_ACTIVE,
+                    'availability' => $definition['availability'] ?? Plan::AVAILABILITY_AVAILABLE,
+                    'availability_note' => $definition['availability_note'] ?? null,
                     'display_order' => $definition['display_order'],
                 ]
             );

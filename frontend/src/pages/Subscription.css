@@ -143,6 +143,11 @@
   color: var(--me-success);
 }
 
+.subscription-feature-badge--dev {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
 .subscription-admin-feature {
   display: flex;
   align-items: center;
@@ -338,6 +343,31 @@
   background: var(--me-surface-muted);
   color: var(--me-text-secondary);
   border: 1px solid var(--me-border);
+}
+
+.subscription-plan-badge--soon {
+  background: var(--me-warning-soft);
+  color: #b45309;
+}
+
+.subscription-plan-badge--dev {
+  background: var(--me-primary-soft);
+  color: var(--me-primary);
+}
+
+.subscription-plan-card.is-unavailable {
+  opacity: 0.92;
+  border-style: dashed;
+}
+
+.subscription-plan-card-note {
+  margin: 0;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--me-radius-md);
+  background: var(--me-surface-muted);
+  color: var(--me-text-secondary);
+  font-size: var(--me-text-sm);
+  line-height: 1.45;
 }
 
 .subscription-plan-card-price {

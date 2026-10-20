@@ -202,6 +202,13 @@ class SubscriptionService
     /** Create a pending invoice — plan changes only after payment is confirmed. */
     public function createCheckout(Company $company, Plan $plan, string $billingCycle): SubscriptionPayment
     {
+        if (! $plan->isPurchasable()) {
+            throw new InvalidArgumentException(
+                $plan->availability_note
+                    ?: ($plan->name.' is '.$plan->availabilityLabel().' and cannot be purchased yet.')
+            );
+        }
+
         $subscription = $this->getCurrentSubscription($company)
             ?? $this->ensureForCompany($company);
 

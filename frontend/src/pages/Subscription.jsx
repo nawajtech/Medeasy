@@ -67,15 +67,40 @@ function PlanCard({ plan, isCurrent, busy, onSelect }) {
   const yearlyTotal = plan.yearly_total ?? yearly;
   const hasDiscount = Number(plan.discount_percent) > 0;
   const hasTax = Boolean(plan.tax_enabled) && monthlyTotal !== monthly;
+  const isPurchasable = plan.is_purchasable !== false;
+  const availability = plan.availability || "available";
+  const availabilityLabel =
+    plan.availability_label ||
+    (availability === "coming_soon"
+      ? "Coming soon"
+      : availability === "in_development"
+        ? "In development"
+        : null);
+  const showBadges = isCurrent || hasDiscount || plan.tax_enabled || !isPurchasable;
 
   return (
-    <div className={`subscription-plan-card${isCurrent ? " is-current" : ""}`}>
+    <div
+      className={`subscription-plan-card${isCurrent ? " is-current" : ""}${
+        !isPurchasable ? " is-unavailable" : ""
+      }`}
+    >
       <div className="subscription-plan-card-head">
         <h4>{plan.name}</h4>
-        {(isCurrent || hasDiscount || plan.tax_enabled) && (
+        {showBadges && (
           <div className="subscription-plan-card-badges">
             {isCurrent ? (
               <span className="subscription-plan-badge subscription-plan-badge--current">Current plan</span>
+            ) : null}
+            {!isPurchasable && availabilityLabel ? (
+              <span
+                className={`subscription-plan-badge${
+                  availability === "in_development"
+                    ? " subscription-plan-badge--dev"
+                    : " subscription-plan-badge--soon"
+                }`}
+              >
+                {availabilityLabel}
+              </span>
             ) : null}
             {hasDiscount ? (
               <span className="subscription-plan-badge subscription-plan-badge--discount">
@@ -103,6 +128,14 @@ function PlanCard({ plan, isCurrent, busy, onSelect }) {
         {formatMoney(hasTax ? yearlyTotal : yearly, currency)} / year
       </p>
       <p className="subscription-plan-card-desc">{plan.description}</p>
+      {!isPurchasable ? (
+        <p className="subscription-plan-card-note">
+          {plan.availability_note ||
+            (availability === "in_development"
+              ? "We are actively working on this plan. It will be available soon."
+              : "This plan is not available for purchase yet. Coming in a future release.")}
+        </p>
+      ) : null}
       <ul className="subscription-plan-card-features">
         {(plan.features || []).slice(0, 6).map((key) => (
           <li key={key}>{FEATURE_LABELS[key] || key.replace(/_/g, " ")}</li>
@@ -116,10 +149,16 @@ function PlanCard({ plan, isCurrent, busy, onSelect }) {
       <button
         type="button"
         className="crud-btn crud-btn--primary subscription-plan-card-btn"
-        disabled={isCurrent || busy}
+        disabled={isCurrent || busy || !isPurchasable}
         onClick={() => onSelect(plan)}
       >
-        {isCurrent ? "Active" : busy ? "Processing…" : `Upgrade to ${plan.name}`}
+        {isCurrent
+          ? "Active"
+          : !isPurchasable
+            ? availabilityLabel || "Coming soon"
+            : busy
+              ? "Processing…"
+              : `Upgrade to ${plan.name}`}
       </button>
     </div>
   );
