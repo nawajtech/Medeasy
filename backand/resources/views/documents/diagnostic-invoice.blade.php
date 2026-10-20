@@ -2,353 +2,550 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Bill — {{ $order->order_number }}</title>
+    <title>Invoice — {{ $order->order_number }}</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 12px;
-            color: #111;
-            background: #dbeef8;
-            padding: 12px;
+        :root {
+            --accent: #0d9488;
+            --accent-dark: #0f766e;
+            --text: #1e293b;
+            --muted: #64748b;
+            --line: #99f6e4;
+            --soft: #f0fdfa;
+            --danger: #b45309;
         }
-        .bill-sheet {
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+            font-size: 13px;
+            color: var(--text);
+            background: #e2e8f0;
+            padding: 20px;
+        }
+
+        .sheet {
             max-width: 820px;
             margin: 0 auto;
-            background: #dbeef8;
-            border: 1px solid #9cbfd4;
-            padding: 14px 16px 18px;
+            background: #fff;
+            padding: 36px 40px 28px;
+            box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
         }
-        .no-print {
-            margin-bottom: 10px;
-            text-align: right;
-        }
+
+        .no-print { margin-bottom: 14px; text-align: right; }
         .no-print button {
-            padding: 6px 14px;
+            padding: 8px 16px;
             cursor: pointer;
-            border: 1px solid #64748b;
-            border-radius: 4px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
             background: #fff;
-            font-size: 12px;
+            color: var(--text);
+            font-size: 13px;
         }
-        .print-meta {
-            font-size: 11px;
-            margin-bottom: 6px;
-        }
-        .bill-header {
+        .no-print button:hover { border-color: var(--accent); color: var(--accent-dark); }
+
+        /* ── Header ── */
+        .header {
             display: grid;
-            grid-template-columns: 72px 1fr;
-            gap: 10px;
+            grid-template-columns: 1fr auto;
+            gap: 24px;
             align-items: start;
-            margin-bottom: 8px;
+            margin-bottom: 28px;
+            padding-bottom: 22px;
+            border-bottom: 2px solid var(--accent);
         }
-        .bill-logo {
-            width: 68px;
-            height: 68px;
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .brand-logo {
+            width: 72px;
+            height: 72px;
             object-fit: contain;
+            border-radius: 10px;
             background: #fff;
-            border: 1px solid #94a3b8;
+            border: 1px solid #e2e8f0;
+            flex-shrink: 0;
         }
-        .bill-logo-placeholder {
-            width: 68px;
-            height: 68px;
-            border: 1px solid #94a3b8;
-            background: #fff;
+
+        .brand-logo-fallback {
+            width: 72px;
+            height: 72px;
+            border-radius: 10px;
+            background: linear-gradient(145deg, var(--accent), var(--accent-dark));
+            color: #fff;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 10px;
-            color: #64748b;
-            text-align: center;
-        }
-        .bill-org {
-            text-align: center;
-        }
-        .bill-org h1 {
-            font-size: 16px;
+            font-size: 22px;
             font-weight: 700;
-            letter-spacing: 0.3px;
-            margin-bottom: 2px;
+            letter-spacing: 0.04em;
+            flex-shrink: 0;
         }
-        .bill-org .division {
+
+        .brand-name {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text);
+            line-height: 1.15;
+        }
+
+        .brand-tag {
+            margin-top: 4px;
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+        .brand-contact {
+            margin-top: 6px;
+            font-size: 11px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .invoice-meta {
+            display: flex;
+            gap: 16px;
+            align-items: stretch;
+            text-align: right;
+        }
+
+        .invoice-meta__divider {
+            width: 2px;
+            background: var(--accent);
+            border-radius: 2px;
+            align-self: stretch;
+        }
+
+        .invoice-meta__body { min-width: 168px; }
+
+        .invoice-title {
+            font-size: 34px;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+
+        .meta-row {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            font-size: 12px;
+            line-height: 1.55;
+            color: var(--text);
+        }
+
+        .meta-row span:first-child {
+            color: var(--muted);
+            font-weight: 600;
+        }
+
+        /* ── Parties ── */
+        .parties {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 28px;
+            margin-bottom: 26px;
+        }
+
+        .party-label {
             font-size: 12px;
             font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .party-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
             margin-bottom: 4px;
         }
-        .bill-org p {
-            font-size: 11px;
-            line-height: 1.35;
+
+        .party-lines {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.55;
         }
-        .bill-title {
-            text-align: center;
-            font-size: 13px;
-            font-weight: 700;
-            margin: 8px 0 10px;
-            text-decoration: underline;
-        }
-        .info-box {
-            border: 1px solid #111;
-            padding: 8px 10px;
-            margin-bottom: 10px;
-            background: rgba(255,255,255,0.35);
-        }
-        .info-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            gap: 6px 12px;
-        }
-        .info-row {
-            display: flex;
-            gap: 6px;
-            font-size: 11px;
-            line-height: 1.35;
-        }
-        .info-row .label {
-            font-weight: 700;
-            white-space: nowrap;
-        }
-        .info-row .value {
-            flex: 1;
-        }
-        .services-table {
+
+        .party-lines strong { color: var(--text); font-weight: 600; }
+
+        /* ── Items table ── */
+        .items {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 10px;
-            background: rgba(255,255,255,0.25);
+            margin-bottom: 18px;
+            border: 1.5px solid var(--accent);
         }
-        .services-table th,
-        .services-table td {
-            border: 1px solid #111;
-            padding: 5px 6px;
+
+        .items th {
+            background: var(--accent);
+            color: #fff;
             font-size: 11px;
-            text-align: left;
-        }
-        .services-table th {
             font-weight: 700;
-            background: rgba(255,255,255,0.45);
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            padding: 10px 12px;
+            text-align: left;
+            border: 1px solid var(--accent-dark);
         }
-        .services-table .num {
+
+        .items th.num,
+        .items td.num {
             text-align: right;
             white-space: nowrap;
         }
+
+        .items td {
+            padding: 10px 12px;
+            font-size: 12px;
+            border: 1px solid var(--line);
+            vertical-align: top;
+            color: var(--text);
+        }
+
+        .items tbody tr:nth-child(even) td { background: var(--soft); }
+
         .amount-words {
-            font-size: 11px;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 22px;
+        }
+
+        .amount-words strong { color: var(--text); }
+
+        /* ── Footer grid ── */
+        .bottom {
+            display: grid;
+            grid-template-columns: 1.15fr 0.85fr;
+            gap: 28px;
+            align-items: start;
+            margin-bottom: 22px;
+        }
+
+        .pay-label {
+            font-size: 12px;
             font-weight: 700;
-            margin: 8px 0 10px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: 8px;
+        }
+
+        .pay-body {
+            font-size: 12px;
+            color: var(--muted);
+            line-height: 1.6;
+        }
+
+        .pay-body strong { color: var(--text); }
+
+        .summary {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .summary td {
+            padding: 7px 10px;
+            font-size: 12px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .summary td:first-child {
+            color: var(--muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            font-size: 11px;
+        }
+
+        .summary td:last-child {
+            text-align: right;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .summary tr.total td {
+            background: var(--accent);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 700;
+            border-bottom: none;
+            padding: 11px 12px;
+            letter-spacing: 0.03em;
+        }
+
+        .summary tr.total td:first-child {
+            color: #fff;
             text-transform: uppercase;
         }
-        .summary-wrap {
-            display: grid;
-            grid-template-columns: 1fr 240px;
-            gap: 12px;
-            align-items: start;
+
+        .summary tr.due td:last-child { color: var(--danger); }
+
+        .thanks {
+            text-align: center;
+            margin-top: 10px;
+            padding-top: 18px;
+            border-top: 1px solid #e2e8f0;
+            font-family: "Segoe Script", "Brush Script MT", "Apple Chancery", cursive;
+            font-size: 26px;
+            color: var(--accent);
+            line-height: 1.2;
         }
-        .summary-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .summary-table th,
-        .summary-table td {
-            border: 1px solid #111;
-            padding: 5px 8px;
+
+        .thanks-sub {
+            text-align: center;
+            margin-top: 6px;
             font-size: 11px;
+            color: var(--muted);
+            font-family: "Segoe UI", Arial, Helvetica, sans-serif;
         }
-        .summary-table th {
-            text-align: left;
-            font-weight: 700;
-            background: rgba(255,255,255,0.45);
-        }
-        .summary-table .num {
-            text-align: right;
-            font-weight: 700;
-        }
-        .bill-footer {
+
+        .posted {
             margin-top: 14px;
-            font-size: 11px;
             display: flex;
             justify-content: space-between;
             gap: 12px;
-        }
-        .bill-footer-note {
-            margin-top: 8px;
             font-size: 11px;
-            font-weight: 700;
-            text-align: center;
+            color: var(--muted);
         }
+
         @media print {
-            body { background: #dbeef8; padding: 0; }
+            body { background: #fff; padding: 0; }
             .no-print { display: none; }
-            .bill-sheet { border: none; }
+            .sheet { box-shadow: none; max-width: none; padding: 18px 22px; }
+        }
+
+        @media (max-width: 640px) {
+            .sheet { padding: 22px 18px; }
+            .header, .parties, .bottom { grid-template-columns: 1fr; }
+            .invoice-meta { justify-content: flex-start; text-align: left; }
+            .meta-row { justify-content: flex-start; }
+            .invoice-meta__divider { display: none; }
+            .posted { flex-direction: column; }
         }
     </style>
 </head>
 <body>
-    <div class="bill-sheet">
-        <div class="no-print">
-            <button type="button" onclick="window.print()">Print / Save as PDF</button>
-        </div>
+    <div class="no-print">
+        <button type="button" onclick="window.print()">Print / Save as PDF</button>
+    </div>
 
-        <div class="print-meta">Print Date : {{ $printedAt->format('d/m/Y H:i') }}</div>
-
-        <div class="bill-header">
-            @if(!empty($branding['logo']))
-                <img src="{{ $branding['logo'] }}" alt="{{ $branding['name'] }}" class="bill-logo">
-            @else
-                <div class="bill-logo-placeholder">LOGO</div>
-            @endif
-            <div class="bill-org">
-                <h1>{{ strtoupper($branding['name']) }}</h1>
-                @if(!empty($branding['division']))
-                    <div class="division">{{ strtoupper($branding['division']) }}</div>
+    <div class="sheet">
+        <div class="header">
+            <div class="brand">
+                @if(!empty($branding['logo']))
+                    <img src="{{ $branding['logo'] }}" alt="{{ $branding['name'] }}" class="brand-logo">
+                @else
+                    <div class="brand-logo-fallback">
+                        {{ strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $branding['name'] ?: 'AM') ?: 'AM', 0, 2)) }}
+                    </div>
                 @endif
-                @if(!empty($branding['address']))
-                    <p>{{ $branding['address'] }}</p>
-                @endif
-                <p>
-                    @if(!empty($branding['phone']))
-                        {{ $branding['phone'] }}
+                <div>
+                    <div class="brand-name">{{ $branding['name'] }}</div>
+                    @if(!empty($branding['division']))
+                        <div class="brand-tag">{{ $branding['division'] }}</div>
                     @endif
-                    @if(!empty($branding['email']))
-                        @if(!empty($branding['phone'])) &nbsp; @endif
-                        {{ $branding['email'] }}
-                    @endif
-                </p>
-                @if(!empty($branding['website']))
-                    <p>{{ $branding['website'] }}</p>
-                @endif
-                @if(!empty($branding['gst_number']))
-                    <p><strong>GST No. :</strong> {{ $branding['gst_number'] }}</p>
-                @endif
+                    <div class="brand-contact">
+                        @if(!empty($branding['address']))
+                            {{ $branding['address'] }}<br>
+                        @endif
+                        @if(!empty($branding['phone'])) {{ $branding['phone'] }} @endif
+                        @if(!empty($branding['email']))
+                            @if(!empty($branding['phone'])) · @endif
+                            {{ $branding['email'] }}
+                        @endif
+                        @if(!empty($branding['gst_number']))
+                            <br>GSTIN: {{ $branding['gst_number'] }}
+                        @endif
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <div class="bill-title">Bill Cum Receipt</div>
-
-        <div class="info-box">
-            <div class="info-grid">
-                <div>
-                    <div class="info-row"><span class="label">PID :</span><span class="value">{{ $patient->patient_code ?? '—' }}</span></div>
-                    <div class="info-row"><span class="label">Patient's Name :</span><span class="value">{{ strtoupper($patient->name) }}</span></div>
-                    <div class="info-row"><span class="label">Address :</span><span class="value">{{ $patient->address ?: '—' }}</span></div>
-                    <div class="info-row"><span class="label">Referred By :</span><span class="value">{{ $referredBy ?: '—' }}</span></div>
-                </div>
-                <div>
-                    <div class="info-row"><span class="label">Bill No :</span><span class="value">{{ $order->order_number }}</span></div>
-                    <div class="info-row"><span class="label">Age :</span><span class="value">{{ $patientAge }}</span></div>
-                    <div class="info-row"><span class="label">Ph. No :</span><span class="value">{{ $patient->phone ?: '—' }}</span></div>
-                </div>
-                <div>
-                    <div class="info-row"><span class="label">Bill Date :</span><span class="value">{{ $billDate->format('d/m/Y, H:i') }}</span></div>
-                    <div class="info-row"><span class="label">Sex :</span><span class="value">{{ $patientGender }}</span></div>
-                    <div class="info-row"><span class="label">Ptn Type :</span><span class="value">GENERAL</span></div>
+            <div class="invoice-meta">
+                <div class="invoice-meta__divider" aria-hidden="true"></div>
+                <div class="invoice-meta__body">
+                    <div class="invoice-title">INVOICE</div>
+                    <div class="meta-row"><span>Invoice Number:</span><span>{{ $order->order_number }}</span></div>
+                    <div class="meta-row"><span>Date:</span><span>{{ $billDate->format('jS M, Y') }}</span></div>
+                    @if($deliveryDate && $deliveryDate !== '—')
+                        <div class="meta-row"><span>Report Due:</span><span>{{ $deliveryDate }}</span></div>
+                    @endif
+                    <div class="meta-row"><span>Status:</span><span>{{ ucfirst(str_replace('_', ' ', $paymentStatus ?? 'pending')) }}</span></div>
                 </div>
             </div>
         </div>
 
-        <table class="services-table">
+        <div class="parties">
+            <div>
+                <div class="party-label">Bill To</div>
+                <div class="party-name">{{ $patient->name ?? '—' }}</div>
+                <div class="party-lines">
+                    @if(!empty($patient->patient_code))
+                        <strong>PID:</strong> {{ $patient->patient_code }}<br>
+                    @endif
+                    @if(!empty($patient->address))
+                        {{ $patient->address }}<br>
+                    @endif
+                    Age / Sex: {{ $patientAge }} / {{ $patientGender }}<br>
+                    @if(!empty($patient->phone))
+                        Phone: {{ $patient->phone }}<br>
+                    @endif
+                    @if(!empty($patient->email))
+                        Email: {{ $patient->email }}
+                    @endif
+                </div>
+            </div>
+            <div>
+                <div class="party-label">Service Details</div>
+                <div class="party-name">{{ $serviceName }}</div>
+                <div class="party-lines">
+                    @if(!empty($referredBy))
+                        <strong>Referred By:</strong> {{ $referredBy }}<br>
+                    @endif
+                    @if($order->branch?->name)
+                        <strong>Branch / Room:</strong> {{ $order->branch->name }}<br>
+                    @endif
+                    @if($order->queue_serial)
+                        <strong>Token No:</strong> {{ $order->queue_serial }}<br>
+                    @endif
+                    @if(!empty($branding['website']))
+                        Reports: {{ $branding['website'] }}
+                    @endif
+                </div>
+            </div>
+        </div>
+
+        <table class="items">
             <thead>
                 <tr>
-                    <th>Service Type/Name</th>
-                    <th>Token No</th>
-                    <th>Room No</th>
-                    <th>Dlv Dt(Expt)</th>
-                    <th class="num">Rate({{ $currencySymbol }})</th>
+                    <th>Description</th>
+                    <th>Token</th>
+                    <th>Branch</th>
+                    <th>Report Due</th>
+                    <th class="num">Amount</th>
                 </tr>
             </thead>
             <tbody>
                 <tr>
-                    <td>{{ strtoupper($serviceName) }}</td>
+                    <td>{{ $serviceName }}</td>
                     <td>{{ $order->queue_serial ?? '—' }}</td>
                     <td>{{ $order->branch?->name ?? '—' }}</td>
                     <td>{{ $deliveryDate }}</td>
-                    <td class="num">{{ number_format($gross, 2) }}</td>
+                    <td class="num">{{ $currencySymbol }}{{ number_format($gross, 2) }}</td>
                 </tr>
             </tbody>
         </table>
 
-        <div class="amount-words">Amount in Words : {{ $amountInWords }}</div>
+        <div class="amount-words">
+            <strong>Amount in words:</strong> {{ $amountInWords }}
+        </div>
 
-        <div class="summary-wrap">
-            <div></div>
-            <table class="summary-table">
+        <div class="bottom">
+            <div>
+                <div class="pay-label">Payment Details</div>
+                <div class="pay-body">
+                    <strong>Payment Status:</strong> {{ ucfirst(str_replace('_', ' ', $paymentStatus ?? 'pending')) }}<br>
+                    <strong>Paid Amount:</strong> {{ $currencySymbol }}{{ number_format($paid, 2) }}<br>
+                    @if($due > 0)
+                        <strong>Balance Due:</strong> {{ $currencySymbol }}{{ number_format($due, 2) }}<br>
+                    @endif
+                    <strong>Posted By:</strong> {{ $postedBy }}
+                    @if(!empty($branding['invoice_footer']))
+                        <br><br>{{ $branding['invoice_footer'] }}
+                    @endif
+                </div>
+            </div>
+
+            <table class="summary">
                 <tr>
-                    <th>Total Amount</th>
-                    <td class="num">{{ number_format($gross, 2) }}</td>
+                    <td>Subtotal</td>
+                    <td>{{ $currencySymbol }}{{ number_format($gross, 2) }}</td>
                 </tr>
                 @if(($packageAdjusted ?? 0) > 0)
                     <tr>
-                        <th>Package discount{{ !empty($packageName) ? ' ('.$packageName.')' : '' }}</th>
-                        <td class="num">−{{ number_format($packageAdjusted, 2) }}</td>
+                        <td>Package Discount{{ !empty($packageName) ? ' ('.$packageName.')' : '' }}</td>
+                        <td>−{{ $currencySymbol }}{{ number_format($packageAdjusted, 2) }}</td>
                     </tr>
                 @endif
                 @if($adjusted > 0)
                     <tr>
-                        <th>Adjusted Amount</th>
-                        <td class="num">{{ number_format($adjusted, 2) }}</td>
+                        <td>Referral Discount</td>
+                        <td>−{{ $currencySymbol }}{{ number_format($adjusted, 2) }}</td>
                     </tr>
                 @endif
                 @if(($extraDiscount ?? 0) > 0)
                     <tr>
-                        <th>Extra discount</th>
-                        <td class="num">−{{ number_format($extraDiscount, 2) }}</td>
+                        <td>Extra Discount</td>
+                        <td>−{{ $currencySymbol }}{{ number_format($extraDiscount, 2) }}</td>
                     </tr>
                 @endif
                 @if(($taxable ?? $payable) != $payable || !empty($tax['enabled']))
                     <tr>
-                        <th>Taxable Amount</th>
-                        <td class="num">{{ number_format($taxable ?? $payable, 2) }}</td>
+                        <td>Taxable Amount</td>
+                        <td>{{ $currencySymbol }}{{ number_format($taxable ?? $payable, 2) }}</td>
                     </tr>
                 @endif
                 @if(!empty($tax['enabled']) && ($tax['cgst_amount'] ?? 0) > 0)
                     <tr>
-                        <th>CGST @ {{ number_format($tax['cgst_rate'], 2) }}%</th>
-                        <td class="num">{{ number_format($tax['cgst_amount'], 2) }}</td>
+                        <td>CGST @ {{ number_format($tax['cgst_rate'], 2) }}%</td>
+                        <td>{{ $currencySymbol }}{{ number_format($tax['cgst_amount'], 2) }}</td>
                     </tr>
                     <tr>
-                        <th>SGST @ {{ number_format($tax['sgst_rate'], 2) }}%</th>
-                        <td class="num">{{ number_format($tax['sgst_amount'], 2) }}</td>
+                        <td>SGST @ {{ number_format($tax['sgst_rate'], 2) }}%</td>
+                        <td>{{ $currencySymbol }}{{ number_format($tax['sgst_amount'], 2) }}</td>
                     </tr>
                 @endif
                 @if(!empty($tax['enabled']) && ($tax['igst_amount'] ?? 0) > 0)
                     <tr>
-                        <th>IGST @ {{ number_format($tax['igst_rate'], 2) }}%</th>
-                        <td class="num">{{ number_format($tax['igst_amount'], 2) }}</td>
+                        <td>IGST @ {{ number_format($tax['igst_rate'], 2) }}%</td>
+                        <td>{{ $currencySymbol }}{{ number_format($tax['igst_amount'], 2) }}</td>
                     </tr>
                 @endif
                 @if(!empty($tax['enabled']) && ($tax['tax_amount'] ?? 0) > 0)
                     <tr>
-                        <th>Total Tax</th>
-                        <td class="num">{{ number_format($tax['tax_amount'], 2) }}</td>
+                        <td>Total Tax</td>
+                        <td>{{ $currencySymbol }}{{ number_format($tax['tax_amount'], 2) }}</td>
                     </tr>
                 @endif
                 <tr>
-                    <th>Payable Amount</th>
-                    <td class="num">{{ number_format($payable, 2) }}</td>
-                </tr>
-                <tr>
-                    <th>Paid Amount</th>
-                    <td class="num">{{ number_format($paid, 2) }}</td>
+                    <td>Paid</td>
+                    <td>{{ $currencySymbol }}{{ number_format($paid, 2) }}</td>
                 </tr>
                 @if($due > 0)
-                    <tr>
-                        <th>Due Amount</th>
-                        <td class="num" style="color:#b45309;font-weight:700">{{ number_format($due, 2) }}</td>
+                    <tr class="due">
+                        <td>Due</td>
+                        <td>{{ $currencySymbol }}{{ number_format($due, 2) }}</td>
                     </tr>
                 @endif
+                <tr class="total">
+                    <td>Total</td>
+                    <td>{{ $currencySymbol }}{{ number_format($payable, 2) }}</td>
+                </tr>
             </table>
         </div>
 
-        <div class="bill-footer">
-            <span>Posted By : {{ $postedBy }} {{ $printedAt->format('d/m/Y H:i') }}</span>
-            <span>Your User Id: {{ $order->order_number }}</span>
+        <div class="thanks">Thank you for choosing us</div>
+        <div class="thanks-sub">
+            We appreciate your trust in {{ $branding['name'] ?: 'ApnaMedi' }}. Wishing you good health.
+            @if(!empty($branding['website']))
+                · Visit {{ $branding['website'] }} to view or download your report
+            @endif
         </div>
 
-        @if(!empty($branding['invoice_footer']))
-            <div class="bill-footer-note">{{ $branding['invoice_footer'] }}</div>
-        @endif
-        @if(!empty($branding['website']))
-            <div class="bill-footer-note">Visit {{ $branding['website'] }} to view/download your report</div>
-        @endif
+        <div class="posted">
+            <span>Printed: {{ $printedAt->format('d/m/Y H:i') }}</span>
+            <span>Ref: {{ $order->order_number }}</span>
+        </div>
     </div>
 </body>
 </html>
