@@ -49,6 +49,10 @@ class SubscriptionController extends Controller
                     'tax_rate' => (float) $plan->tax_rate,
                     'tax_inclusive' => (bool) $plan->tax_inclusive,
                     'trial_days' => $plan->trial_days,
+                    'availability' => $plan->availability ?? Plan::AVAILABILITY_AVAILABLE,
+                    'availability_label' => $plan->availabilityLabel(),
+                    'availability_note' => $plan->availability_note,
+                    'is_purchasable' => $plan->isPurchasable(),
                     'features' => $plan->enabledFeatures->pluck('key')->values(),
                     'limits' => $plan->limits->mapWithKeys(
                         fn ($limit) => [$limit->limit_key => $limit->limit_value]
@@ -93,6 +97,13 @@ class SubscriptionController extends Controller
             ->where('id', $validated['plan_id'])
             ->where('status', Plan::STATUS_ACTIVE)
             ->firstOrFail();
+
+        if (! $plan->isPurchasable()) {
+            $note = $plan->availability_note
+                ?: ($plan->name.' is '.$plan->availabilityLabel().' and is not available for purchase yet.');
+
+            return response()->json(['message' => $note], 422);
+        }
 
         try {
             $payment = $subscriptions->createCheckout(

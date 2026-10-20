@@ -33,6 +33,8 @@ const emptyForm = {
   currency: "INR",
   trial_days: 14,
   status: "active",
+  availability: "available",
+  availability_note: "",
   display_order: 0,
   tax_enabled: true,
   tax_mode: "igst",
@@ -120,6 +122,8 @@ function Plans() {
       currency: row.currency || "INR",
       trial_days: row.trial_days,
       status: row.status,
+      availability: row.availability || "available",
+      availability_note: row.availability_note || "",
       display_order: row.display_order,
       tax_enabled: Boolean(row.tax_enabled),
       tax_mode: row.tax_mode || "igst",
@@ -162,6 +166,11 @@ function Plans() {
       discount_percent: Number(form.discount_percent),
       trial_days: Number(form.trial_days),
       display_order: Number(form.display_order),
+      availability: form.availability || "available",
+      availability_note:
+        form.availability !== "available" && form.availability_note?.trim()
+          ? form.availability_note.trim()
+          : null,
       tax_enabled: Boolean(form.tax_enabled),
       tax_mode: form.tax_mode,
       tax_rate: Number(form.tax_rate),
@@ -312,6 +321,7 @@ function Plans() {
                 <th>Tax</th>
                 <th>Trial</th>
                 <th>Status</th>
+                <th>Availability</th>
                 <th>Subscribers</th>
                 <th>Actions</th>
               </tr>
@@ -334,6 +344,24 @@ function Plans() {
                   </td>
                   <td>{row.trial_days} days</td>
                   <td className="subscription-capitalize">{row.status}</td>
+                  <td>
+                    <span
+                      className={`subscription-feature-badge${
+                        row.availability === "available" || !row.availability
+                          ? " subscription-feature-badge--live"
+                          : row.availability === "in_development"
+                            ? " subscription-feature-badge--dev"
+                            : ""
+                      }`}
+                    >
+                      {row.availability_label ||
+                        (row.availability === "coming_soon"
+                          ? "Coming soon"
+                          : row.availability === "in_development"
+                            ? "In development"
+                            : "Available")}
+                    </span>
+                  </td>
                   <td>{row.subscriptions_count}</td>
                   <td>
                     <div className="crud-actions">
@@ -416,10 +444,32 @@ function Plans() {
             <label className="crud-field">
               <span>Status</span>
               <select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
+                <option value="active">Active (visible)</option>
+                <option value="inactive">Inactive (hidden)</option>
               </select>
             </label>
+            <label className="crud-field">
+              <span>Availability</span>
+              <select
+                value={form.availability}
+                onChange={(e) => setForm({ ...form, availability: e.target.value })}
+              >
+                <option value="available">Available — can purchase</option>
+                <option value="coming_soon">Coming soon — future plan</option>
+                <option value="in_development">In development — we are working on this</option>
+              </select>
+            </label>
+            {form.availability !== "available" ? (
+              <label className="crud-field crud-field--full">
+                <span>Availability note (shown to customers)</span>
+                <input
+                  value={form.availability_note}
+                  onChange={(e) => setForm({ ...form, availability_note: e.target.value })}
+                  placeholder="e.g. AI automation is planned for a future release. We are working on this."
+                  maxLength={255}
+                />
+              </label>
+            ) : null}
 
             <p className="crud-field crud-field--full company-modules-label">Plan tax (subscription checkout)</p>
             <label className="crud-field">

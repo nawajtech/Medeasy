@@ -12,6 +12,21 @@ class Plan extends Model
 
     public const STATUS_INACTIVE = 'inactive';
 
+    /** Plan can be purchased / assigned normally. */
+    public const AVAILABILITY_AVAILABLE = 'available';
+
+    /** Visible on pricing, but not open for purchase yet. */
+    public const AVAILABILITY_COMING_SOON = 'coming_soon';
+
+    /** Shown as in progress (e.g. automation / AI work underway). */
+    public const AVAILABILITY_IN_DEVELOPMENT = 'in_development';
+
+    public const AVAILABILITIES = [
+        self::AVAILABILITY_AVAILABLE,
+        self::AVAILABILITY_COMING_SOON,
+        self::AVAILABILITY_IN_DEVELOPMENT,
+    ];
+
     public const CODE_BASIC = 'basic';
 
     public const CODE_PREMIUM = 'premium';
@@ -34,6 +49,8 @@ class Plan extends Model
         'tax_inclusive',
         'trial_days',
         'status',
+        'availability',
+        'availability_note',
         'display_order',
     ];
 
@@ -86,5 +103,20 @@ class Plan extends Model
         $discount = min(100, max(0, (int) ($this->discount_percent ?? 0)));
 
         return round($base * (1 - $discount / 100), 2);
+    }
+
+    public function isPurchasable(): bool
+    {
+        return $this->status === self::STATUS_ACTIVE
+            && ($this->availability ?? self::AVAILABILITY_AVAILABLE) === self::AVAILABILITY_AVAILABLE;
+    }
+
+    public function availabilityLabel(): string
+    {
+        return match ($this->availability ?? self::AVAILABILITY_AVAILABLE) {
+            self::AVAILABILITY_COMING_SOON => 'Coming soon',
+            self::AVAILABILITY_IN_DEVELOPMENT => 'In development',
+            default => 'Available',
+        };
     }
 }
