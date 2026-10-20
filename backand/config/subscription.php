@@ -59,21 +59,29 @@ return [
         'cash' => 'Cash',
     ],
 
-    /** Issuer block printed on platform subscription invoices. */
+    /** Issuer block printed on platform subscription invoices (ApnaMedi / Udyam). */
     'issuer' => [
-        'legal_name' => 'ApnaMedi (Proprietorship)',
-        'udyam_urn' => 'UDYAM-XX-00-0000000',
-        'email' => 'billing@apnamedi.com',
-        'phone' => '+91 00000 00000',
-        'address' => 'India',
-        'bank' => [
-            'account_name' => 'ApnaMedi',
-            'bank_name' => 'Bank name',
-            'account_number' => '000000000000',
-            'ifsc' => 'XXXX0000000',
-            'upi_id' => 'apnamedi@upi',
+        'brand_name' => 'ApnaMedi',
+        'legal_name' => 'APNAMEDI',
+        'office_name' => 'ApnaMedi Head Office',
+        'udyam_urn' => 'UDYAM-WB-14-0319217',
+        'email' => 'info.apnamedi@gmail.com',
+        'phone' => '8145900915',
+        'address_lines' => [
+            'haroa, apnamedi, Indali',
+            'harua road, haroa',
+            'North 24 Parganas, West Bengal 743425',
         ],
-        'signatory' => 'Authorized signatory — ApnaMedi',
+        'address' => 'haroa, apnamedi, Indali, harua road, haroa, North 24 Parganas, West Bengal 743425',
+        'proprietor' => 'Sofikul Islam',
+        'bank' => [
+            'account_name' => '',
+            'bank_name' => '',
+            'account_number' => '',
+            'ifsc' => '',
+            'upi_id' => '',
+        ],
+        'signatory' => 'Sofikul Islam — Authorized Signatory',
     ],
 
 ];
