@@ -9,9 +9,14 @@ class SubscriptionPayment extends Model
 {
     public const STATUS_PENDING = 'pending';
 
+    /** Customer submitted payment proof; waiting for Super Admin verification. */
+    public const STATUS_AWAITING_VERIFICATION = 'awaiting_verification';
+
     public const STATUS_PAID = 'paid';
 
     public const STATUS_FAILED = 'failed';
+
+    public const STATUS_REJECTED = 'rejected';
 
     public const STATUS_REFUNDED = 'refunded';
 
