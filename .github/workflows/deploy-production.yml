@@ -12,7 +12,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    # Notice: NO "environment:" line here so it reads Repository Secrets directly
+    # REPLACE 'production' WITH YOUR EXACT ENVIRONMENT NAME FROM STEP 1
+    environment: production
 
     steps:
       - name: Checkout Repository
@@ -33,17 +34,12 @@ jobs:
 
       - name: Auto-Merge Staging to Main
         run: |
-          # Merge without committing so workflow conflicts can be overridden
           git merge origin/staging --no-commit --no-ff || true
-          
-          # Force preserve main branch's workflow files
           git checkout HEAD -- .github/workflows/
-          
           git add -A
           git commit -m "Auto-merge staging to main [skip ci]" || true
           git push origin main
 
-      # Diagnostic step: Verifies whether GitHub passes the secret to the runner
       - name: Verify Secret Availability
         env:
           CHECK_HOST: ${{ secrets.EC2_HOST }}
@@ -55,7 +51,7 @@ jobs:
           echo "=========================================="
           
           if [ -z "$CHECK_HOST" ]; then
-            echo "::error::EC2_HOST is EMPTY! Check Repository Secrets in GitHub Settings."
+            echo "::error::EC2_HOST is EMPTY! Check that environment name matches exactly."
             exit 1
           else
             echo "✓ EC2_HOST is present (length: ${#CHECK_HOST} chars)"
@@ -104,9 +100,6 @@ jobs:
             git status
             git log --oneline -1
 
-            ##########################################
-            # Laravel Backend
-            ##########################################
             cd backand
 
             echo "Configuring permissions..."
@@ -130,9 +123,6 @@ jobs:
             php artisan view:cache
             sudo chown -R www-data:www-data storage bootstrap/cache
 
-            ##########################################
-            # React Frontend
-            ##########################################
             cd ../frontend
 
             echo "Installing npm dependencies & building..."
@@ -143,9 +133,6 @@ jobs:
             fi
             npm run build
 
-            ##########################################
-            # Reload Services
-            ##########################################
             echo "Reloading Nginx and PHP-FPM..."
             sudo systemctl reload php8.5-fpm || sudo systemctl reload php8.2-fpm || true
             sudo systemctl reload nginx
