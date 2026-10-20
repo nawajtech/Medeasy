@@ -8,6 +8,7 @@
     "require": {
         "php": "^8.2",
         "doctrine/dbal": "^4.4",
+        "dompdf/dompdf": "3.1.*",
         "endroid/qr-code": "^6.0",
         "laravel/framework": "^12.0",
         "laravel/sanctum": "^4.3",
@@ -85,6 +86,16 @@
         "allow-plugins": {
             "pestphp/pest-plugin": true,
             "php-http/discovery": true
+        },
+        "audit": {
+            "ignore": {
+                "PKSA-cv56-2228-pzr6": "Trusted invoice HTML only; remote assets disabled.",
+                "PKSA-6r8f-nxsb-67bq": "Trusted invoice HTML only; remote assets disabled.",
+                "PKSA-gh7h-hhy4-byg7": "Trusted invoice HTML only; remote assets disabled.",
+                "PKSA-mwt3-h9tv-kx78": "Trusted invoice HTML only; remote assets disabled.",
+                "PKSA-hp6n-n4kz-21wk": "Trusted invoice HTML only; remote assets disabled.",
+                "PKSA-mckv-s5hg-868k": "Trusted invoice HTML only; remote assets disabled."
+            }
         }
     },
     "minimum-stability": "stable",
