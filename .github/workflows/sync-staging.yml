@@ -32,5 +32,12 @@ jobs:
       - name: Merge Staging into Main
         run: git merge origin/staging --no-edit
 
+      - name: Keep Main Workflow Files
+        run: |
+          git checkout HEAD^ -- .github/workflows/ 2>/dev/null || true
+          git checkout origin/main -- .github/workflows/
+          git add .github/workflows/
+          git commit -m "Preserve main workflow files" || true
+
       - name: Push Main
         run: git push origin main
