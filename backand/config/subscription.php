@@ -64,7 +64,7 @@ return [
         'brand_name' => 'ApnaMedi',
         'legal_name' => 'APNAMEDI',
         'office_name' => 'ApnaMedi Head Office',
-        'udyam_urn' => 'UDYAM-WB-14-0319217',
+        'udyam_urn' => 'WB-14-0319217',
         'email' => 'info.apnamedi@gmail.com',
         'phone' => '8145900915',
         'address_lines' => [
@@ -73,7 +73,7 @@ return [
             'North 24 Parganas, West Bengal 743425',
         ],
         'address' => 'haroa, apnamedi, Indali, harua road, haroa, North 24 Parganas, West Bengal 743425',
-        'proprietor' => 'Sofikul Islam',
+        'proprietor' => 'Nawaj Sharif',
         'bank' => [
             'account_name' => '',
             'bank_name' => '',
@@ -81,7 +81,7 @@ return [
             'ifsc' => '',
             'upi_id' => '',
         ],
-        'signatory' => 'Sofikul Islam — Authorized Signatory',
+        'signatory' => 'Nawaj Sharif — Authorized Signatory',
     ],
 
 ];
