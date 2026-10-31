@@ -37,6 +37,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\TodayCentreController;
 use App\Http\Controllers\Api\CenterChatController;
 use App\Http\Controllers\Api\CenterChatRealtimeController;
+use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
 use App\Http\Controllers\Api\Patient\PatientCenterChatController;
 use App\Http\Controllers\Api\Patient\PatientChatController;
@@ -45,6 +46,9 @@ use App\Http\Controllers\Api\SendReportsController;
 use Illuminate\Support\Facades\Route;
 
 Route::post('auth/login', [AuthController::class, 'login']);
+Route::post('auth/forgot-password', [PasswordResetController::class, 'sendOtp'])->middleware('throttle:5,1');
+Route::post('auth/forgot-password/verify', [PasswordResetController::class, 'verifyOtp'])->middleware('throttle:12,1');
+Route::post('auth/forgot-password/reset', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:8,1');
 
 // Patient portal (patient.apnamedi.com)
 Route::prefix('patient')->group(function () {
