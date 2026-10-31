@@ -43,7 +43,11 @@ class CompanyController extends Controller
             $plan = Plan::query()
                 ->where('id', $request->integer('plan_id'))
                 ->where('status', Plan::STATUS_ACTIVE)
-                ->firstOrFail();
+                ->first();
+
+            if (! $plan) {
+                abort(422, 'The selected plan is not active.');
+            }
         }
 
         $company = $provisioning->provision($data, [
