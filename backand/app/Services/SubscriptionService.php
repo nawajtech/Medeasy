@@ -179,7 +179,11 @@ class SubscriptionService
         $plan ??= Plan::query()
             ->where('code', config('subscription.default_plan_code', Plan::CODE_BASIC))
             ->where('status', Plan::STATUS_ACTIVE)
-            ->firstOrFail();
+            ->first();
+
+        if (! $plan) {
+            abort(422, 'No active Basic plan is set up. Add an active plan before creating an organization.');
+        }
 
         return $this->create($company, $plan);
     }
