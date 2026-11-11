@@ -51,6 +51,7 @@ class Company extends Model
         'registration_number',
         'currency',
         'is_active',
+        'partner_discovery_enabled',
         'primary_admin_id',
     ];
 
@@ -63,6 +64,7 @@ class Company extends Model
     {
         return [
             'is_active' => 'boolean',
+            'partner_discovery_enabled' => 'boolean',
             'modules' => 'array',
         ];
     }

@@ -167,6 +167,7 @@ class CompanyController extends Controller
             'currency' => ['required', Rule::in(['INR', 'USD', 'EUR', 'GBP'])],
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
+            'partner_discovery_enabled' => ['sometimes', 'boolean'],
             'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
         ];
     }
