@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Models\Concerns\BelongsToCompany;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -18,6 +19,7 @@ class ReferralPartner extends Model
 
     protected $fillable = [
         'company_id',
+        'partner_account_id',
         'name',
         'phone',
         'address',
@@ -73,6 +75,11 @@ class ReferralPartner extends Model
             get: fn () => ($this->attributes['status'] ?? 'active') === 'active',
             set: fn (bool $value) => ['status' => $value ? 'active' : 'inactive'],
         );
+    }
+
+    public function partnerAccount(): BelongsTo
+    {
+        return $this->belongsTo(Partner::class, 'partner_account_id');
     }
 
     public function payouts()

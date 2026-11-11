@@ -1,9 +1,10 @@
 /**
- * Patient portal runs on patient.apnamedi.com (or VITE_APP_MODE=patient for local).
+ * Partner portal: partner.apnamedi.com (or VITE_APP_MODE=partner for local).
+ * Legacy patient.* hostnames also load the Partner Portal.
  * Staff dashboard stays on app.apnamedi.com.
  */
-export function isPatientApp() {
-  if (import.meta.env.VITE_APP_MODE === "patient") {
+export function isPartnerApp() {
+  if (import.meta.env.VITE_APP_MODE === "partner") {
     return true;
   }
 
@@ -12,5 +13,10 @@ export function isPatientApp() {
   }
 
   const host = window.location.hostname.toLowerCase();
-  return host === "patient.apnamedi.com" || host.startsWith("patient.");
+  return (
+    host === "partner.apnamedi.com" ||
+    host.startsWith("partner.") ||
+    host === "patient.apnamedi.com" ||
+    host.startsWith("patient.")
+  );
 }

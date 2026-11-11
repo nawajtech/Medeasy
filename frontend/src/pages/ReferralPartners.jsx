@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  approvePartnerCentreRequest,
   createReferralPartner,
   deleteReferralPartner,
+  getPartnerCentreRequests,
   getReferralPartnerLedger,
   getReferralPartners,
   recordReferralPayout,
+  rejectPartnerCentreRequest,
   updateReferralPartner,
 } from "../api/referrals";
 import { useAuth } from "../auth/AuthContext";
@@ -81,6 +84,9 @@ function ReferralPartners() {
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [payoutForm, setPayoutForm] = useState(emptyPayoutForm);
   const [payoutSaving, setPayoutSaving] = useState(false);
+  const [portalRequests, setPortalRequests] = useState([]);
+  const [requestsLoading, setRequestsLoading] = useState(false);
+  const [requestActingId, setRequestActingId] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,6 +100,20 @@ function ReferralPartners() {
       setError(getApiErrorMessage(err, "Failed to load referral partners."));
     } finally {
       setLoading(false);
+    }
+  }, [isSuperAdmin, filterCompanyId]);
+
+  const loadPortalRequests = useCallback(async () => {
+    setRequestsLoading(true);
+    try {
+      const params = { status: "pending" };
+      if (isSuperAdmin && filterCompanyId) params.company_id = filterCompanyId;
+      const { data } = await getPartnerCentreRequests(params);
+      setPortalRequests(data?.data ?? []);
+    } catch {
+      setPortalRequests([]);
+    } finally {
+      setRequestsLoading(false);
     }
   }, [isSuperAdmin, filterCompanyId]);
 
@@ -112,7 +132,35 @@ function ReferralPartners() {
 
   useEffect(() => {
     load();
-  }, [load]);
+    loadPortalRequests();
+  }, [load, loadPortalRequests]);
+
+  const handleApproveRequest = async (row) => {
+    setRequestActingId(row.id);
+    setError("");
+    try {
+      await approvePartnerCentreRequest(row.id, {});
+      await Promise.all([load(), loadPortalRequests()]);
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to approve partnership request."));
+    } finally {
+      setRequestActingId(null);
+    }
+  };
+
+  const handleRejectRequest = async (row) => {
+    const notes = window.prompt("Optional rejection note:", "") ?? "";
+    setRequestActingId(row.id);
+    setError("");
+    try {
+      await rejectPartnerCentreRequest(row.id, { review_notes: notes || null });
+      await loadPortalRequests();
+    } catch (err) {
+      setError(getApiErrorMessage(err, "Failed to reject partnership request."));
+    } finally {
+      setRequestActingId(null);
+    }
+  };
 
   const openCreate = () => {
     setEditing(null);
@@ -209,10 +257,79 @@ function ReferralPartners() {
     <section className="page-card ref-page">
       <div className="page-card-header">
         <h2>Referral By</h2>
-        <p>Manage referral partners and track commission earned vs paid.</p>
+        <p>Manage referral partners, portal partnership requests, and commission earned vs paid.</p>
       </div>
 
       {error && <div className="crud-alert crud-alert--error">{error}</div>}
+
+      <div className="crud-table-wrap" style={{ marginBottom: "1.5rem" }}>
+        <div className="crud-toolbar" style={{ marginBottom: "0.75rem" }}>
+          <strong>Portal partnership requests</strong>
+          <span>{requestsLoading ? "Loading…" : `${portalRequests.length} pending`}</span>
+        </div>
+        <table className="crud-table">
+          <thead>
+            <tr>
+              <th>Partner</th>
+              <th>Type</th>
+              <th>Contact</th>
+              <th>Message</th>
+              <th>Submitted</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {!requestsLoading && portalRequests.length === 0 && (
+              <tr>
+                <td colSpan={6} className="crud-empty">
+                  No pending portal partnership requests.
+                </td>
+              </tr>
+            )}
+            {portalRequests.map((row) => (
+              <tr key={row.id}>
+                <td>
+                  <strong>{row.partner?.name || "—"}</strong>
+                  {row.partner?.city ? (
+                    <div className="ref-address-preview">
+                      {[row.partner.city, row.partner.state].filter(Boolean).join(", ")}
+                    </div>
+                  ) : null}
+                </td>
+                <td>
+                  <span className="ref-type-pill">{row.partner?.type || "—"}</span>
+                </td>
+                <td>
+                  {row.partner?.phone || "—"}
+                  <div className="ref-address-preview">{row.partner?.email || ""}</div>
+                </td>
+                <td>{row.message || "—"}</td>
+                <td>{formatDate(row.created_at)}</td>
+                <td>
+                  <div className="crud-actions">
+                    <button
+                      type="button"
+                      className="crud-btn crud-btn--primary crud-btn--sm"
+                      disabled={requestActingId === row.id}
+                      onClick={() => handleApproveRequest(row)}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      type="button"
+                      className="crud-btn crud-btn--danger crud-btn--sm"
+                      disabled={requestActingId === row.id}
+                      onClick={() => handleRejectRequest(row)}
+                    >
+                      Reject
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       <div className="crud-toolbar">
         {isSuperAdmin && (
