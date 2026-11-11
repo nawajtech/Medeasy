@@ -38,6 +38,9 @@ use App\Http\Controllers\Api\TodayCentreController;
 use App\Http\Controllers\Api\CenterChatController;
 use App\Http\Controllers\Api\CenterChatRealtimeController;
 use App\Http\Controllers\Api\PasswordResetController;
+use App\Http\Controllers\Api\Partner\PartnerAuthController;
+use App\Http\Controllers\Api\Partner\PartnerPortalController;
+use App\Http\Controllers\Api\PartnerCentreRequestController;
 use App\Http\Controllers\Api\Patient\PatientAuthController;
 use App\Http\Controllers\Api\Patient\PatientCenterChatController;
 use App\Http\Controllers\Api\Patient\PatientChatController;
@@ -85,6 +88,38 @@ Route::prefix('patient')->group(function () {
 
         Route::get('reports', [PatientPortalController::class, 'reports']);
         Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
+    });
+});
+
+// Partner portal (partner.apnamedi.com)
+Route::prefix('partner')->group(function () {
+    Route::post('auth/otp/send', [PartnerAuthController::class, 'sendRegisterOtp'])->middleware('throttle:5,1');
+    Route::post('auth/otp/verify', [PartnerAuthController::class, 'verifyRegisterOtp'])->middleware('throttle:12,1');
+    Route::post('auth/register', [PartnerAuthController::class, 'register'])->middleware('throttle:8,1');
+    Route::post('auth/login', [PartnerAuthController::class, 'login'])->middleware('throttle:12,1');
+    Route::post('auth/forgot-password', [PartnerAuthController::class, 'sendForgotPasswordOtp'])->middleware('throttle:5,1');
+    Route::post('auth/forgot-password/reset', [PartnerAuthController::class, 'resetPassword'])->middleware('throttle:8,1');
+
+    Route::middleware(['auth:partner', 'partner'])->group(function () {
+        Route::get('auth/me', [PartnerAuthController::class, 'me']);
+        Route::post('auth/logout', [PartnerAuthController::class, 'logout']);
+        Route::put('auth/profile', [PartnerAuthController::class, 'updateProfile']);
+        Route::put('auth/password', [PartnerAuthController::class, 'changePassword']);
+
+        Route::get('dashboard', [PartnerPortalController::class, 'dashboard']);
+        Route::get('centres', [PartnerPortalController::class, 'centres']);
+        Route::get('centres/{companyId}', [PartnerPortalController::class, 'centreShow'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/services', [PartnerPortalController::class, 'centreServices'])->whereNumber('companyId');
+        Route::get('centres/{companyId}/slots', [PartnerPortalController::class, 'slots'])->whereNumber('companyId');
+
+        Route::get('requests', [PartnerPortalController::class, 'requests']);
+        Route::post('requests', [PartnerPortalController::class, 'requestPartnership'])->middleware('throttle:20,1');
+        Route::get('relationships', [PartnerPortalController::class, 'relationships']);
+
+        Route::post('bookings', [PartnerPortalController::class, 'book'])->middleware('throttle:30,1');
+        Route::get('referrals', [PartnerPortalController::class, 'referrals']);
+        Route::get('referrals/{orderId}', [PartnerPortalController::class, 'referralShow'])->whereNumber('orderId');
+        Route::get('earnings', [PartnerPortalController::class, 'earnings']);
     });
 });
 
@@ -351,6 +386,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('diagnostics/packages', [DiagnosticPackageController::class, 'index']);
         Route::get('diagnostics/referral-partners', [ReferralPartnerController::class, 'index']);
         Route::get('diagnostics/referral-partners/{referralPartner}/ledger', [ReferralPartnerController::class, 'ledger']);
+        Route::get('diagnostics/partner-requests', [PartnerCentreRequestController::class, 'index']);
         Route::get('diagnostics/orders', [DiagnosticOrderController::class, 'index']);
         Route::get('diagnostics/today-queue', [DiagnosticOrderController::class, 'todayQueue']);
         Route::get('diagnostics/orders/{diagnosticOrder}', [DiagnosticOrderController::class, 'show']);
@@ -373,6 +409,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('diagnostics/packages/{diagnosticPackage}', [DiagnosticPackageController::class, 'update']);
         Route::put('diagnostics/referral-partners/{referralPartner}', [ReferralPartnerController::class, 'update']);
         Route::post('diagnostics/referral-partners/{referralPartner}/payouts', [ReferralPartnerController::class, 'storePayout']);
+        Route::post('diagnostics/partner-requests/{partnerCentreRequest}/approve', [PartnerCentreRequestController::class, 'approve']);
+        Route::post('diagnostics/partner-requests/{partnerCentreRequest}/reject', [PartnerCentreRequestController::class, 'reject']);
+        Route::post('diagnostics/partner-requests/{partnerCentreRequest}/suspend', [PartnerCentreRequestController::class, 'suspend']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/schedule', [DiagnosticOrderController::class, 'schedule']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/start', [DiagnosticOrderController::class, 'start']);
         Route::patch('diagnostics/orders/{diagnosticOrder}/visit-status', [DiagnosticOrderController::class, 'updateVisitStatus']);

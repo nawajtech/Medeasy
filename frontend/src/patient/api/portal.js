@@ -1,39 +1,28 @@
-import patientApi from "./axios";
+import partnerApi from "./axios";
 
-export const patientRegister = (payload) => patientApi.post("/patient/auth/register", payload);
-export const patientLogin = (payload) => patientApi.post("/patient/auth/login", payload);
-export const patientMe = () => patientApi.get("/patient/auth/me");
-export const patientLogout = () => patientApi.post("/patient/auth/logout");
-export const patientUpdateProfile = (payload) => patientApi.put("/patient/auth/profile", payload);
-export const patientChangePassword = (payload) => patientApi.put("/patient/auth/password", payload);
+export const partnerSendOtp = (payload) => partnerApi.post("/partner/auth/otp/send", payload);
+export const partnerVerifyOtp = (payload) => partnerApi.post("/partner/auth/otp/verify", payload);
+export const partnerRegister = (payload) => partnerApi.post("/partner/auth/register", payload);
+export const partnerLogin = (payload) => partnerApi.post("/partner/auth/login", payload);
+export const partnerMe = () => partnerApi.get("/partner/auth/me");
+export const partnerLogout = () => partnerApi.post("/partner/auth/logout");
+export const partnerUpdateProfile = (payload) => partnerApi.put("/partner/auth/profile", payload);
+export const partnerChangePassword = (payload) => partnerApi.put("/partner/auth/password", payload);
+export const partnerForgotPassword = (payload) => partnerApi.post("/partner/auth/forgot-password", payload);
+export const partnerResetPassword = (payload) =>
+  partnerApi.post("/partner/auth/forgot-password/reset", payload);
 
-export const listCentres = (params) => patientApi.get("/patient/centres", { params });
-export const getCentre = (id) => patientApi.get(`/patient/centres/${id}`);
-export const getCentreServices = (id) => patientApi.get(`/patient/centres/${id}/services`);
-export const getCentreSlots = (id, params) => patientApi.get(`/patient/centres/${id}/slots`, { params });
-export const lookupReferral = (id, params) => patientApi.get(`/patient/centres/${id}/referral`, { params });
+export const getPartnerDashboard = () => partnerApi.get("/partner/dashboard");
+export const listCentres = (params) => partnerApi.get("/partner/centres", { params });
+export const getCentre = (id) => partnerApi.get(`/partner/centres/${id}`);
+export const getCentreServices = (id) => partnerApi.get(`/partner/centres/${id}/services`);
+export const getCentreSlots = (id, params) => partnerApi.get(`/partner/centres/${id}/slots`, { params });
 
+export const listPartnershipRequests = (params) => partnerApi.get("/partner/requests", { params });
+export const requestPartnership = (payload) => partnerApi.post("/partner/requests", payload);
+export const listRelationships = () => partnerApi.get("/partner/relationships");
 
-export const bookAppointment = (payload) => patientApi.post("/patient/bookings", payload);
-export const listAppointments = (params) => patientApi.get("/patient/appointments", { params });
-export const getAppointment = (id) => patientApi.get(`/patient/appointments/${id}`);
-export const cancelAppointment = (id) => patientApi.post(`/patient/appointments/${id}/cancel`);
-export const rescheduleAppointment = (id, payload) =>
-  patientApi.post(`/patient/appointments/${id}/reschedule`, payload);
-
-export const patientChat = (payload) => patientApi.post("/patient/chat", payload);
-
-export const listCenterChats = () => patientApi.get("/patient/center-chats");
-export const getCenterChatUnread = () => patientApi.get("/patient/center-chats/unread");
-export const startCenterChat = (payload) => patientApi.post("/patient/center-chats", payload);
-export const getCenterChat = (id, params) => patientApi.get(`/patient/center-chats/${id}`, { params });
-export const deleteCenterChat = (id) => patientApi.delete(`/patient/center-chats/${id}`);
-export const sendCenterChatMessage = (id, payload) => {
-  if (payload instanceof FormData) {
-    return patientApi.post(`/patient/center-chats/${id}/messages`, payload);
-  }
-  return patientApi.post(`/patient/center-chats/${id}/messages`, payload);
-};
-
-export const listReports = () => patientApi.get("/patient/reports");
-export const listPrescriptions = () => patientApi.get("/patient/prescriptions");
+export const bookReferral = (payload) => partnerApi.post("/partner/bookings", payload);
+export const listReferrals = (params) => partnerApi.get("/partner/referrals", { params });
+export const getReferral = (id) => partnerApi.get(`/partner/referrals/${id}`);
+export const getEarnings = () => partnerApi.get("/partner/earnings");

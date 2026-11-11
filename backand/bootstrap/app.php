@@ -30,6 +30,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role.only' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'patient' => \App\Http\Middleware\EnsurePatient::class,
+            'partner' => \App\Http\Middleware\EnsurePartner::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

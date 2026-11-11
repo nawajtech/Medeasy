@@ -13,9 +13,9 @@ trait BelongsToCompany
         static::addGlobalScope('company', function (Builder $builder) {
             $user = auth()->user();
 
-            // Unauthenticated queries and patient-portal auth skip tenant scoping.
-            // Patient APIs filter by patient_id (and explicit company_id) instead.
-            if (! $user || $user instanceof \App\Models\Patient) {
+            // Unauthenticated queries and portal auth skip tenant scoping.
+            // Patient/partner APIs filter by their own IDs (and explicit company_id) instead.
+            if (! $user || $user instanceof \App\Models\Patient || $user instanceof \App\Models\Partner) {
                 return;
             }
 
