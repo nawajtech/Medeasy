@@ -14,16 +14,6 @@ export const routeMeta = {
     breadcrumb: "Companies",
     description: "Manage clinic organizations and branches (Apollo, Riyaj, etc.).",
   },
-  "/plans": {
-    title: "Subscription Plans",
-    breadcrumb: "Plans",
-    description: "Create and manage master subscription plans, pricing, features, and limits.",
-  },
-  "/admin/subscriptions": {
-    title: "Company Subscriptions",
-    breadcrumb: "Subscriptions",
-    description: "Verify customer purchases, assign plans, and review payment history.",
-  },
   "/departments": {
     title: "Departments",
     breadcrumb: "Departments",
@@ -73,11 +63,6 @@ export const routeMeta = {
     title: "Theme Settings",
     breadcrumb: "Appearance",
     description: "Customize the platform-wide color palette applied across the app.",
-  },
-  "/subscription": {
-    title: "Subscription",
-    breadcrumb: "Subscription",
-    description: "View your organization's plan, features, limits, and billing period.",
   },
   "/audit-trail": {
     title: "Audit Trail",

@@ -7,8 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Mail\Welcomemail;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\PlanLimit;
-use App\Services\SubscriptionService;
 use App\Services\UniqueCodeGenerator;
 use App\Services\UserRoleService;
 use App\Support\ContactRules;
@@ -63,11 +61,6 @@ class UserController extends Controller
         $validated = $request->validate($this->rules(null, $companyId));
 
         $company = \App\Models\Company::findOrFail($companyId);
-        app(SubscriptionService::class)->assertUnderLimit(
-            $company,
-            PlanLimit::MAX_USERS,
-            User::where('company_id', $companyId)->count()
-        );
 
         $user = User::create([
             ...collect($validated)->except(['role', 'user_code'])->all(),

@@ -8,9 +8,7 @@ use App\Models\DiagnosticOrder;
 use App\Models\LabOrder;
 use App\Models\Patient;
 use App\Models\Appointment;
-use App\Models\PlanLimit;
 use App\Services\PatientWalletService;
-use App\Services\SubscriptionService;
 use App\Services\UniqueCodeGenerator;
 use App\Support\ContactRules;
 use App\Support\SpreadsheetIO;
@@ -60,11 +58,6 @@ class PatientController extends Controller
         $validated = $this->applyAgeToDateOfBirth($validated);
 
         $company = \App\Models\Company::findOrFail($companyId);
-        app(SubscriptionService::class)->assertUnderLimit(
-            $company,
-            PlanLimit::MAX_PATIENTS,
-            Patient::where('company_id', $companyId)->count()
-        );
 
         $patient = Patient::create([
             ...$validated,
@@ -418,7 +411,6 @@ class PatientController extends Controller
         $errors = [];
         $line = 1;
         $walletService = app(PatientWalletService::class);
-        $subscriptionService = app(SubscriptionService::class);
 
         foreach ($sheet['rows'] as $row) {
             $line++;
@@ -458,14 +450,6 @@ class PatientController extends Controller
             $existing = $email !== ''
                 ? Patient::where('company_id', $companyId)->where('email', $email)->first()
                 : null;
-
-            if (! $existing) {
-                $subscriptionService->assertUnderLimit(
-                    $company,
-                    PlanLimit::MAX_PATIENTS,
-                    Patient::where('company_id', $companyId)->count()
-                );
-            }
 
             $payload = [
                 'name' => $name,

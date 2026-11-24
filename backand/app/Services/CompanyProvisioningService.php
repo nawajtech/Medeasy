@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Branch;
 use App\Models\Company;
-use App\Models\Plan;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 
@@ -14,22 +13,20 @@ class CompanyProvisioningService
         private readonly CompanySetupService $setup,
         private readonly UserRoleService $userRoles,
         private readonly TenantRoleProvisioningService $tenantRoles,
-        private readonly SubscriptionService $subscriptions,
         private readonly UniqueCodeGenerator $codes,
     ) {}
 
     /**
-     * Create organization, bootstrap defaults, provision subscription, and create primary tenant admin.
+     * Create organization, bootstrap defaults, and create primary tenant admin.
      */
-    public function provision(array $companyData, array $adminData, ?Plan $plan = null): Company
+    public function provision(array $companyData, array $adminData): Company
     {
-        return DB::transaction(function () use ($companyData, $adminData, $plan) {
+        return DB::transaction(function () use ($companyData, $adminData) {
             $companyName = (string) ($companyData['name'] ?? 'XX');
             $companyData['code'] = $this->codes->forCompany($companyName);
 
             $company = Company::create($companyData);
             $this->setup->bootstrap($company);
-            $this->subscriptions->ensureForCompany($company, $plan);
             $this->tenantRoles->provisionForCompany($company);
 
             $mainBranchId = Branch::query()

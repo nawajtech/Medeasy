@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Company;
-use App\Models\Plan;
 use App\Services\CompanyProvisioningService;
 use App\Services\TenantRoleProvisioningService;
 use App\Support\ContactRules;
@@ -28,7 +27,7 @@ class CompanyController extends Controller
     {
         $this->nullEmptyStrings($request, [
             'code', 'website', 'state', 'gst_number', 'registration_number',
-            'description', 'admin_phone', 'logo_base64', 'plan_id',
+            'description', 'admin_phone', 'logo_base64',
         ]);
         // Code is always auto-generated — never accept client value on create.
         $request->request->remove('code');
@@ -38,24 +37,12 @@ class CompanyController extends Controller
         $data = $this->normalizeModulesPayload($data);
         $data = $this->handleLogo($request, $data, null);
 
-        $plan = null;
-        if ($request->filled('plan_id')) {
-            $plan = Plan::query()
-                ->where('id', $request->integer('plan_id'))
-                ->where('status', Plan::STATUS_ACTIVE)
-                ->first();
-
-            if (! $plan) {
-                abort(422, 'The selected plan is not active.');
-            }
-        }
-
         $company = $provisioning->provision($data, [
             'name' => $adminData['admin_name'],
             'email' => $adminData['admin_email'],
             'password' => $adminData['admin_password'],
             'phone' => $adminData['admin_phone'] ?? null,
-        ], $plan);
+        ]);
 
         return response()->json([
             'message' => 'Organization and primary administrator created successfully.',
@@ -75,7 +62,7 @@ class CompanyController extends Controller
         $previousModules = $company->modules ?? [];
         $this->nullEmptyStrings($request, [
             'website', 'state', 'gst_number', 'registration_number',
-            'description', 'logo_base64', 'plan_id',
+            'description', 'logo_base64',
         ]);
         $request->request->remove('code');
 
@@ -168,7 +155,6 @@ class CompanyController extends Controller
             'description' => ['nullable', 'string', 'max:2000'],
             'is_active' => ['boolean'],
             'partner_discovery_enabled' => ['sometimes', 'boolean'],
-            'plan_id' => ['nullable', 'integer', 'exists:plans,id'],
         ];
     }
 

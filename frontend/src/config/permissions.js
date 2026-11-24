@@ -92,12 +92,9 @@ export const menuItems = [
 
   // Administration
   { to: "/companies", label: "Companies", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
-  { to: "/plans", label: "Plans", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
-  { to: "/admin/subscriptions", label: "Subscriptions", permission: PERMISSIONS.COMPANY_VIEW, section: "admin" },
   { to: "/branches", label: "Branches", permission: PERMISSIONS.BRANCH_VIEW, section: "admin" },
   { to: "/users", label: "Users", permission: PERMISSIONS.USERS_VIEW, section: "admin" },
   { to: "/roles", label: "Roles", permission: PERMISSIONS.ROLE_VIEW, section: "admin" },
-  { to: "/subscription", label: "Subscription", permission: PERMISSIONS.SETTINGS_VIEW, roleOnly: "company_admin", section: "admin" },
   { to: "/audit-trail", label: "Audit Trail", permission: PERMISSIONS.AUDIT_VIEW, section: "admin" },
   { to: "/settings", label: "Settings", permission: PERMISSIONS.SETTINGS_VIEW, section: "admin" },
   { to: "/appearance", label: "Appearance", roleOnly: "super_admin", section: "admin" },

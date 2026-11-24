@@ -190,16 +190,4 @@ class Company extends Model
     {
         return $this->hasMany(Branch::class);
     }
-
-    public function subscriptions()
-    {
-        return $this->hasMany(Subscription::class);
-    }
-
-    public function activeSubscription()
-    {
-        return $this->hasOne(Subscription::class)
-            ->whereIn('status', Subscription::USABLE_STATUSES)
-            ->latest();
-    }
 }

@@ -33,7 +33,6 @@ const MODULE_LABELS = {
   reports: "Reports",
   medicine: "Medicine",
   companies: "Companies",
-  subscription: "Subscription",
   documents: "Documents",
 };
 

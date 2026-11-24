@@ -26,9 +26,7 @@ use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\RoleController;
 use App\Http\Controllers\Api\SettingController;
-use App\Http\Controllers\Api\AdminPlanController;
 use App\Http\Controllers\Api\AuditLogController;
-use App\Http\Controllers\Api\SubscriptionController;
 use App\Http\Controllers\Api\TaxController;
 use App\Http\Controllers\Api\ThemeController;
 use App\Http\Controllers\Api\PlatformSettingController;
@@ -52,8 +50,6 @@ Route::post('auth/forgot-password/reset', [PasswordResetController::class, 'rese
 
 // Partner portal (partner.apnamedi.com)
 Route::prefix('partner')->group(function () {
-    Route::post('auth/otp/send', [PartnerAuthController::class, 'sendRegisterOtp'])->middleware('throttle:5,1');
-    Route::post('auth/otp/verify', [PartnerAuthController::class, 'verifyRegisterOtp'])->middleware('throttle:12,1');
     Route::post('auth/register', [PartnerAuthController::class, 'register'])->middleware('throttle:8,1');
     Route::post('auth/login', [PartnerAuthController::class, 'login'])->middleware('throttle:12,1');
     Route::post('auth/forgot-password', [PartnerAuthController::class, 'sendForgotPasswordOtp'])->middleware('throttle:5,1');
@@ -125,33 +121,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('platform-settings', [PlatformSettingController::class, 'update']);
     });
 
-    // Outside the subscription gate so an expired company can still upgrade.
-    Route::get('subscription/plans', [SubscriptionController::class, 'plans']);
-    Route::get('subscription/payments', [SubscriptionController::class, 'payments']);
-    Route::middleware('role:company_admin')->get('subscription/payments/{paymentId}/pdf', [SubscriptionController::class, 'invoicePdf']);
-    Route::middleware('role:company_admin')->post('subscription/checkout', [SubscriptionController::class, 'checkout']);
-    Route::middleware('role:company_admin')->post('subscription/payments/{paymentId}/confirm', [SubscriptionController::class, 'confirmPayment']);
-
     Route::get('tax/settings', [TaxController::class, 'settings']);
 
-    // ── Subscription admin (platform super admin) ───────────────
-    Route::middleware('permission:company.view')->prefix('admin')->group(function () {
-        Route::get('plans', [AdminPlanController::class, 'index']);
-        Route::get('plans/features', [AdminPlanController::class, 'features']);
-        Route::get('subscription-tax', [AdminPlanController::class, 'subscriptionTax']);
-        Route::middleware('permission:company.edit')->put('subscription-tax', [AdminPlanController::class, 'updateSubscriptionTax']);
-        Route::middleware('permission:company.create')->post('plans', [AdminPlanController::class, 'store']);
-        Route::middleware('permission:company.edit')->put('plans/{plan}', [AdminPlanController::class, 'update']);
-        Route::middleware('permission:company.delete')->delete('plans/{plan}', [AdminPlanController::class, 'destroy']);
-        Route::get('subscriptions', [AdminPlanController::class, 'subscriptions']);
-        Route::middleware('permission:company.edit')->post('companies/{company}/subscription', [AdminPlanController::class, 'assignSubscription']);
-        Route::get('subscription-payments', [AdminPlanController::class, 'payments']);
-        Route::middleware('permission:company.edit')->post('subscription-payments/{payment}/verify', [AdminPlanController::class, 'verifyPayment']);
-        Route::middleware('permission:company.edit')->post('subscription-payments/{payment}/reject', [AdminPlanController::class, 'rejectPayment']);
-        Route::get('subscription-payments/{payment}/pdf', [AdminPlanController::class, 'invoicePdf']);
-    });
-
-    Route::middleware('subscription.active')->group(function () {
     // ── Audit trail (company admin / super admin) ─────────────────
     Route::middleware('permission:audit.view')->group(function () {
         Route::get('audit-logs', [AuditLogController::class, 'index']);
@@ -400,5 +371,4 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('companies-list', fn () => response()->json(
         \App\Models\Company::orderBy('name')->get(['id', 'name', 'code', 'type', 'modules', 'is_active'])
     ))->middleware('permission:dashboard.view');
-    });
 });
