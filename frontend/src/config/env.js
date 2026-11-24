@@ -34,4 +34,9 @@ function resolveApiBaseUrl() {
 
 export const API_BASE_URL = resolveApiBaseUrl();
 
-export const CENTER_CHAT_SOCKET_URL = env("VITE_CENTER_CHAT_SOCKET_URL", "http://127.0.0.1:3001");
+/**
+ * Socket.IO for center chat. Empty = disabled (no localhost fallback on production builds).
+ * Local: VITE_CENTER_CHAT_SOCKET_URL=http://127.0.0.1:3001
+ * Live:  VITE_CENTER_CHAT_SOCKET_URL=https://app.apnamedi.com  (or your socket host)
+ */
+export const CENTER_CHAT_SOCKET_URL = env("VITE_CENTER_CHAT_SOCKET_URL", "");

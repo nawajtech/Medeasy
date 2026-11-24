@@ -1,4 +1,5 @@
 import api from "./axios";
+import { API_BASE_URL } from "../config/env";
 
 export const getAuditLogs = (params) => api.get("/audit-logs", { params });
 export const getAuditLog = (id) => api.get(`/audit-logs/${id}`);
@@ -6,14 +7,12 @@ export const getAuditFilters = (params) => api.get("/audit-logs/filters", { para
 export const getAuditActors = (params) => api.get("/audit-logs/actors", { params });
 export const getRelatedAuditLogs = (params) => api.get("/audit-logs/related", { params });
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
-
 export async function exportAuditLogs(params = {}) {
   const token = localStorage.getItem("apna_medi_token");
   const qs = new URLSearchParams(
     Object.entries(params).filter(([, v]) => v != null && v !== "")
   ).toString();
-  const url = `${API_BASE}/audit-logs/export${qs ? `?${qs}` : ""}`;
+  const url = `${API_BASE_URL}/audit-logs/export${qs ? `?${qs}` : ""}`;
   const res = await fetch(url, {
     headers: {
       Authorization: `Bearer ${token}`,

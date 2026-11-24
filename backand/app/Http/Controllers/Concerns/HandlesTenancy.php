@@ -1,11 +1,10 @@
-
 <?php
 
 namespace App\Http\Controllers\Concerns;
 
-use App\Models\Company;
 use App\Models\Doctor;
 use App\Models\Patient;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -13,6 +12,7 @@ trait HandlesTenancy
 {
     protected function resolveCompanyId(Request $request): int
     {
+        /** @var User $user */
         $user = auth()->user();
 
         if ($user->isSuperAdmin()) {
@@ -32,7 +32,10 @@ trait HandlesTenancy
      */
     protected function prepareCompanyScope(Request $request): void
     {
-        if (! auth()->user()->isSuperAdmin()) {
+        /** @var User $user */
+        $user = auth()->user();
+
+        if (! $user->isSuperAdmin()) {
             $request->request->remove('company_id');
         }
     }
@@ -40,15 +43,21 @@ trait HandlesTenancy
     /** @return array<int, mixed> */
     protected function companyIdRules(): array
     {
-        return auth()->user()->isSuperAdmin()
+        /** @var User $user */
+        $user = auth()->user();
+
+        return $user->isSuperAdmin()
             ? ['required', 'exists:companies,id']
             : ['prohibited'];
     }
 
     protected function optionalCompanyId(Request $request): ?int
     {
-        if (! auth()->user()->isSuperAdmin()) {
-            return auth()->user()->company_id;
+        /** @var User $user */
+        $user = auth()->user();
+
+        if (! $user->isSuperAdmin()) {
+            return $user->company_id;
         }
 
         $value = $request->input('company_id');
@@ -65,6 +74,7 @@ trait HandlesTenancy
 
     protected function assertTenantAccess(Model $model): void
     {
+        /** @var User $user */
         $user = auth()->user();
 
         if ($user->isSuperAdmin()) {
@@ -78,6 +88,7 @@ trait HandlesTenancy
 
     protected function doctorIdForUser(): ?int
     {
+        /** @var User $user */
         $user = auth()->user();
 
         if (! $user->isDoctor()) {
