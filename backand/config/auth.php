@@ -46,10 +46,6 @@ return [
             'driver' => 'sanctum',
             'provider' => 'users',
         ],
-        'patient' => [
-            'driver' => 'sanctum',
-            'provider' => 'patients',
-        ],
         'partner' => [
             'driver' => 'sanctum',
             'provider' => 'partners',
@@ -77,10 +73,6 @@ return [
         'users' => [
             'driver' => 'eloquent',
             'model' => env('AUTH_MODEL', User::class),
-        ],
-        'patients' => [
-            'driver' => 'eloquent',
-            'model' => App\Models\Patient::class,
         ],
         'partners' => [
             'driver' => 'eloquent',

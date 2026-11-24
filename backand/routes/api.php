@@ -41,10 +41,6 @@ use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\Partner\PartnerAuthController;
 use App\Http\Controllers\Api\Partner\PartnerPortalController;
 use App\Http\Controllers\Api\PartnerCentreRequestController;
-use App\Http\Controllers\Api\Patient\PatientAuthController;
-use App\Http\Controllers\Api\Patient\PatientCenterChatController;
-use App\Http\Controllers\Api\Patient\PatientChatController;
-use App\Http\Controllers\Api\Patient\PatientPortalController;
 use App\Http\Controllers\Api\SendReportsController;
 use Illuminate\Support\Facades\Route;
 
@@ -52,44 +48,6 @@ Route::post('auth/login', [AuthController::class, 'login']);
 Route::post('auth/forgot-password', [PasswordResetController::class, 'sendOtp'])->middleware('throttle:5,1');
 Route::post('auth/forgot-password/verify', [PasswordResetController::class, 'verifyOtp'])->middleware('throttle:12,1');
 Route::post('auth/forgot-password/reset', [PasswordResetController::class, 'resetPassword'])->middleware('throttle:8,1');
-
-// Patient portal (patient.apnamedi.com)
-Route::prefix('patient')->group(function () {
-    Route::post('auth/register', [PatientAuthController::class, 'register']);
-    Route::post('auth/login', [PatientAuthController::class, 'login']);
-
-    Route::middleware(['auth:patient', 'patient'])->group(function () {
-        Route::get('auth/me', [PatientAuthController::class, 'me']);
-        Route::post('auth/logout', [PatientAuthController::class, 'logout']);
-        Route::put('auth/profile', [PatientAuthController::class, 'updateProfile']);
-        Route::put('auth/password', [PatientAuthController::class, 'changePassword']);
-
-        Route::get('centres', [PatientPortalController::class, 'centres']);
-        Route::get('centres/{companyId}', [PatientPortalController::class, 'centreShow'])->whereNumber('companyId');
-        Route::get('centres/{companyId}/services', [PatientPortalController::class, 'centreServices'])->whereNumber('companyId');
-        Route::get('centres/{companyId}/slots', [PatientPortalController::class, 'slots'])->whereNumber('companyId');
-        Route::get('centres/{companyId}/referral', [PatientPortalController::class, 'lookupReferral'])->whereNumber('companyId');
-
-        
-        Route::post('bookings', [PatientPortalController::class, 'book']);
-        Route::get('appointments', [PatientPortalController::class, 'appointments']);
-        Route::get('appointments/{orderId}', [PatientPortalController::class, 'appointmentShow'])->whereNumber('orderId');
-        Route::post('appointments/{orderId}/cancel', [PatientPortalController::class, 'cancel'])->whereNumber('orderId');
-        Route::post('appointments/{orderId}/reschedule', [PatientPortalController::class, 'reschedule'])->whereNumber('orderId');
-
-        Route::post('chat', [PatientChatController::class, 'chat']);
-
-        Route::get('center-chats/unread', [PatientCenterChatController::class, 'unread']);
-        Route::get('center-chats', [PatientCenterChatController::class, 'index']);
-        Route::post('center-chats', [PatientCenterChatController::class, 'start']);
-        Route::get('center-chats/{conversation}', [PatientCenterChatController::class, 'show'])->whereNumber('conversation');
-        Route::post('center-chats/{conversation}/messages', [PatientCenterChatController::class, 'send'])->whereNumber('conversation');
-        Route::delete('center-chats/{conversation}', [PatientCenterChatController::class, 'destroy'])->whereNumber('conversation');
-
-        Route::get('reports', [PatientPortalController::class, 'reports']);
-        Route::get('prescriptions', [PatientPortalController::class, 'prescriptions']);
-    });
-});
 
 // Partner portal (partner.apnamedi.com)
 Route::prefix('partner')->group(function () {
@@ -244,6 +202,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:report.view')->get('reports', [ReportController::class, 'index']);
     Route::middleware('permission:report.view')->get('reports/{report}', [ReportController::class, 'show']);
     Route::middleware('permission:report.export')->post('reports', [ReportController::class, 'store']);
+    Route::middleware('permission:report.export')->put('reports/{report}', [ReportController::class, 'update']);
+    Route::middleware('permission:report.export')->delete('reports/{report}', [ReportController::class, 'destroy']);
 
     Route::middleware('permission:settings.view')->get('settings/form', [SettingController::class, 'form']);
     Route::middleware('permission:settings.view')->get('settings', [SettingController::class, 'index']);

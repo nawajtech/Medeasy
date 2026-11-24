@@ -29,7 +29,6 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role.only' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
-            'patient' => \App\Http\Middleware\EnsurePatient::class,
             'partner' => \App\Http\Middleware\EnsurePartner::class,
         ]);
     })

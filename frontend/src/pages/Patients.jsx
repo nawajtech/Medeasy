@@ -168,7 +168,6 @@ function Patients() {
 
   const buildPayload = () => {
     const payload = { ...form };
-    delete payload.password;
     delete payload.patient_code;
     if (!isSuperAdmin) delete payload.company_id;
     payload.age = Number(payload.age);

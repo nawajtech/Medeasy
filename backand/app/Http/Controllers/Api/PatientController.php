@@ -66,15 +66,11 @@ class PatientController extends Controller
             Patient::where('company_id', $companyId)->count()
         );
 
-        $plainPassword = $validated['password'] ?? 'Password@123';
-
         $patient = Patient::create([
             ...$validated,
             'company_id' => $companyId,
             'patient_code' => app(UniqueCodeGenerator::class)
                 ->forPatient((string) $validated['name'], (string) $company->name, $companyId),
-            'password' => $plainPassword,
-            'original_password' => $plainPassword,
             'status' => $request->boolean('status', true),
         ]);
 
@@ -249,12 +245,6 @@ class PatientController extends Controller
         $validated = $request->validate($this->rules($patient, $patient->company_id));
         $validated = $this->applyAgeToDateOfBirth($validated);
 
-        if (empty($validated['password'])) {
-            unset($validated['password']);
-        } else {
-            $validated['original_password'] = $validated['password'];
-        }
-
         unset($validated['patient_code']);
 
         $patient->update([
@@ -346,7 +336,6 @@ class PatientController extends Controller
             'name',
             'email',
             'phone',
-            'password',
             'status',
             'gender',
             'date_of_birth',
@@ -365,7 +354,6 @@ class PatientController extends Controller
             'John Doe',
             'john.doe@example.com',
             '9876543210',
-            'Password@123',
             'active',
             'male',
             '1990-05-15',
@@ -406,7 +394,6 @@ class PatientController extends Controller
             'name' => ['name', 'patient_name', 'full_name'],
             'email' => ['email', 'email_address'],
             'phone' => ['phone', 'mobile', 'phone_number', 'contact'],
-            'password' => ['password', 'pass'],
             'patient_code' => ['patient_code', 'code', 'patient_id'],
             'status' => ['status', 'active'],
             'gender' => ['gender', 'sex'],
@@ -471,7 +458,6 @@ class PatientController extends Controller
             $existing = $email !== ''
                 ? Patient::where('company_id', $companyId)->where('email', $email)->first()
                 : null;
-            $password = SpreadsheetIO::cell($row, $columnMap, 'password');
 
             if (! $existing) {
                 $subscriptionService->assertUnderLimit(
@@ -479,12 +465,6 @@ class PatientController extends Controller
                     PlanLimit::MAX_PATIENTS,
                     Patient::where('company_id', $companyId)->count()
                 );
-
-                if ($password === '') {
-                    $password = 'Password@123';
-                }
-            } elseif ($password === '') {
-                $password = null;
             }
 
             $payload = [
@@ -503,11 +483,6 @@ class PatientController extends Controller
                 'allergies' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'allergies')),
                 'medical_history' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'medical_history')),
             ];
-
-            if ($password !== null) {
-                $payload['password'] = $password;
-                $payload['original_password'] = $password;
-            }
 
             $patientCode = SpreadsheetIO::cell($row, $columnMap, 'patient_code');
 
@@ -618,7 +593,6 @@ class PatientController extends Controller
                 ...ContactRules::email(required: false),
                 Rule::unique('patients', 'email')->where('company_id', $companyId)->ignore($patientId),
             ],
-            'password' => ['nullable', 'string', 'min:8'],
             'phone' => [
                 ...ContactRules::phone(),
                 Rule::unique('patients', 'phone')->where('company_id', $companyId)->ignore($patientId),

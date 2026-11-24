@@ -1145,7 +1145,7 @@ function Appointments() {
 
           {!editing && (
             <>
-              <p className="form-section-label">Billing (billings table)</p>
+              <p className="form-section-label">Billing</p>
               <div className="billing-summary-box">
                 <p>
                   <strong>Previous due</strong> (from last visit):{" "}
