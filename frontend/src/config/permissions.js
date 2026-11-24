@@ -84,7 +84,7 @@ export const menuItems = [
   { to: "/diagnostics/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
   { to: "/diagnostics", label: "Diagnostic Catalog", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics", end: true },
   { to: "/diagnostics/orders", label: "Diagnostic Orders", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
-  { to: "/diagnostics/chats", label: "Patient chats", permission: PERMISSIONS.DASHBOARD_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
+  { to: "/diagnostics/chats", label: "Partner chats", permission: PERMISSIONS.DASHBOARD_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
 
   // Reports & Finance
   { to: "/reports", label: "Reports", permission: PERMISSIONS.REPORT_VIEW, section: "reports", tenantModule: "clinic" },

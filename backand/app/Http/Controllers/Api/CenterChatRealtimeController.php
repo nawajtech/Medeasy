@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\CenterConversation;
-use App\Models\Patient;
+use App\Models\Partner;
 use App\Models\User;
 use App\Services\CenterChatService;
 use Illuminate\Http\JsonResponse;
@@ -40,12 +40,13 @@ class CenterChatRealtimeController extends Controller
 
         abort_unless($conversation, 404, 'Conversation not found.');
 
-        if ($actor instanceof Patient) {
-            abort_unless((int) $conversation->patient_id === (int) $actor->id, 403, 'Forbidden.');
+        if ($actor instanceof Partner) {
+            abort_unless($actor->status, 403, 'Forbidden.');
+            abort_unless((int) $conversation->partner_id === (int) $actor->id, 403, 'Forbidden.');
 
             return response()->json([
                 'ok' => true,
-                'actor_type' => 'patient',
+                'actor_type' => 'partner',
                 'actor_id' => (int) $actor->id,
                 'conversation_id' => (int) $conversation->id,
             ]);

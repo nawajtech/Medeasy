@@ -39,6 +39,7 @@ use App\Http\Controllers\Api\CenterChatController;
 use App\Http\Controllers\Api\CenterChatRealtimeController;
 use App\Http\Controllers\Api\PasswordResetController;
 use App\Http\Controllers\Api\Partner\PartnerAuthController;
+use App\Http\Controllers\Api\Partner\PartnerCenterChatController;
 use App\Http\Controllers\Api\Partner\PartnerPortalController;
 use App\Http\Controllers\Api\PartnerCentreRequestController;
 use App\Http\Controllers\Api\SendReportsController;
@@ -78,6 +79,14 @@ Route::prefix('partner')->group(function () {
         Route::get('referrals', [PartnerPortalController::class, 'referrals']);
         Route::get('referrals/{orderId}', [PartnerPortalController::class, 'referralShow'])->whereNumber('orderId');
         Route::get('earnings', [PartnerPortalController::class, 'earnings']);
+
+        // Chat with diagnostic centre staff.
+        Route::get('center-chats/unread', [PartnerCenterChatController::class, 'unread']);
+        Route::get('center-chats', [PartnerCenterChatController::class, 'index']);
+        Route::post('center-chats', [PartnerCenterChatController::class, 'start'])->middleware('throttle:30,1');
+        Route::get('center-chats/{conversation}', [PartnerCenterChatController::class, 'show'])->whereNumber('conversation');
+        Route::post('center-chats/{conversation}/messages', [PartnerCenterChatController::class, 'send'])->whereNumber('conversation')->middleware('throttle:60,1');
+        Route::delete('center-chats/{conversation}', [PartnerCenterChatController::class, 'destroy'])->whereNumber('conversation');
     });
 });
 
@@ -331,7 +340,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::middleware('permission:lab.verify')->patch('lab/orders/{labOrder}/verify', [LabOrderController::class, 'verify']);
     Route::middleware('permission:lab.approve')->patch('lab/orders/{labOrder}/approve', [LabOrderController::class, 'approve']);
 
-    // Centre chat is available to signed-in staff of a diagnostic centre.
+    // Partner <-> centre chat, staff side (signed-in staff of a diagnostic centre).
     Route::get('diagnostics/center-chats/unread', [CenterChatController::class, 'unread']);
     Route::get('diagnostics/center-chats', [CenterChatController::class, 'index']);
     Route::get('diagnostics/center-chats/{conversation}', [CenterChatController::class, 'show'])->whereNumber('conversation');

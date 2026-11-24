@@ -104,9 +104,9 @@ export function getRouteMeta(pathname) {
   }
   if (pathname === "/diagnostics/chats") {
     return {
-      title: "Patient chats",
-      breadcrumb: "Patient chats",
-      description: "Reply to patients who message this diagnostic centre.",
+      title: "Partner chats",
+      breadcrumb: "Partner chats",
+      description: "Reply to partners who message this diagnostic centre.",
     };
   }
   if (pathname === "/diagnostics/referrals") {

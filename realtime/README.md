@@ -1,6 +1,6 @@
 # Center Chat Realtime (Socket.IO)
 
-Push layer for Patient ↔ Diagnostic Center chat.
+Push layer for Partner ↔ Diagnostic Center chat.
 
 ## Run
 

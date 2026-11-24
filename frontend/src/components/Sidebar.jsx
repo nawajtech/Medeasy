@@ -47,7 +47,7 @@ const iconMap = {
   "Today's appointments": IconCalendar,
   "Diagnostic Catalog": IconRadiology,
   "Diagnostic Orders": IconClipboard,
-  "Patient chats": IconChat,
+  "Partner chats": IconChat,
   "Create appointment": IconCalendar,
   "Medicine Master": IconPill,
   Reports: IconChart,
