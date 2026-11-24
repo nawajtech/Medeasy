@@ -180,7 +180,7 @@ export default function ThemeSettings() {
 
               <div className="tp-alerts">
                 <div className="tp-alert tp-alert--success">Payment received successfully.</div>
-                <div className="tp-alert tp-alert--warning">Subscription renews in 3 days.</div>
+                <div className="tp-alert tp-alert--warning">Lab sync delayed — retrying shortly.</div>
                 <div className="tp-alert tp-alert--error">2 lab reports failed to sync.</div>
               </div>
 

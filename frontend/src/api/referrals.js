@@ -15,5 +15,3 @@ export const approvePartnerCentreRequest = (id, data) =>
   api.post(`/diagnostics/partner-requests/${id}/approve`, data);
 export const rejectPartnerCentreRequest = (id, data) =>
   api.post(`/diagnostics/partner-requests/${id}/reject`, data);
-export const suspendPartnerCentreRequest = (id, data) =>
-  api.post(`/diagnostics/partner-requests/${id}/suspend`, data);

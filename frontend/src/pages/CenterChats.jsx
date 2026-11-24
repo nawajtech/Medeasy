@@ -146,14 +146,14 @@ export default function CenterChats() {
         setPeerTyping(false);
       },
       onTyping: (payload) => {
-        if (payload?.actor_type === "patient") {
+        if (payload?.actor_type === "partner") {
           setPeerTyping(true);
           if (typingHideRef.current) clearTimeout(typingHideRef.current);
           typingHideRef.current = setTimeout(() => setPeerTyping(false), 2500);
         }
       },
       onTypingStop: (payload) => {
-        if (payload?.actor_type === "patient") setPeerTyping(false);
+        if (payload?.actor_type === "partner") setPeerTyping(false);
       },
     });
     socketRef.current = socket;
@@ -243,7 +243,7 @@ export default function CenterChats() {
 
   const handleDelete = async () => {
     if (!conversation || deleting) return;
-    const name = conversation.patient_name || "this patient";
+    const name = conversation.partner_name || "this partner";
     if (!window.confirm(`Delete chat with ${name}?`)) return;
 
     setDeleting(true);
@@ -290,20 +290,20 @@ export default function CenterChats() {
     }
   };
 
-  const online = Boolean(conversation?.patient_online);
+  const online = Boolean(conversation?.partner_online);
   const canSend = Boolean(conversation) && !sending && !loadingThread && (draft.trim() || imageFile);
 
   return (
     <div className={`cc-page${activeId ? " has-thread" : ""}`}>
       <aside className="cc-list">
         <header className="cc-list__head">
-          <h1>Patient chats</h1>
-          <p>Messages from patients to this centre.</p>
+          <h1>Partner chats</h1>
+          <p>Messages from partners (doctors, clinics, hospitals, agents) to this centre.</p>
         </header>
         {error && !activeId ? <p className="cc-error">{error}</p> : null}
         {loadingList ? <p className="cc-empty">Loading chats…</p> : null}
         {!loadingList && !error && chats.length === 0 ? (
-          <p className="cc-empty">No conversations yet. They appear here when a patient starts a chat.</p>
+          <p className="cc-empty">No conversations yet. They appear here when a partner starts a chat.</p>
         ) : null}
         <ul>
           {chats.map((chat) => (
@@ -313,9 +313,9 @@ export default function CenterChats() {
                 className={chat.id === activeId ? "is-active" : undefined}
                 onClick={() => setActiveId(chat.id)}
               >
-                <span className={`cc-dot${chat.patient_online ? " is-online" : ""}`} aria-hidden="true" />
+                <span className={`cc-dot${chat.partner_online ? " is-online" : ""}`} aria-hidden="true" />
                 <span className="cc-list__body">
-                  <strong>{chat.patient_name}</strong>
+                  <strong>{chat.partner_name}</strong>
                   <span>{chat.last_message_preview || "No messages yet"}</span>
                 </span>
                 <span className="cc-list__side">
@@ -339,7 +339,7 @@ export default function CenterChats() {
                 ← Chats
               </button>
               <div>
-                <h2>{conversation?.patient_name || "Patient"}</h2>
+                <h2>{conversation?.partner_name || "Partner"}</h2>
                 <p>
                   <span className={`cc-dot${online ? " is-online" : ""}`} aria-hidden="true" />
                   {online ? "Online" : "Offline"}
@@ -392,7 +392,7 @@ export default function CenterChats() {
               })}
               {peerTyping ? (
                 <p className="cc-typing" aria-live="polite">
-                  Patient is typing...
+                  Partner is typing...
                 </p>
               ) : null}
             </div>

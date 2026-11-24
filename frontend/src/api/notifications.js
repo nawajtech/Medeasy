@@ -27,12 +27,4 @@ export function registerFcmToken(token) {
   });
 }
 
-export function removeFcmToken(token) {
-  return api.delete("/notifications/token", {
-    data: { token },
-  });
-}
 
-export function sendTestNotification() {
-  return api.post("/notifications/test");
-}

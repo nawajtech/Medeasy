@@ -35,7 +35,6 @@ partnerApi.interceptors.response.use(
       url.includes("/partner/auth/login") ||
       url.includes("/partner/auth/register") ||
       url.includes("/partner/auth/me") ||
-      url.includes("/partner/auth/otp") ||
       url.includes("/partner/auth/forgot-password");
 
     if (error.response?.status === 401 && !isAuthRequest) {

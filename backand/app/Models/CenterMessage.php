@@ -9,7 +9,7 @@ class CenterMessage extends Model
 {
     public const UPDATED_AT = null;
 
-    public const TYPE_PATIENT = 'patient';
+    public const TYPE_PARTNER = 'partner';
 
     public const TYPE_STAFF = 'staff';
 

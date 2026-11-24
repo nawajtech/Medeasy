@@ -17,9 +17,6 @@ import Branches from "./pages/Branches";
 import Departments from "./pages/Departments";
 import Appointments from "./pages/Appointments";
 import Reports from "./pages/Reports";
-import Plans from "./pages/Plans";
-import AdminSubscriptions from "./pages/AdminSubscriptions";
-import Subscription from "./pages/Subscription";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
@@ -58,8 +55,6 @@ function App() {
                 <Route index element={<Dashboard />} />
                 <Route path="today-centre" element={<TodayCentre />} />
                 <Route path="companies" element={<Companies />} />
-                <Route path="plans" element={<Plans />} />
-                <Route path="admin/subscriptions" element={<AdminSubscriptions />} />
                 <Route path="branches" element={<Branches />} />
                 <Route path="patients" element={<Patients />} />
                 <Route path="patients/:patientId" element={<PatientChart />} />
@@ -73,7 +68,6 @@ function App() {
                 <Route path="users" element={<Users />} />
                 <Route path="roles" element={<Roles />} />
                 <Route path="roles/:roleId" element={<RolePermissions />} />
-                <Route path="subscription" element={<Subscription />} />
                 <Route path="audit-trail" element={<AuditTrail />} />
                 <Route path="settings" element={<Settings />} />
                 <Route path="appearance" element={<ThemeSettings />} />

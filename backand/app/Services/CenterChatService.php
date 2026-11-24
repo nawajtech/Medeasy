@@ -6,7 +6,7 @@ use App\Models\CenterChatPresence;
 use App\Models\CenterConversation;
 use App\Models\CenterMessage;
 use App\Models\Company;
-use App\Models\Patient;
+use App\Models\Partner;
 use App\Models\User;
 use App\Support\MediaStorage;
 use Illuminate\Database\UniqueConstraintViolationException;
@@ -19,9 +19,9 @@ class CenterChatService
 {
     public const ONLINE_SECONDS = 45;
 
-    public function welcomeMessage(Patient $patient): string
+    public function welcomeMessage(Partner $partner): string
     {
-        $name = trim((string) $patient->name) ?: 'there';
+        $name = trim((string) $partner->name) ?: 'there';
 
         return "Hi {$name}, our team will connect you shortly.";
     }
@@ -44,11 +44,11 @@ class CenterChatService
         return $company;
     }
 
-    public function openForPatient(Patient $patient, Company $company): CenterConversation
+    public function openForPartner(Partner $partner, Company $company): CenterConversation
     {
         $existing = CenterConversation::withTrashed()
             ->where('company_id', $company->id)
-            ->where('patient_id', $patient->id)
+            ->where('partner_id', $partner->id)
             ->first();
 
         if ($existing) {
@@ -56,16 +56,16 @@ class CenterChatService
                 $existing->restore();
             }
 
-            return $existing->load(['company:id,name', 'patient:id,name']);
+            return $existing->load(['company:id,name', 'partner:id,name,type']);
         }
 
-        $welcome = $this->welcomeMessage($patient);
+        $welcome = $this->welcomeMessage($partner);
 
         try {
-            return DB::transaction(function () use ($patient, $company, $welcome) {
+            return DB::transaction(function () use ($partner, $company, $welcome) {
                 $conversation = CenterConversation::create([
                     'company_id' => $company->id,
-                    'patient_id' => $patient->id,
+                    'partner_id' => $partner->id,
                     'last_message_at' => now(),
                     'last_message_preview' => Str::limit($welcome, 180, ''),
                 ]);
@@ -79,14 +79,14 @@ class CenterChatService
                     'last_message_at' => $message->created_at,
                 ])->save();
 
-                return $conversation->load(['company:id,name', 'patient:id,name']);
+                return $conversation->load(['company:id,name', 'partner:id,name,type']);
             });
         } catch (UniqueConstraintViolationException) {
             return CenterConversation::query()
                 ->where('company_id', $company->id)
-                ->where('patient_id', $patient->id)
+                ->where('partner_id', $partner->id)
                 ->firstOrFail()
-                ->load(['company:id,name', 'patient:id,name']);
+                ->load(['company:id,name', 'partner:id,name,type']);
         }
     }
 
@@ -110,7 +110,7 @@ class CenterChatService
             return;
         }
 
-        $column = $viewer === 'patient' ? 'patient_read_message_id' : 'staff_read_message_id';
+        $column = $viewer === 'partner' ? 'partner_read_message_id' : 'staff_read_message_id';
         if ($latestId > (int) ($conversation->{$column} ?? 0)) {
             $conversation->forceFill([$column => $latestId])->save();
         }
@@ -149,8 +149,8 @@ class CenterChatService
             'image_path' => $imagePath,
         ]);
 
-        $cursor = $senderType === CenterMessage::TYPE_PATIENT
-            ? 'patient_read_message_id'
+        $cursor = $senderType === CenterMessage::TYPE_PARTNER
+            ? 'partner_read_message_id'
             : 'staff_read_message_id';
 
         $preview = $hasImage
@@ -170,7 +170,7 @@ class CenterChatService
             'message',
             [
                 'message' => $this->messagePayload($message, $conversation),
-                'conversation' => $this->conversationPayload($conversation, $senderType === CenterMessage::TYPE_PATIENT ? 'patient' : 'staff'),
+                'conversation' => $this->conversationPayload($conversation, $senderType === CenterMessage::TYPE_PARTNER ? 'partner' : 'staff'),
             ]
         );
 
@@ -193,16 +193,16 @@ class CenterChatService
     public function messagePayload(CenterMessage $message, CenterConversation $conversation): array
     {
         $read = null;
-        if ($message->sender_type === CenterMessage::TYPE_PATIENT) {
+        if ($message->sender_type === CenterMessage::TYPE_PARTNER) {
             $read = $conversation->staff_read_message_id !== null
                 && $message->id <= $conversation->staff_read_message_id;
         } elseif ($message->sender_type === CenterMessage::TYPE_STAFF) {
-            $read = $conversation->patient_read_message_id !== null
-                && $message->id <= $conversation->patient_read_message_id;
+            $read = $conversation->partner_read_message_id !== null
+                && $message->id <= $conversation->partner_read_message_id;
         }
 
         $senderName = match ($message->sender_type) {
-            CenterMessage::TYPE_PATIENT => $conversation->patient?->name ?: 'Patient',
+            CenterMessage::TYPE_PARTNER => $conversation->partner?->name ?: 'Partner',
             CenterMessage::TYPE_STAFF => $message->sender?->name ?: 'Centre',
             default => 'ApnaMedi',
         };
@@ -234,9 +234,9 @@ class CenterChatService
 
         $this->attachUnread($conversations, $viewer);
 
-        $onlinePatients = $this->onlineActorIds(
-            'patient',
-            $conversations->pluck('patient_id')->map(fn ($id) => (int) $id)->unique()->all()
+        $onlinePartners = $this->onlineActorIds(
+            'partner',
+            $conversations->pluck('partner_id')->map(fn ($id) => (int) $id)->unique()->all()
         );
         $onlineCompanies = CenterChatPresence::query()
             ->where('actor_type', 'staff')
@@ -246,10 +246,10 @@ class CenterChatService
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        return $conversations->map(function (CenterConversation $conversation) use ($viewer, $onlinePatients, $onlineCompanies) {
+        return $conversations->map(function (CenterConversation $conversation) use ($viewer, $onlinePartners, $onlineCompanies) {
             return $this->conversationPayload($conversation, $viewer, [
                 'unread_count' => (int) ($conversation->unread_count ?? 0),
-                'patient_online' => in_array((int) $conversation->patient_id, $onlinePatients, true),
+                'partner_online' => in_array((int) $conversation->partner_id, $onlinePartners, true),
                 'staff_online' => in_array((int) $conversation->company_id, $onlineCompanies, true),
             ]);
         })->all();
@@ -257,9 +257,9 @@ class CenterChatService
 
     public function conversationPayload(CenterConversation $conversation, string $viewer, array $overrides = []): array
     {
-        $conversation->loadMissing(['company:id,name', 'patient:id,name']);
+        $conversation->loadMissing(['company:id,name', 'partner:id,name,type']);
 
-        $patientOnline = $overrides['patient_online'] ?? $this->isOnline('patient', (int) $conversation->patient_id);
+        $partnerOnline = $overrides['partner_online'] ?? $this->isOnline('partner', (int) $conversation->partner_id);
         $staffOnline = $overrides['staff_online'] ?? $this->isCompanyOnline((int) $conversation->company_id);
         $unread = $overrides['unread_count'] ?? $this->unreadCount($conversation, $viewer);
 
@@ -267,27 +267,28 @@ class CenterChatService
             'id' => $conversation->id,
             'company_id' => $conversation->company_id,
             'centre_name' => $conversation->company?->name,
-            'patient_id' => $conversation->patient_id,
-            'patient_name' => $conversation->patient?->name ?: 'Patient',
+            'partner_id' => $conversation->partner_id,
+            'partner_name' => $conversation->partner?->name ?: 'Partner',
+            'partner_type' => $conversation->partner?->type,
             'last_message_preview' => $conversation->last_message_preview,
             'last_message_at' => $conversation->last_message_at?->toIso8601String(),
-            'patient_read_message_id' => $conversation->patient_read_message_id,
+            'partner_read_message_id' => $conversation->partner_read_message_id,
             'staff_read_message_id' => $conversation->staff_read_message_id,
             'unread_count' => (int) $unread,
             'staff_online' => (bool) $staffOnline,
-            'patient_online' => (bool) $patientOnline,
+            'partner_online' => (bool) $partnerOnline,
         ];
     }
 
-    public function totalUnreadForPatient(int $patientId): int
+    public function totalUnreadForPartner(int $partnerId): int
     {
         return (int) CenterMessage::query()
             ->join('center_conversations', 'center_conversations.id', '=', 'center_messages.conversation_id')
-            ->where('center_conversations.patient_id', $patientId)
+            ->where('center_conversations.partner_id', $partnerId)
             ->where('center_messages.sender_type', CenterMessage::TYPE_STAFF)
             ->where(function ($query) {
-                $query->whereNull('center_conversations.patient_read_message_id')
-                    ->orWhereColumn('center_messages.id', '>', 'center_conversations.patient_read_message_id');
+                $query->whereNull('center_conversations.partner_read_message_id')
+                    ->orWhereColumn('center_messages.id', '>', 'center_conversations.partner_read_message_id');
             })
             ->count();
     }
@@ -297,7 +298,7 @@ class CenterChatService
         return (int) CenterMessage::query()
             ->join('center_conversations', 'center_conversations.id', '=', 'center_messages.conversation_id')
             ->where('center_conversations.company_id', $companyId)
-            ->where('center_messages.sender_type', CenterMessage::TYPE_PATIENT)
+            ->where('center_messages.sender_type', CenterMessage::TYPE_PARTNER)
             ->where(function ($query) {
                 $query->whereNull('center_conversations.staff_read_message_id')
                     ->orWhereColumn('center_messages.id', '>', 'center_conversations.staff_read_message_id');
@@ -310,8 +311,8 @@ class CenterChatService
      */
     private function attachUnread(Collection $conversations, string $viewer): void
     {
-        $sender = $viewer === 'patient' ? CenterMessage::TYPE_STAFF : CenterMessage::TYPE_PATIENT;
-        $cursorColumn = $viewer === 'patient' ? 'patient_read_message_id' : 'staff_read_message_id';
+        $sender = $viewer === 'partner' ? CenterMessage::TYPE_STAFF : CenterMessage::TYPE_PARTNER;
+        $cursorColumn = $viewer === 'partner' ? 'partner_read_message_id' : 'staff_read_message_id';
 
         $counts = CenterMessage::query()
             ->selectRaw('conversation_id, COUNT(*) as aggregate')
@@ -337,9 +338,9 @@ class CenterChatService
 
     private function unreadCount(CenterConversation $conversation, string $viewer): int
     {
-        $sender = $viewer === 'patient' ? CenterMessage::TYPE_STAFF : CenterMessage::TYPE_PATIENT;
-        $cursor = $viewer === 'patient'
-            ? $conversation->patient_read_message_id
+        $sender = $viewer === 'partner' ? CenterMessage::TYPE_STAFF : CenterMessage::TYPE_PARTNER;
+        $cursor = $viewer === 'partner'
+            ? $conversation->partner_read_message_id
             : $conversation->staff_read_message_id;
 
         return (int) $conversation->messages()

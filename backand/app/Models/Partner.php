@@ -23,7 +23,6 @@ class Partner extends Authenticatable
         'city',
         'state',
         'professional_details',
-        'phone_verified_at',
         'status',
     ];
 
@@ -37,7 +36,6 @@ class Partner extends Authenticatable
         return [
             'password' => 'hashed',
             'status' => 'boolean',
-            'phone_verified_at' => 'datetime',
         ];
     }
 
