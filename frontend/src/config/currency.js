@@ -30,10 +30,6 @@ export function setActiveCurrency(code) {
   activeCurrency = code && CURRENCIES[code] ? code : DEFAULT_CURRENCY;
 }
 
-export function getActiveCurrency() {
-  return activeCurrency;
-}
-
 export function currencySymbol(code = activeCurrency) {
   return (CURRENCIES[code] || CURRENCIES[DEFAULT_CURRENCY]).symbol;
 }

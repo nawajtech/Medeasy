@@ -24,7 +24,7 @@ class CenterChatController extends Controller
         $this->chat->touchPresence('staff', $request->user()->id, $companyId);
 
         $conversations = CenterConversation::query()
-            ->with(['company:id,name', 'patient:id,name'])
+            ->with(['company:id,name', 'partner:id,name,type'])
             ->where('company_id', $companyId)
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
@@ -136,7 +136,7 @@ class CenterChatController extends Controller
     private function find(int $companyId, int $id): CenterConversation
     {
         $conversation = CenterConversation::query()
-            ->with(['company:id,name', 'patient:id,name'])
+            ->with(['company:id,name', 'partner:id,name,type'])
             ->where('company_id', $companyId)
             ->whereKey($id)
             ->first();

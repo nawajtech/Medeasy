@@ -8,11 +8,10 @@ import { getApiErrorMessage } from "../../utils/apiError";
 export default function PartnerForgotPassword() {
   const { isAuthenticated, loading: authLoading } = usePartnerAuth();
   const [step, setStep] = useState(1);
-  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [devOtp, setDevOtp] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,12 +25,11 @@ export default function PartnerForgotPassword() {
     setLoading(true);
     setError("");
     try {
-      const { data } = await partnerForgotPassword({ phone: phone.trim() });
-      setInfo(data?.message || "If registered, an OTP was sent.");
-      if (data?.dev_otp) setDevOtp(data.dev_otp);
+      const { data } = await partnerForgotPassword({ email: email.trim() });
+      setInfo(data?.message || "If registered, a verification code was sent to your email.");
       setStep(2);
     } catch (err) {
-      setError(getApiErrorMessage(err, "Could not send OTP."));
+      setError(getApiErrorMessage(err, "Could not send verification email."));
     } finally {
       setLoading(false);
     }
@@ -43,7 +41,7 @@ export default function PartnerForgotPassword() {
     setError("");
     try {
       await partnerResetPassword({
-        phone: phone.trim(),
+        email: email.trim(),
         otp: otp.trim(),
         password,
         password_confirmation: passwordConfirmation,
@@ -59,10 +57,10 @@ export default function PartnerForgotPassword() {
   return (
     <AuthShell
       title="Reset password"
-      subtitle="Verify your registered mobile number to set a new password."
+      subtitle="Enter your registered email to receive a verification code."
       footer={<Link to="/login">Back to sign in</Link>}
     >
-      {!done ? <Stepper step={step} steps={["Mobile", "New password"]} /> : null}
+      {!done ? <Stepper step={step} steps={["Email", "New password"]} /> : null}
 
       {done ? (
         <>
@@ -74,21 +72,35 @@ export default function PartnerForgotPassword() {
       ) : step === 1 ? (
         <form className="pt-auth__form" onSubmit={sendOtp}>
           <div className="pt-field">
-            <label htmlFor="phone">Registered mobile</label>
-            <input id="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required />
+            <label htmlFor="email">Registered email</label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+            />
           </div>
           <Alert type="error">{error}</Alert>
           <button className="pt-btn pt-btn--block" type="submit" disabled={loading}>
-            {loading ? "Sending…" : "Send OTP"}
+            {loading ? "Sending…" : "Send email code"}
           </button>
         </form>
       ) : (
         <form className="pt-auth__form" onSubmit={reset}>
-          <Alert type="info">{info}</Alert>
-          {devOtp ? <Alert type="info">Dev OTP: {devOtp}</Alert> : null}
+          <Alert type="info">{info || `Enter the code sent to ${email}`}</Alert>
           <div className="pt-field">
-            <label htmlFor="otp">OTP</label>
-            <input id="otp" value={otp} onChange={(e) => setOtp(e.target.value)} required maxLength={6} />
+            <label htmlFor="otp">Email verification code</label>
+            <input
+              id="otp"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              required
+              maxLength={6}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+            />
           </div>
           <div className="pt-field">
             <label htmlFor="password">New password</label>
@@ -115,6 +127,14 @@ export default function PartnerForgotPassword() {
           <Alert type="error">{error}</Alert>
           <button className="pt-btn pt-btn--block" type="submit" disabled={loading}>
             {loading ? "Saving…" : "Reset password"}
+          </button>
+          <button
+            type="button"
+            className="pt-btn pt-btn--ghost pt-btn--block"
+            onClick={sendOtp}
+            disabled={loading}
+          >
+            Resend email code
           </button>
         </form>
       )}

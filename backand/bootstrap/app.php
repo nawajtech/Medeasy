@@ -1,6 +1,5 @@
 <?php
 
-use App\Http\Middleware\EnsureActiveSubscription;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -24,12 +23,10 @@ return Application::configure(basePath: dirname(__DIR__))
     
         $middleware->alias([
             'role' => \App\Http\Middleware\EnsureRole::class,
-            'subscription.active' => EnsureActiveSubscription::class,
             'audit.document' => \App\Http\Middleware\AuditDocumentAccess::class,
             'permission' => PermissionMiddleware::class,
             'role.only' => RoleMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
-            'patient' => \App\Http\Middleware\EnsurePatient::class,
             'partner' => \App\Http\Middleware\EnsurePartner::class,
         ]);
     })

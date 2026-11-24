@@ -3,44 +3,26 @@
 namespace App\Http\Controllers\Api\Partner;
 
 use App\Http\Controllers\Controller;
+use App\Mail\PartnerPasswordResetOtpMail;
 use App\Models\Partner;
-use App\Models\PartnerOtp;
-use App\Services\PartnerOtpService;
+use App\Models\PasswordResetOtp;
+use App\Services\PlatformBrandingService;
 use App\Support\ContactRules;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class PartnerAuthController extends Controller
 {
-    public function __construct(private PartnerOtpService $otp) {}
+    private const OTP_TTL_MINUTES = 10;
 
-    public function sendRegisterOtp(Request $request): JsonResponse
-    {
-        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
+    private const RESEND_COOLDOWN_SECONDS = 60;
 
-        $validated = $request->validate([
-            'phone' => [...ContactRules::phone(), Rule::unique('partners', 'phone')],
-        ]);
-
-        return response()->json($this->otp->send($validated['phone'], 'register'));
-    }
-
-    public function verifyRegisterOtp(Request $request): JsonResponse
-    {
-        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
-
-        $validated = $request->validate([
-            'phone' => ContactRules::phone(),
-            'otp' => ['required', 'string', 'regex:/^\d{6}$/'],
-        ]);
-
-        $this->otp->verify($validated['phone'], $validated['otp'], 'register');
-
-        return response()->json(['message' => 'Mobile number verified.']);
-    }
+    private const MAX_ATTEMPTS = 5;
 
     public function register(Request $request): JsonResponse
     {
@@ -58,11 +40,8 @@ class PartnerAuthController extends Controller
             'professional_details' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        $this->otp->assertRecentlyVerified($validated['phone'], 'register');
-
         $partner = Partner::create([
             ...$validated,
-            'phone_verified_at' => now(),
             'status' => true,
         ]);
 
@@ -137,11 +116,6 @@ class PartnerAuthController extends Controller
             'professional_details' => ['nullable', 'string', 'max:2000'],
         ]);
 
-        if ($validated['phone'] !== $partner->phone) {
-            $this->otp->assertRecentlyVerified($validated['phone'], 'register');
-            $validated['phone_verified_at'] = now();
-        }
-
         $partner->update($validated);
 
         return response()->json([
@@ -172,49 +146,154 @@ class PartnerAuthController extends Controller
 
     public function sendForgotPasswordOtp(Request $request): JsonResponse
     {
-        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
-
         $validated = $request->validate([
-            'phone' => ContactRules::phone(),
+            'email' => ContactRules::email(),
         ]);
 
-        $partner = Partner::where('phone', $validated['phone'])->first();
+        $email = strtolower(trim($validated['email']));
+        $partner = Partner::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
+
         if (! $partner) {
-            // Do not reveal whether the phone exists.
+            // Do not reveal whether the email exists.
             return response()->json([
-                'message' => 'If this mobile is registered, an OTP has been sent.',
-                'expires_in' => 600,
+                'message' => 'If this email is registered, a verification code has been sent.',
+                'expires_in' => self::OTP_TTL_MINUTES * 60,
             ]);
         }
 
-        return response()->json($this->otp->send($validated['phone'], 'reset'));
+        if (! $partner->status) {
+            throw ValidationException::withMessages([
+                'email' => ['This account is disabled.'],
+            ]);
+        }
+
+        $recent = PasswordResetOtp::query()
+            ->where('email', $email)
+            ->whereNull('used_at')
+            ->where('created_at', '>=', now()->subSeconds(self::RESEND_COOLDOWN_SECONDS))
+            ->latest('id')
+            ->first();
+
+        if ($recent) {
+            $elapsed = now()->getTimestamp() - $recent->created_at->getTimestamp();
+            $wait = max(1, self::RESEND_COOLDOWN_SECONDS - $elapsed);
+
+            return response()->json([
+                'message' => 'Please wait before requesting another code.',
+                'retry_after' => $wait,
+            ], 429);
+        }
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        PasswordResetOtp::query()
+            ->where('email', $email)
+            ->whereNull('used_at')
+            ->update(['used_at' => now()]);
+
+        $otp = PasswordResetOtp::create([
+            'email' => $email,
+            'code_hash' => Hash::make($code),
+            'expires_at' => now()->addMinutes(self::OTP_TTL_MINUTES),
+        ]);
+
+        try {
+            $brand = app(PlatformBrandingService::class)->chrome();
+            Mail::to($partner->email)->send(new PartnerPasswordResetOtpMail(
+                $partner,
+                $code,
+                self::OTP_TTL_MINUTES,
+                $brand['name'] ?? config('app.name', 'ApnaMedi'),
+            ));
+        } catch (\Throwable $exception) {
+            $otp->delete();
+            Log::error('Partner password reset OTP mail failed', [
+                'email' => $email,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return response()->json([
+                'message' => 'We could not send the verification email. Please try again.',
+            ], 500);
+        }
+
+        return response()->json([
+            'message' => 'A verification code was sent to your email.',
+            'expires_in' => self::OTP_TTL_MINUTES * 60,
+        ]);
     }
 
     public function resetPassword(Request $request): JsonResponse
     {
-        $request->merge(['phone' => trim((string) $request->input('phone', ''))]);
-
         $validated = $request->validate([
-            'phone' => ContactRules::phone(),
+            'email' => ContactRules::email(),
             'otp' => ['required', 'string', 'regex:/^\d{6}$/'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
         ]);
 
-        $this->otp->verify($validated['phone'], $validated['otp'], 'reset');
+        $email = strtolower(trim($validated['email']));
+        $record = PasswordResetOtp::query()
+            ->where('email', $email)
+            ->whereNull('used_at')
+            ->whereNull('verified_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->first();
 
-        $partner = Partner::where('phone', $validated['phone'])->first();
+        if (! $record) {
+            throw ValidationException::withMessages([
+                'otp' => ['This code is invalid or has expired. Request a new one.'],
+            ]);
+        }
+
+        if ($record->attempts >= self::MAX_ATTEMPTS) {
+            $record->update(['used_at' => now()]);
+
+            throw ValidationException::withMessages([
+                'otp' => ['Too many incorrect attempts. Request a new code.'],
+            ]);
+        }
+
+        if (! Hash::check($validated['otp'], $record->code_hash)) {
+            $record->increment('attempts');
+            $left = self::MAX_ATTEMPTS - (int) $record->fresh()->attempts;
+
+            if ($left <= 0) {
+                $record->update(['used_at' => now()]);
+
+                throw ValidationException::withMessages([
+                    'otp' => ['Too many incorrect attempts. Request a new code.'],
+                ]);
+            }
+
+            throw ValidationException::withMessages([
+                'otp' => ["That code is incorrect. {$left} attempt".($left === 1 ? '' : 's').' left.'],
+            ]);
+        }
+
+        $partner = Partner::query()
+            ->whereRaw('LOWER(email) = ?', [$email])
+            ->first();
+
         if (! $partner) {
             throw ValidationException::withMessages([
-                'phone' => ['No partner account found for this mobile number.'],
+                'email' => ['No partner account found for this email.'],
             ]);
         }
 
         $partner->update(['password' => $validated['password']]);
+        $partner->tokens()->delete();
+        $record->update([
+            'verified_at' => now(),
+            'used_at' => now(),
+        ]);
 
-        PartnerOtp::query()
-            ->where('phone', $validated['phone'])
-            ->where('purpose', 'reset')
-            ->delete();
+        PasswordResetOtp::query()
+            ->where('email', $email)
+            ->whereNull('used_at')
+            ->update(['used_at' => now()]);
 
         return response()->json(['message' => 'Password reset successfully. You can sign in now.']);
     }
@@ -231,7 +310,6 @@ class PartnerAuthController extends Controller
             'city' => $partner->city,
             'state' => $partner->state,
             'professional_details' => $partner->professional_details,
-            'phone_verified_at' => $partner->phone_verified_at?->toIso8601String(),
             'status' => $partner->status,
         ];
     }

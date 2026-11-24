@@ -18,13 +18,11 @@ use App\Models\LabTestCategory;
 use App\Models\LabTestPackage;
 use App\Models\Medicine;
 use App\Models\Patient;
-use App\Models\Plan;
 use App\Models\ReferralCommissionPayout;
 use App\Models\ReferralPartner;
 use App\Models\Report;
 use App\Models\Role;
 use App\Models\Setting;
-use App\Models\Subscription;
 use App\Models\User;
 
 return [
@@ -69,8 +67,6 @@ return [
         ReferralCommissionPayout::class => ['module' => 'diagnostics', 'label' => 'id'],
         Medicine::class => ['module' => 'medicine', 'label' => 'name'],
         Company::class => ['module' => 'companies', 'label' => 'name'],
-        Plan::class => ['module' => 'companies', 'label' => 'name'],
-        Subscription::class => ['module' => 'subscription', 'label' => 'id'],
     ],
 
     /** Route name patterns → audit action for document access (print / download). */

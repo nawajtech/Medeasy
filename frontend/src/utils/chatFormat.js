@@ -27,13 +27,13 @@ export function mergeChatMessages(current, incoming) {
 export function applyChatRead(messages, conversation) {
   if (!conversation) return messages;
   const staffCursor = conversation.staff_read_message_id;
-  const patientCursor = conversation.patient_read_message_id;
+  const partnerCursor = conversation.partner_read_message_id;
   return messages.map((message) => {
-    if (message.sender_type === "patient") {
+    if (message.sender_type === "partner") {
       return { ...message, read: staffCursor != null && message.id <= staffCursor };
     }
     if (message.sender_type === "staff") {
-      return { ...message, read: patientCursor != null && message.id <= patientCursor };
+      return { ...message, read: partnerCursor != null && message.id <= partnerCursor };
     }
     return { ...message, read: null };
   });

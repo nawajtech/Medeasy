@@ -14,10 +14,10 @@ class CenterConversation extends Model
 
     protected $fillable = [
         'company_id',
-        'patient_id',
+        'partner_id',
         'last_message_at',
         'last_message_preview',
-        'patient_read_message_id',
+        'partner_read_message_id',
         'staff_read_message_id',
     ];
 
@@ -25,15 +25,14 @@ class CenterConversation extends Model
     {
         return [
             'last_message_at' => 'datetime',
-            'patient_read_message_id' => 'integer',
+            'partner_read_message_id' => 'integer',
             'staff_read_message_id' => 'integer',
         ];
     }
 
-    public function patient(): BelongsTo
+    public function partner(): BelongsTo
     {
-        // Portal patients are not tied to the centre's company_id.
-        return $this->belongsTo(Patient::class)->withoutGlobalScope('company');
+        return $this->belongsTo(Partner::class)->withTrashed();
     }
 
     public function messages(): HasMany

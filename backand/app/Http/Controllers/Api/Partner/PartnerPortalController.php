@@ -749,7 +749,6 @@ class PartnerPortalController extends Controller
             'date_of_birth' => $patientData['date_of_birth'] ?? null,
             'address' => $patientData['address'] ?? null,
             'status' => true,
-            'password' => Str::random(32),
         ]);
 
         app(PatientWalletService::class)->ensureWallet($patient);

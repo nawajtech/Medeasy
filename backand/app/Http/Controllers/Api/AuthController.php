@@ -7,7 +7,6 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\ClinicBrandingService;
-use App\Services\SubscriptionService;
 use App\Services\TenantRoleProvisioningService;
 use App\Services\UserRoleService;
 use App\Support\ContactRules;
@@ -119,7 +118,7 @@ class AuthController extends Controller
         }
 
         $company = $user->company;
-        if ($company && app(SubscriptionService::class)->getCurrentSubscription($company)) {
+        if ($company) {
             app(TenantRoleProvisioningService::class)->syncModuleAccess($company);
         }
 
@@ -151,11 +150,6 @@ class AuthController extends Controller
             'doctor_id' => $user->doctor?->id,
             'doctor' => $user->doctor,
         ];
-
-        if ($user->company) {
-            $payload['subscription'] = app(SubscriptionService::class)
-                ->subscriptionSummary($user->company);
-        }
 
         return $payload;
     }

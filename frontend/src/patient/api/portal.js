@@ -1,7 +1,5 @@
 import partnerApi from "./axios";
 
-export const partnerSendOtp = (payload) => partnerApi.post("/partner/auth/otp/send", payload);
-export const partnerVerifyOtp = (payload) => partnerApi.post("/partner/auth/otp/verify", payload);
 export const partnerRegister = (payload) => partnerApi.post("/partner/auth/register", payload);
 export const partnerLogin = (payload) => partnerApi.post("/partner/auth/login", payload);
 export const partnerMe = () => partnerApi.get("/partner/auth/me");

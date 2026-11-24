@@ -34,7 +34,6 @@ import {
   IconTrendUp,
 } from "../components/icons";
 import { getApiErrorMessage } from "../utils/apiError";
-import { SubscriptionSummaryCard } from "./Subscription";
 import "./Dashboard.css";
 
 const STATUS_COLORS = {
@@ -482,7 +481,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard-page">
-      <SubscriptionSummaryCard />
       <section className="dashboard-hero">
         <div className="dashboard-hero-main">
           <div className="dashboard-title-row">

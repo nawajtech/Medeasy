@@ -12,11 +12,6 @@ export const DOCTOR_TYPE_LABELS = {
 };
 
 /** Map company module keys → doctor_type */
-export const MODULE_TO_DOCTOR_TYPE = {
-  clinic: DOCTOR_TYPES.CLINIC,
-  diagnostics: DOCTOR_TYPES.DIAGNOSTIC,
-  laboratory: DOCTOR_TYPES.LAB,
-};
 
 /** Resolve doctor_type from the current Doctors list route. */
 export function doctorTypeFromPath(pathname = "") {
