@@ -7,7 +7,6 @@ use App\Http\Controllers\Controller;
 use App\Models\DiagnosticOrder;
 use App\Models\LabOrder;
 use App\Models\Patient;
-use App\Models\Appointment;
 use App\Services\PatientWalletService;
 use App\Services\UniqueCodeGenerator;
 use App\Support\ContactRules;
@@ -27,7 +26,9 @@ class PatientController extends Controller
         $query = Patient::with(['company', 'wallet'])->orderByDesc('created_at');
 
         if ($doctorId = $this->doctorIdForUser()) {
-            $query->whereHas('appointments', fn ($q) => $q->where('doctor_id', $doctorId));
+            $query->where(fn ($q) => $q
+                ->whereHas('diagnosticOrders', fn ($dq) => $dq->where('doctor_id', $doctorId))
+                ->orWhereHas('labOrders', fn ($lq) => $lq->where('doctor_id', $doctorId)));
         }
 
         if (auth()->user()->isSuperAdmin() && $request->filled('company_id')) {
@@ -78,8 +79,7 @@ class PatientController extends Controller
         $this->assertTenantAccess($patient);
 
         if ($doctorId = $this->doctorIdForUser()) {
-            $hasAccess = $patient->appointments()->where('doctor_id', $doctorId)->exists();
-            abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
+            abort_unless($this->doctorCanAccessPatient($patient, $doctorId), 403, 'You can only view your assigned patients.');
         }
 
         return response()->json($patient->load(['company', 'wallet']));
@@ -91,8 +91,7 @@ class PatientController extends Controller
         $this->assertTenantAccess($patient);
 
         if ($doctorId = $this->doctorIdForUser()) {
-            $hasAccess = $patient->appointments()->where('doctor_id', $doctorId)->exists();
-            abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
+            abort_unless($this->doctorCanAccessPatient($patient, $doctorId), 403, 'You can only view your assigned patients.');
         }
 
         return response()->json(app(PatientWalletService::class)->summary($patient));
@@ -104,14 +103,8 @@ class PatientController extends Controller
         $this->assertTenantAccess($patient);
 
         if ($doctorId = $this->doctorIdForUser()) {
-            $hasAccess = $patient->appointments()->where('doctor_id', $doctorId)->exists();
-            abort_unless($hasAccess, 403, 'You can only view your assigned patients.');
+            abort_unless($this->doctorCanAccessPatient($patient, $doctorId), 403, 'You can only view your assigned patients.');
         }
-
-        $appointments = Appointment::with(['doctor.user', 'doctor.department', 'billing', 'vitals', 'branch'])
-            ->where('patient_id', $patient->id)
-            ->orderByDesc('appointment_date')
-            ->get();
 
         $labOrders = LabOrder::with([
             'doctor.user',
@@ -132,35 +125,6 @@ class PatientController extends Controller
             ->where('patient_id', $patient->id)
             ->orderByDesc('created_at')
             ->get();
-
-        $appointmentPayload = $appointments->map(fn (Appointment $a) => [
-            'id' => $a->id,
-            'type' => 'appointment',
-            'date' => $a->appointment_date?->toIso8601String(),
-            'status' => $a->status,
-            'doctor_name' => $a->doctor?->user?->name,
-            'department' => $a->doctor?->department?->name,
-            'branch' => $a->branch?->name,
-            'reason' => $a->reason,
-            'notes' => $a->notes,
-            'prescription' => $a->prescription,
-            'prescription_data' => $a->prescription_data,
-            'prescription_type' => $a->prescription_type ?? 'handwritten',
-            'prescription_file' => $a->prescription_file,
-            'prescription_file_url' => $a->prescription_file_url,
-            'duration_minutes' => $a->duration_minutes,
-            'vitals' => $a->vitals,
-            'billing' => $a->billing ? [
-                'total_amount' => $a->billing->total_amount,
-                'paid_amount' => $a->billing->paid_amount,
-                'due_amount' => $a->billing->due_amount,
-                'payment_status' => $a->billing->payment_status,
-            ] : null,
-        ]);
-
-        $prescriptions = $appointmentPayload
-            ->filter(fn ($a) => filled($a['prescription']) || filled($a['prescription_file']))
-            ->values();
 
         $labPayload = $labOrders->map(fn (LabOrder $o) => [
             'id' => $o->id,
@@ -202,27 +166,30 @@ class PatientController extends Controller
         ]);
 
         $timeline = collect()
-            ->merge($appointmentPayload)
             ->merge($labPayload)
             ->merge($diagnosticPayload)
             ->sortByDesc(fn ($item) => Carbon::parse($item['date'] ?? now()))
             ->values();
 
+        $lastVisit = $timeline->first()['date'] ?? null;
+
         return response()->json([
             'patient' => $patient,
             'summary' => [
-                'appointments' => $appointments->count(),
-                'prescriptions' => $prescriptions->count(),
                 'lab_orders' => $labOrders->count(),
                 'diagnostic_orders' => $diagnosticOrders->count(),
-                'last_visit' => $appointments->first()?->appointment_date?->toIso8601String(),
+                'last_visit' => $lastVisit,
             ],
             'timeline' => $timeline,
-            'appointments' => $appointmentPayload->values(),
-            'prescriptions' => $prescriptions,
             'lab_orders' => $labPayload->values(),
             'diagnostic_orders' => $diagnosticPayload->values(),
         ]);
+    }
+
+    private function doctorCanAccessPatient(Patient $patient, int $doctorId): bool
+    {
+        return $patient->diagnosticOrders()->where('doctor_id', $doctorId)->exists()
+            || $patient->labOrders()->where('doctor_id', $doctorId)->exists();
     }
 
     public function update(Request $request, string $id): JsonResponse

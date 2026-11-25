@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Billing;
 use App\Models\DiagnosticOrder;
 use App\Models\Doctor;
 use App\Models\Expense;
@@ -10,7 +9,6 @@ use App\Models\LabOrder;
 use App\Models\ReferralCommissionPayout;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 class FinancialSummaryService
 {
@@ -23,8 +21,7 @@ class FinancialSummaryService
         $expenses = $this->expensesBreakdown($filters, $from, $to);
 
         $totalGains = round(
-            $gains['appointment_billing']
-            + $gains['diagnostic_orders']
+            $gains['diagnostic_orders']
             + $gains['lab_orders'],
             2
         );
@@ -66,24 +63,6 @@ class FinancialSummaryService
     /** @param array{company_id: int, branch_id?: int|null, doctor_id?: int|null} $filters */
     private function gainsBreakdown(array $filters, Carbon $from, Carbon $to): array
     {
-        $fromDate = $from->toDateString();
-        $toDate = $to->toDateString();
-
-        $billingQuery = Billing::query()
-            ->where('company_id', $filters['company_id'])
-            ->where('status', '!=', 'cancelled')
-            ->where(function ($q) use ($fromDate, $toDate) {
-                $q->whereBetween(DB::raw('DATE(paid_at)'), [$fromDate, $toDate])
-                    ->orWhere(function ($q2) use ($fromDate, $toDate) {
-                        $q2->whereNull('paid_at')
-                            ->whereBetween('billed_at', [$fromDate, $toDate]);
-                    });
-            });
-
-        $this->applyAppointmentFilters($billingQuery, $filters);
-
-        $appointmentBilling = round((float) $billingQuery->sum('paid_amount'), 2);
-
         $diagnosticQuery = $this->diagnosticOrderQuery($filters, $from, $to);
         $diagnosticOrders = round((float) $diagnosticQuery->sum('paid_amount'), 2);
 
@@ -91,7 +70,6 @@ class FinancialSummaryService
         $labOrders = round((float) $labQuery->sum('net_amount'), 2);
 
         return [
-            'appointment_billing' => $appointmentBilling,
             'diagnostic_orders' => $diagnosticOrders,
             'lab_orders' => $labOrders,
         ];
@@ -223,22 +201,5 @@ class FinancialSummaryService
         }
 
         return $query;
-    }
-
-    /** @param array{company_id: int, branch_id?: int|null, doctor_id?: int|null} $filters */
-    private function applyAppointmentFilters(Builder $billingQuery, array $filters): void
-    {
-        if (empty($filters['branch_id']) && empty($filters['doctor_id'])) {
-            return;
-        }
-
-        $billingQuery->whereHas('appointment', function ($q) use ($filters) {
-            if (! empty($filters['branch_id'])) {
-                $q->where('branch_id', $filters['branch_id']);
-            }
-            if (! empty($filters['doctor_id'])) {
-                $q->where('doctor_id', $filters['doctor_id']);
-            }
-        });
     }
 }

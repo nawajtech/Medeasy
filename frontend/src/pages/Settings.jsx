@@ -18,12 +18,11 @@ import "./Settings.css";
 const GROUP_LABELS = {
   general: "General & branding",
   billing: "Billing",
-  appointments: "Appointments",
   notifications: "Notifications",
   content: "Footer content",
 };
 
-const GROUP_ORDER = ["general", "billing", "appointments", "notifications", "content"];
+const GROUP_ORDER = ["general", "billing", "notifications", "content"];
 
 const IMAGE_ACCEPT = "image/jpeg,image/png,image/gif,image/webp,image/svg+xml";
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;

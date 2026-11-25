@@ -107,7 +107,7 @@ function Header({ onMenuClick, navOpen = false }) {
   );
 
   const goToDoctors = useCallback(
-    (term, doctorType = "clinic") => {
+    (term, doctorType = "diagnostic") => {
       navigate(`${doctorsPathForType(doctorType)}?q=${encodeURIComponent(term)}`);
       setSearchOpen(false);
       setSearchQuery("");

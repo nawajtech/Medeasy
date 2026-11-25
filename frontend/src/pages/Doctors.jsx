@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useSearchParams } from "react-router-dom";
 import "../App.css";
 import { getCompaniesList } from "../api/companiesList";
 import { getDepartments } from "../api/departments";
@@ -17,8 +17,7 @@ import BranchSelect from "../components/BranchSelect";
 import CompanySelect from "../components/CompanySelect";
 import Modal from "../components/crud/Modal";
 import "../components/crud/crud.css";
-import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
-import { DOCTOR_TYPE_LABELS, DOCTOR_TYPES, doctorTypeFromPath } from "../config/doctorTypes";
+import { DOCTOR_TYPE_LABELS, doctorTypeFromPath } from "../config/doctorTypes";
 import { getApiErrorMessage } from "../utils/apiError";
 import { emailError, phoneError } from "../utils/contactValidation";
 import "./Doctors.css";
@@ -41,12 +40,10 @@ const emptyForm = {
 };
 
 function Doctors() {
-  const navigate = useNavigate();
   const location = useLocation();
   const doctorType = doctorTypeFromPath(location.pathname);
-  const moduleLabel = DOCTOR_TYPE_LABELS[doctorType] || "Clinic";
-  const { isDoctor, isSuperAdmin, isCompanyAdmin, user } = useAuth();
-  const canManageSchedule = isSuperAdmin || isCompanyAdmin;
+  const moduleLabel = DOCTOR_TYPE_LABELS[doctorType] || "Diagnostic";
+  const { isDoctor, isSuperAdmin, user } = useAuth();
   const [items, setItems] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -111,18 +108,6 @@ function Doctors() {
       .catch(() => setCompanies([]));
   }, [isSuperAdmin]);
 
-  const formCompanyModules = useMemo(() => {
-    if (isSuperAdmin && form.company_id) {
-      const company = companies.find((c) => String(c.id) === String(form.company_id));
-      if (company?.modules?.length) return normalizeModules(company.modules);
-      return normalizeModules(modulesFromLegacyType(company?.type));
-    }
-    if (user?.company?.modules?.length) return normalizeModules(user.company.modules);
-    return normalizeModules(modulesFromLegacyType(user?.company?.type));
-  }, [isSuperAdmin, form.company_id, companies, user]);
-
-  const hideConsultationFee = doctorType !== DOCTOR_TYPES.CLINIC || !formCompanyModules.includes("clinic");
-
   const openCreate = () => {
     setEditing(null);
     setForm(emptyForm);
@@ -178,13 +163,7 @@ function Doctors() {
     } else {
       delete payload.doctor_type;
     }
-    if (hideConsultationFee) {
-      payload.consultation_fee = 0;
-    } else if (!payload.consultation_fee && payload.consultation_fee !== 0) {
-      payload.consultation_fee = null;
-    } else {
-      payload.consultation_fee = Number(payload.consultation_fee);
-    }
+    payload.consultation_fee = 0;
     return payload;
   };
 
@@ -248,7 +227,7 @@ function Doctors() {
 
   const handleImportClick = () => {
     if (isSuperAdmin && !filterCompanyId) {
-      setError("Select a clinic before importing doctors.");
+      setError("Select an organisation before importing doctors.");
       return;
     }
     importInputRef.current?.click();
@@ -259,7 +238,7 @@ function Doctors() {
     e.target.value = "";
     if (!file) return;
     if (isSuperAdmin && !filterCompanyId) {
-      setError("Select a clinic before importing doctors.");
+      setError("Select an organisation before importing doctors.");
       return;
     }
 
@@ -311,7 +290,7 @@ function Doctors() {
             <CompanySelect
               variant="inline"
               allowAll
-              label="Filter clinic"
+              label="Filter organisation"
               id="doctor_filter_company_id"
               value={filterCompanyId}
               onChange={(e) => setFilterCompanyId(e.target.value)}
@@ -432,15 +411,6 @@ function Doctors() {
                 </td>
                 <td>
                   <div className="crud-actions crud-actions--stack">
-                    {canManageSchedule && (
-                      <button
-                        type="button"
-                        className="crud-btn crud-btn--ghost crud-btn--sm"
-                        onClick={() => navigate(`/doctors/${doctor.id}/availability`)}
-                      >
-                        Schedule
-                      </button>
-                    )}
                     <button
                       type="button"
                       className="crud-btn crud-btn--ghost crud-btn--sm"
@@ -572,21 +542,6 @@ function Doctors() {
                 placeholder="Enter license number"
               />
             </div>
-            {!hideConsultationFee && (
-              <div className="crud-field">
-                <label htmlFor="consultation_fee">Consultation fee</label>
-                <input
-                  id="consultation_fee"
-                  name="consultation_fee"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={form.consultation_fee}
-                  onChange={handleChange}
-                  placeholder="Enter amount"
-                />
-              </div>
-            )}
             <div className="crud-field crud-field--full">
               <label htmlFor="bio">Bio</label>
               <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} placeholder="Enter bio (optional)" />

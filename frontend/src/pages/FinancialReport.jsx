@@ -93,7 +93,7 @@ function FinancialReport() {
       setDoctors([]);
       return;
     }
-    getDoctors({ company_id: effectiveCompanyId, doctor_type: "clinic" })
+    getDoctors({ company_id: effectiveCompanyId, doctor_type: "diagnostic" })
       .then((res) => setDoctors(res.data || []))
       .catch(() => setDoctors([]));
   }, [effectiveCompanyId]);
@@ -323,7 +323,6 @@ function FinancialReport() {
             <div className="fin-panel">
               <div className="fin-panel__head">Gains breakdown</div>
               <div className="fin-panel__body">
-                <div className="fin-row"><span>Appointment billing collected</span><strong>{money(summary.gains?.appointment_billing)}</strong></div>
                 <div className="fin-row"><span>Diagnostic orders (collected)</span><strong>{money(summary.gains?.diagnostic_orders)}</strong></div>
                 <div className="fin-row"><span>Lab orders (net)</span><strong>{money(summary.gains?.lab_orders)}</strong></div>
                 <div className="fin-row fin-row--total"><span>Total gain</span><strong>{money(summary.gains?.total)}</strong></div>

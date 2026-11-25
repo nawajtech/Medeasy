@@ -2,7 +2,7 @@ export const routeMeta = {
   "/": {
     title: "Dashboard",
     breadcrumb: "Dashboard",
-    description: "Welcome back, Admin — here's your clinic overview.",
+    description: "Welcome back — here's your organisation overview.",
   },
   "/patients": {
     title: "Patients",
@@ -12,17 +12,12 @@ export const routeMeta = {
   "/companies": {
     title: "Companies",
     breadcrumb: "Companies",
-    description: "Manage clinic organizations and branches (Apollo, Riyaj, etc.).",
+    description: "Manage diagnostic organisations and branches.",
   },
   "/departments": {
     title: "Departments",
     breadcrumb: "Departments",
     description: "Manage doctor departments and specialities master.",
-  },
-  "/doctors": {
-    title: "Clinic Doctors",
-    breadcrumb: "Doctors",
-    description: "View and manage clinic doctors mapped to departments.",
   },
   "/diagnostics/doctors": {
     title: "Diagnostic Doctors",
@@ -33,16 +28,6 @@ export const routeMeta = {
     title: "Lab Doctors",
     breadcrumb: "Doctors",
     description: "View and manage laboratory doctors mapped to departments.",
-  },
-  "/appointments": {
-    title: "Appointments",
-    breadcrumb: "Appointments",
-    description: "Schedule visits, billing, prescriptions, and documents.",
-  },
-  "/reports": {
-    title: "Reports",
-    breadcrumb: "Reports",
-    description: "View analytics and clinic reports.",
   },
   "/finance": {
     title: "Finance & P&L",
@@ -69,17 +54,9 @@ export const routeMeta = {
     breadcrumb: "Audit Trail",
     description: "View all system changes across your organization — who did what and when.",
   },
-  "/pharmacy/medicines": {
-    title: "Medicine Master",
-    breadcrumb: "Medicine Master",
-    description: "Global medicine list — name, manufacturer, and composition. Shared across all clinics.",
-  },
 };
 
 export function getRouteMeta(pathname) {
-  if (pathname === "/my-schedule") {
-    return { title: "My schedule", breadcrumb: "My schedule", description: "Your weekly availability." };
-  }
   if (pathname === "/diagnostics/today") {
     return {
       title: "Today's appointments",
@@ -127,15 +104,7 @@ export function getRouteMeta(pathname) {
     return {
       title: "Patient chart",
       breadcrumb: "Patient chart",
-      description: "Complete visit history, prescriptions, lab and diagnostic reports.",
-    };
-  }
-  const match = pathname.match(/^\/doctors\/(\d+)\/availability$/);
-  if (match) {
-    return {
-      title: "Doctor schedule",
-      breadcrumb: "Availability",
-      description: "Weekly working hours and slot settings.",
+      description: "Lab and diagnostic reports, wallet, and activity.",
     };
   }
   return routeMeta[pathname] ?? routeMeta["/"];

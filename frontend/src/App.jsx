@@ -10,13 +10,9 @@ import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
 import Patients from "./pages/Patients";
 import Doctors from "./pages/Doctors";
-import DoctorAvailability from "./pages/DoctorAvailability";
-import DoctorScheduleRedirect from "./pages/DoctorScheduleRedirect";
 import Companies from "./pages/Companies";
 import Branches from "./pages/Branches";
 import Departments from "./pages/Departments";
-import Appointments from "./pages/Appointments";
-import Reports from "./pages/Reports";
 import Settings from "./pages/Settings";
 import Users from "./pages/Users";
 import LabTests from "./pages/LabTests";
@@ -27,7 +23,6 @@ import DiagnosticTodayQueue from "./pages/DiagnosticTodayQueue";
 import CenterChats from "./pages/CenterChats";
 import ReferralPartners from "./pages/ReferralPartners";
 import FinancialReport from "./pages/FinancialReport";
-import Medicines from "./pages/Medicines";
 import PatientChart from "./pages/PatientChart";
 import Roles from "./pages/Roles";
 import RolePermissions from "./pages/RolePermissions";
@@ -59,11 +54,6 @@ function App() {
                 <Route path="patients" element={<Patients />} />
                 <Route path="patients/:patientId" element={<PatientChart />} />
                 <Route path="departments" element={<Departments />} />
-                <Route path="doctors" element={<Doctors />} />
-                <Route path="my-schedule" element={<DoctorScheduleRedirect />} />
-                <Route path="doctors/:doctorId/availability" element={<DoctorAvailability />} />
-                <Route path="appointments" element={<Appointments />} />
-                <Route path="reports" element={<Reports />} />
                 <Route path="finance" element={<FinancialReport />} />
                 <Route path="users" element={<Users />} />
                 <Route path="roles" element={<Roles />} />
@@ -82,8 +72,6 @@ function App() {
                 <Route path="diagnostics/referrals" element={<ReferralPartners />} />
                 <Route path="diagnostics/today" element={<DiagnosticTodayQueue />} />
                 <Route path="diagnostics/chats" element={<CenterChats />} />
-                {/* Pharmacy module */}
-                <Route path="pharmacy/medicines" element={<Medicines />} />
               </Route>
             </Route>
           </Route>

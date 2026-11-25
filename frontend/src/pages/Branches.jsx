@@ -131,7 +131,8 @@ function Branches() {
               <th>Branch name</th>
               <th>City</th>
               <th>Doctors</th>
-              <th>Appointments</th>
+              <th>Diagnostic orders</th>
+              <th>Lab orders</th>
               <th>Main branch</th>
               <th>Status</th>
               <th>Actions</th>
@@ -153,7 +154,10 @@ function Branches() {
                   <span className="branch-count-badge">{row.doctors_count ?? 0}</span>
                 </td>
                 <td>
-                  <span className="branch-count-badge">{row.appointments_count ?? 0}</span>
+                  <span className="branch-count-badge">{row.diagnostic_orders_count ?? 0}</span>
+                </td>
+                <td>
+                  <span className="branch-count-badge">{row.lab_orders_count ?? 0}</span>
                 </td>
                 <td>{row.is_main ? <span className="crud-badge crud-badge--active">Main</span> : "—"}</td>
                 <td>

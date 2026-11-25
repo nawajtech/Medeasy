@@ -18,7 +18,7 @@ class BranchController extends Controller
         $companyId = $this->optionalCompanyId($request);
 
         return response()->json(
-            Branch::withCount(['doctors', 'appointments'])
+            Branch::withCount(['doctors', 'diagnosticOrders', 'labOrders'])
                 ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
                 ->when($request->boolean('active_only'), fn ($q) => $q->where('is_active', true))
                 ->orderByDesc('is_main')

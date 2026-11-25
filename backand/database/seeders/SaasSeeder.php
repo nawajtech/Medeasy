@@ -59,7 +59,7 @@ class SaasSeeder extends Seeder
                     'code' => $row['code'],
                     'email' => $row['admin_email'],
                     'phone' => '+92 300 0000000',
-                    'modules' => ['clinic', 'laboratory', 'diagnostics'],
+                    'modules' => ['laboratory', 'diagnostics'],
                     'is_active' => true,
                 ]);
             } else {
@@ -107,9 +107,9 @@ class SaasSeeder extends Seeder
                 [
                     'company_id' => $company->id,
                     'department_id' => $departmentId,
-                    'doctor_type' => Doctor::TYPE_CLINIC,
+                    'doctor_type' => Doctor::TYPE_DIAGNOSTIC,
                     'doctor_code' => strtoupper($row['code']).'-DOC-001',
-                    'consultation_fee' => 1500,
+                    'consultation_fee' => 0,
                     'qualification' => 'MBBS',
                 ]
             );

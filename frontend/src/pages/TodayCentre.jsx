@@ -90,12 +90,10 @@ function TodayCentre() {
   const cards = [
     {
       key: "appointments",
-      label: access.diagnostic_appointments ? "Today's Orders" : "Today's Appointments",
+      label: "Today's Orders",
       value: summary.appointments_today ?? 0,
-      hint: access.diagnostic_appointments
-        ? "Diagnostic bookings for today"
-        : "Clinic visits scheduled today",
-      show: access.appointments || access.diagnostics,
+      hint: "Diagnostic bookings for today",
+      show: access.diagnostics || access.diagnostic_appointments,
     },
     {
       key: "pending",
@@ -117,7 +115,7 @@ function TodayCentre() {
       label: "Cancelled Today",
       value: summary.cancelled_today ?? 0,
       hint: "Cancelled appointments / orders",
-      show: access.appointments || access.diagnostics,
+      show: access.diagnostics || access.diagnostic_appointments,
       tone: summary.cancelled_today > 0 ? "warn" : undefined,
     },
     {
@@ -175,7 +173,7 @@ function TodayCentre() {
             <CompanySelect
               variant="inline"
               allowAll
-              label="Clinic"
+              label="Organisation"
               id="today_centre_company"
               value={companyId}
               onChange={(e) => {
@@ -238,9 +236,6 @@ function TodayCentre() {
               <Can permission={PERMISSIONS.PATIENT_CREATE}>
                 <Link className="crud-btn crud-btn--ghost" to="/patients">New Patient</Link>
               </Can>
-              <Can permission={PERMISSIONS.APPOINTMENT_CREATE}>
-                <Link className="crud-btn crud-btn--ghost" to="/appointments">New Booking</Link>
-              </Can>
               <Can permission={PERMISSIONS.DIAGNOSTIC_VIEW}>
                 <Link className="crud-btn crud-btn--ghost" to="/diagnostics/orders" state={{ openCreate: true }}>Walk-in / Orders</Link>
               </Can>
@@ -257,59 +252,6 @@ function TodayCentre() {
           </div>
 
           <div className="today-centre-grid">
-            {(access.clinic_appointments || access.diagnostic_appointments) && (
-              <section className="today-centre-panel">
-                <div className="today-centre-panel-head">
-                  <h3>
-                    {access.diagnostic_appointments
-                      ? "Today's Queue"
-                      : "Clinic Appointments"}
-                  </h3>
-                  <Link to={access.diagnostic_appointments ? "/diagnostics/orders" : "/appointments"}>View all</Link>
-                </div>
-                <div className="crud-table-wrap">
-                  <table className="crud-table">
-                    <thead>
-                      <tr>
-                        {access.diagnostic_appointments && <th>Order</th>}
-                        <th>Patient</th>
-                        <th>Time</th>
-                        <th>{access.diagnostic_appointments ? "Test / Service" : "Doctor"}</th>
-                        <th>Status</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(data?.appointments || []).length === 0 && (
-                        <tr>
-                          <td colSpan={access.diagnostic_appointments ? 5 : 4} className="crud-empty">
-                            {access.diagnostic_appointments
-                              ? "No pending items in queue."
-                              : "No clinic appointments today."}
-                          </td>
-                        </tr>
-                      )}
-                      {(data?.appointments || []).map((row) => (
-                        <tr key={row.id}>
-                          {access.diagnostic_appointments && (
-                            <td>
-                              <strong className="today-centre-order-no">{row.order_number || "—"}</strong>
-                            </td>
-                          )}
-                          <td>
-                            <strong>{row.patient || "—"}</strong>
-                            {row.patient_code && <div className="crud-muted">{row.patient_code}</div>}
-                          </td>
-                          <td>{row.time || formatClock(row.scheduled_at)}</td>
-                          <td>{access.diagnostic_appointments ? (row.service || "—") : (row.doctor || "—")}</td>
-                          <td><span className={`today-pill today-pill--${row.status}`}>{STATUS_LABELS[row.status] || row.status}</span></td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </section>
-            )}
-
             {access.diagnostics && (
               <section className="today-centre-panel">
                 <div className="today-centre-panel-head">
