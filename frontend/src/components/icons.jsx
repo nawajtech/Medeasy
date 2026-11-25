@@ -259,6 +259,29 @@ export function IconReferral({ size = 20 }) {
   );
 }
 
+/** Partner partnership / inbound request */
+export function IconPartnerRequest({ size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="7.5" r="2.75" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M7 16.5c.9-2.2 2.7-3.5 5-3.5s4.1 1.3 5 3.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4.5 20.5h15M6 20.5v-2.2c0-.7.5-1.3 1.2-1.3h9.6c.7 0 1.2.6 1.2 1.3v2.2"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 11.5v3.2M10.4 13.1h3.2" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function IconLayers({ size = 20 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden="true">

@@ -53,6 +53,7 @@ export const menuItems = [
   // Directory — departments & referral partners
   { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "directory", tenantModule: "diagnostics" },
   { to: "/diagnostics/referrals", label: "Referral By", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "directory", tenantModule: "diagnostics" },
+  { to: "/diagnostics/partner-requests", label: "Requested partner referral", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "directory", tenantModule: "diagnostics" },
 
   // Laboratory
   { to: "/lab/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "laboratory", tenantModule: "laboratory" },
@@ -172,6 +173,7 @@ const routeRules = [
   { pattern: /^\/today-centre$/, permission: PERMISSIONS.DASHBOARD_VIEW },
   { pattern: /^\/diagnostics\/today$/, permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor" },
   { pattern: /^\/diagnostics\/chats$/, permission: PERMISSIONS.DASHBOARD_VIEW },
+  { pattern: /^\/diagnostics\/partner-requests$/, permission: PERMISSIONS.DIAGNOSTIC_VIEW },
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
   { pattern: /^\/diagnostics\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/lab\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },

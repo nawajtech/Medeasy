@@ -24,3 +24,16 @@ export const bookReferral = (payload) => partnerApi.post("/partner/bookings", pa
 export const listReferrals = (params) => partnerApi.get("/partner/referrals", { params });
 export const getReferral = (id) => partnerApi.get(`/partner/referrals/${id}`);
 export const getEarnings = () => partnerApi.get("/partner/earnings");
+
+export const listPartnerCenterChats = () => partnerApi.get("/partner/center-chats");
+export const getPartnerCenterChatUnread = () => partnerApi.get("/partner/center-chats/unread");
+export const startPartnerCenterChat = (payload) => partnerApi.post("/partner/center-chats", payload);
+export const getPartnerCenterChat = (id, params) =>
+  partnerApi.get(`/partner/center-chats/${id}`, { params });
+export const deletePartnerCenterChat = (id) => partnerApi.delete(`/partner/center-chats/${id}`);
+export const sendPartnerCenterChatMessage = (id, payload) => {
+  if (payload instanceof FormData) {
+    return partnerApi.post(`/partner/center-chats/${id}/messages`, payload);
+  }
+  return partnerApi.post(`/partner/center-chats/${id}/messages`, payload);
+};

@@ -22,6 +22,7 @@ import DiagnosticOrders from "./pages/DiagnosticOrders";
 import DiagnosticTodayQueue from "./pages/DiagnosticTodayQueue";
 import CenterChats from "./pages/CenterChats";
 import ReferralPartners from "./pages/ReferralPartners";
+import PartnerReferralRequests from "./pages/PartnerReferralRequests";
 import FinancialReport from "./pages/FinancialReport";
 import PatientChart from "./pages/PatientChart";
 import Roles from "./pages/Roles";
@@ -70,6 +71,7 @@ function App() {
                 <Route path="diagnostics" element={<DiagnosticCatalog />} />
                 <Route path="diagnostics/orders" element={<DiagnosticOrders />} />
                 <Route path="diagnostics/referrals" element={<ReferralPartners />} />
+                <Route path="diagnostics/partner-requests" element={<PartnerReferralRequests />} />
                 <Route path="diagnostics/today" element={<DiagnosticTodayQueue />} />
                 <Route path="diagnostics/chats" element={<CenterChats />} />
               </Route>

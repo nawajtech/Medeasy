@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useNavigate } from "react-router-dom";
+import { getPartnerCenterChatUnread } from "../api/portal";
 import { usePartnerAuth } from "../auth/PartnerAuthContext";
 
 const links = [
@@ -19,6 +21,16 @@ const links = [
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
         <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
         <path d="M5.5 9.5V20h13V9.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
+  },
+  {
+    to: "/chats",
+    label: "Chats",
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+        <path d="M5 6.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4.5 3v-3H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" strokeLinejoin="round" />
+        <path d="M8 10.5h8M8 13.5h5" strokeLinecap="round" />
       </svg>
     ),
   },
@@ -78,6 +90,25 @@ function initials(name = "") {
 export default function PartnerLayout() {
   const { partner, logout } = usePartnerAuth();
   const navigate = useNavigate();
+  const [chatUnread, setChatUnread] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { data } = await getPartnerCenterChatUnread();
+        if (active) setChatUnread(Number(data?.unread_count) || 0);
+      } catch {
+        if (active) setChatUnread(0);
+      }
+    };
+    load();
+    const timer = setInterval(load, 15000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -101,6 +132,9 @@ export default function PartnerLayout() {
               className={({ isActive }) => (isActive ? "is-active" : undefined)}
             >
               {link.label}
+              {link.to === "/chats" && chatUnread > 0 ? (
+                <span className="pt-nav-badge">{chatUnread > 9 ? "9+" : chatUnread}</span>
+              ) : null}
             </NavLink>
           ))}
         </nav>
@@ -140,7 +174,12 @@ export default function PartnerLayout() {
             end={link.end}
             className={({ isActive }) => (isActive ? "is-active" : undefined)}
           >
-            {link.icon}
+            <span className="pt-bottom-nav__icon">
+              {link.icon}
+              {link.to === "/chats" && chatUnread > 0 ? (
+                <span className="pt-nav-badge pt-nav-badge--dot">{chatUnread > 9 ? "9+" : chatUnread}</span>
+              ) : null}
+            </span>
             <span>{link.label}</span>
           </NavLink>
         ))}
