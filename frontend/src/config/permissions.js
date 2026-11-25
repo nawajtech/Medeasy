@@ -11,14 +11,6 @@ export const PERMISSIONS = {
   DOCTOR_CREATE: "doctor.create",
   DOCTOR_EDIT: "doctor.edit",
   DOCTOR_DELETE: "doctor.delete",
-  APPOINTMENT_VIEW: "appointment.view",
-  APPOINTMENT_CREATE: "appointment.create",
-  APPOINTMENT_EDIT: "appointment.edit",
-  APPOINTMENT_DELETE: "appointment.delete",
-  MEDICINE_VIEW: "medicine.view",
-  MEDICINE_CREATE: "medicine.create",
-  MEDICINE_EDIT: "medicine.edit",
-  MEDICINE_DELETE: "medicine.delete",
   LAB_VIEW: "lab.view",
   DIAGNOSTIC_VIEW: "diagnostic.view",
   REPORT_VIEW: "report.view",
@@ -34,9 +26,6 @@ export const PERMISSIONS = {
   ROLE_EDIT: "role.edit",
   ROLE_DELETE: "role.delete",
   ROLE_ASSIGN: "role.assign_permissions",
-  BILLING_VIEW: "billing.view",
-  BILLING_CREATE: "billing.create",
-  BILLING_DELETE: "billing.delete",
   FINANCIAL_VIEW: "financial.view",
   FINANCIAL_CREATE: "financial.create",
   FINANCIAL_DELETE: "financial.delete",
@@ -47,7 +36,6 @@ export const PERMISSIONS = {
 /** Sidebar sections — order defines display sequence. */
 export const MENU_SECTIONS = [
   { id: "overview", label: "Overview" },
-  { id: "clinic", label: "Clinic", description: "Patients, appointments & prescriptions" },
   { id: "directory", label: "Directory", description: "Departments & referrals" },
   { id: "laboratory", label: "Laboratory", description: "Tests, catalog & orders" },
   { id: "diagnostics", label: "Diagnostics", description: "Imaging & diagnostic orders" },
@@ -62,16 +50,8 @@ export const menuItems = [
   { to: "/today-centre", label: "Today's Centre", permission: PERMISSIONS.DASHBOARD_VIEW, section: "overview" },
   { to: "/patients", label: "Patients", permission: PERMISSIONS.PATIENT_VIEW, section: "overview" },
 
-  // Clinic
-  { to: "/appointments", label: "Appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, section: "clinic", tenantModule: "clinic" },
-  { to: "/appointments", label: "My appointments", permission: PERMISSIONS.APPOINTMENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
-  { to: "/patients", label: "My patients", permission: PERMISSIONS.PATIENT_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
-  { to: "/doctors", label: "Doctors", permission: PERMISSIONS.DOCTOR_VIEW, section: "clinic", tenantModule: "clinic" },
-  { to: "/my-schedule", label: "My schedule", permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor", section: "clinic", tenantModule: "clinic" },
-  { to: "/pharmacy/medicines", label: "Medicine Master", permission: PERMISSIONS.MEDICINE_VIEW, section: "clinic", tenantModule: "clinic" },
-
   // Directory — departments & referral partners
-  { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "directory", tenantModule: ["clinic", "diagnostics"] },
+  { to: "/departments", label: "Departments", permission: PERMISSIONS.DEPARTMENT_VIEW, section: "directory", tenantModule: "diagnostics" },
   { to: "/diagnostics/referrals", label: "Referral By", permission: PERMISSIONS.DIAGNOSTIC_VIEW, section: "directory", tenantModule: "diagnostics" },
 
   // Laboratory
@@ -87,7 +67,6 @@ export const menuItems = [
   { to: "/diagnostics/chats", label: "Partner chats", permission: PERMISSIONS.DASHBOARD_VIEW, section: "diagnostics", tenantModule: "diagnostics" },
 
   // Reports & Finance
-  { to: "/reports", label: "Reports", permission: PERMISSIONS.REPORT_VIEW, section: "reports", tenantModule: "clinic" },
   { to: "/finance", label: "Finance & P&L", permission: PERMISSIONS.FINANCIAL_VIEW, roleOnly: "company_admin", section: "reports" },
 
   // Administration
@@ -107,13 +86,13 @@ function tenantHasModule(modules, tenantModule) {
 }
 
 function resolveMenuSection(item) {
-  return item.section || "clinic";
+  return item.section || "overview";
 }
 
-/** Diagnostic-center doctor (no clinic module) — today queue only. */
+/** Diagnostic-centre doctor — today queue only. */
 export function isDiagnosticsOnlyDoctor(role, companyModules = null) {
   const modules = new Set(companyModules || []);
-  return role === "doctor" && modules.has("diagnostics") && !modules.has("clinic");
+  return role === "doctor" && modules.has("diagnostics");
 }
 
 /** Post-login / home path for the signed-in user. */
@@ -174,7 +153,7 @@ export function groupMenuItems(items) {
   const bySection = Object.fromEntries(MENU_SECTIONS.map((s) => [s.id, []]));
 
   for (const item of items) {
-    const sectionId = item.section || "clinic";
+    const sectionId = item.section || "overview";
     if (bySection[sectionId]) {
       bySection[sectionId].push(item);
     }
@@ -193,9 +172,7 @@ const routeRules = [
   { pattern: /^\/today-centre$/, permission: PERMISSIONS.DASHBOARD_VIEW },
   { pattern: /^\/diagnostics\/today$/, permission: PERMISSIONS.DIAGNOSTIC_VIEW, roleOnly: "doctor" },
   { pattern: /^\/diagnostics\/chats$/, permission: PERMISSIONS.DASHBOARD_VIEW },
-  { pattern: /^\/my-schedule$/, permission: PERMISSIONS.DOCTOR_VIEW, roleOnly: "doctor" },
   { pattern: /^\/patients\/\d+$/, permission: PERMISSIONS.PATIENT_VIEW },
-  { pattern: /^\/doctors\/\d+\/availability$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/diagnostics\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/lab\/doctors$/, permission: PERMISSIONS.DOCTOR_VIEW },
   { pattern: /^\/roles\/\d+$/, permission: PERMISSIONS.ROLE_VIEW },

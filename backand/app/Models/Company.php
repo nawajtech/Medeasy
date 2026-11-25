@@ -11,21 +11,17 @@ class Company extends Model
 {
     use SoftDeletes;
 
-    public const MODULE_CLINIC = 'clinic';
-
     public const MODULE_LABORATORY = 'laboratory';
 
     public const MODULE_DIAGNOSTICS = 'diagnostics';
 
     public const MODULES = [
-        self::MODULE_CLINIC => 'Clinic',
         self::MODULE_LABORATORY => 'Laboratory',
         self::MODULE_DIAGNOSTICS => 'Diagnostics',
     ];
 
     /** @deprecated Legacy single-type labels — use modules instead */
     public const TYPES = [
-        'clinic' => 'Clinic',
         'diagnostic_center' => 'Diagnostic Center',
         'pathology_lab' => 'Pathology Lab',
         'hospital' => 'Hospital',
@@ -104,11 +100,11 @@ class Company extends Model
             return match ($modules[0]) {
                 self::MODULE_LABORATORY => 'pathology_lab',
                 self::MODULE_DIAGNOSTICS => 'diagnostic_center',
-                default => 'clinic',
+                default => 'diagnostic_center',
             };
         }
 
-        return 'multi';
+        return $modules === [] ? 'diagnostic_center' : 'multi';
     }
 
     public function hasModule(string $module): bool
@@ -116,13 +112,12 @@ class Company extends Model
         return in_array($module, $this->modules ?? [], true);
     }
 
-    /** Diagnostic center without clinic module — doctors only see today's queue. */
+    /** Tenants with diagnostics focus (typical diagnostic centre workflow). */
     public function isDiagnosticsOnly(): bool
     {
         $modules = self::normalizeModules($this->modules ?? []);
 
-        return in_array(self::MODULE_DIAGNOSTICS, $modules, true)
-            && ! in_array(self::MODULE_CLINIC, $modules, true);
+        return in_array(self::MODULE_DIAGNOSTICS, $modules, true);
     }
 
     protected function modulesLabel(): Attribute
@@ -131,7 +126,7 @@ class Company extends Model
             $modules = self::normalizeModules($this->modules ?? []);
 
             if ($modules === []) {
-                return self::MODULES[self::MODULE_CLINIC];
+                return 'Diagnostics + Lab';
             }
 
             if ($modules === array_keys(self::MODULES)) {
@@ -174,11 +169,6 @@ class Company extends Model
     public function patients()
     {
         return $this->hasMany(Patient::class);
-    }
-
-    public function appointments()
-    {
-        return $this->hasMany(Appointment::class);
     }
 
     public function departments()

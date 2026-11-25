@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { openPrescription } from "../api/appointments";
 import { getPatientHistory, getPatientWallet } from "../api/patients";
 import { useAuth } from "../auth/AuthContext";
 import { modulesFromLegacyType, normalizeModules } from "../config/companyModules";
@@ -18,8 +17,6 @@ const WALLET_TYPE_LABELS = {
 
 const ALL_TABS = [
   { id: "overview", label: "Overview", icon: "📋" },
-  { id: "appointments", label: "Appointments", icon: "📅", module: "clinic" },
-  { id: "prescriptions", label: "Prescriptions", icon: "💊", module: "clinic" },
   { id: "labs", label: "Lab Reports", icon: "🧪", module: "laboratory" },
   { id: "diagnostics", label: "Diagnostics", icon: "🩻", module: "diagnostics" },
   { id: "wallet", label: "Wallet", icon: "💳" },
@@ -58,10 +55,6 @@ function getVisibleTabs(modules, permissions = []) {
 function getVisibleQuickStats(modules, summary) {
   const enabled = new Set(modules);
   const stats = [];
-  if (enabled.has("clinic")) {
-    stats.push({ key: "visits", value: summary.appointments, label: "Visits" });
-    stats.push({ key: "rx", value: summary.prescriptions, label: "Rx" });
-  }
   if (enabled.has("laboratory")) {
     stats.push({ key: "lab", value: summary.lab_orders, label: "Lab" });
   }
@@ -74,7 +67,7 @@ function getVisibleQuickStats(modules, summary) {
 function filterTimelineByModules(timeline, modules) {
   const enabled = new Set(modules);
   return timeline.filter((item) => {
-    if (item.type === "appointment") return enabled.has("clinic");
+    if (item.type === "appointment") return false;
     if (item.type === "lab_order") return enabled.has("laboratory");
     if (item.type === "diagnostic_order") return enabled.has("diagnostics");
     return true;
@@ -131,40 +124,6 @@ function VitalsGrid({ vitals }) {
 }
 
 function TimelineCard({ item }) {
-  if (item.type === "appointment") {
-    return (
-      <article className="patient-chart-timeline-card">
-        <div className="patient-chart-timeline-head">
-          <span className="patient-chart-timeline-type">Appointment</span>
-          <time>{formatDate(item.date)}</time>
-        </div>
-        <h3>{item.doctor_name || "Doctor"}</h3>
-        {item.department ? <p className="patient-chart-meta">{item.department}</p> : null}
-        <StatusBadge status={item.status} />
-        {item.reason ? <p><strong>Reason:</strong> {item.reason}</p> : null}
-        {item.notes ? <p><strong>Notes:</strong> {item.notes}</p> : null}
-        {item.prescription || item.prescription_file_url ? (
-          <div className="patient-chart-prescription-snippet">
-            <strong>Prescription</strong>
-            {item.prescription_type === "upload" && item.prescription_file_url ? (
-              <p>
-                <a href={item.prescription_file_url} target="_blank" rel="noreferrer">
-                  View uploaded prescription
-                </a>
-              </p>
-            ) : (
-              <pre>{item.prescription}</pre>
-            )}
-            <button type="button" className="patient-chart-link-btn" onClick={() => openPrescription(item.id)}>
-              Open prescription PDF
-            </button>
-          </div>
-        ) : null}
-        <VitalsGrid vitals={item.vitals} />
-      </article>
-    );
-  }
-
   if (item.type === "lab_order") {
     return (
       <article className="patient-chart-timeline-card">
@@ -294,7 +253,7 @@ function PatientChart() {
     );
   }
 
-  const { patient, summary, timeline, appointments, prescriptions, lab_orders, diagnostic_orders } = data;
+  const { patient, summary, timeline, lab_orders, diagnostic_orders } = data;
   const quickStats = getVisibleQuickStats(companyModules, summary);
   const filteredTimeline = filterTimelineByModules(timeline, companyModules);
   const activeTab = visibleTabs.some((t) => t.id === tab) ? tab : "overview";
@@ -346,7 +305,7 @@ function PatientChart() {
           <section className="patient-chart-section">
             <header className="patient-chart-section-header">
               <h1>Medical timeline</h1>
-              <p>All visits, prescriptions, lab and diagnostic reports — newest first.</p>
+              <p>Lab and diagnostic reports — newest first.</p>
             </header>
             {filteredTimeline.length === 0 ? (
               <p className="patient-chart-empty">No records yet for this patient.</p>
@@ -354,75 +313,6 @@ function PatientChart() {
               <div className="patient-chart-timeline">
                 {filteredTimeline.map((item) => (
                   <TimelineCard key={`${item.type}-${item.id}`} item={item} />
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === "appointments" && (
-          <section className="patient-chart-section">
-            <header className="patient-chart-section-header">
-              <h1>Appointments</h1>
-              <p>{appointments.length} visit(s) on record.</p>
-            </header>
-            {appointments.length === 0 ? (
-              <p className="patient-chart-empty">No appointments yet.</p>
-            ) : (
-              <div className="patient-chart-list">
-                {appointments.map((item) => (
-                  <article key={item.id} className="patient-chart-record-card">
-                    <div className="patient-chart-record-head">
-                      <time>{formatDate(item.date)}</time>
-                      <StatusBadge status={item.status} />
-                    </div>
-                    <h3>{item.doctor_name}</h3>
-                    {item.department ? <p className="patient-chart-meta">{item.department}</p> : null}
-                    {item.reason ? <p><strong>Reason:</strong> {item.reason}</p> : null}
-                    {item.notes ? <p><strong>Notes:</strong> {item.notes}</p> : null}
-                    <VitalsGrid vitals={item.vitals} />
-                    {item.billing ? (
-                      <p className="patient-chart-billing">
-                        Billed ₹{item.billing.total_amount} · Paid ₹{item.billing.paid_amount}
-                        {item.billing.due_amount > 0 ? ` · Due ₹${item.billing.due_amount}` : ""}
-                      </p>
-                    ) : null}
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {activeTab === "prescriptions" && (
-          <section className="patient-chart-section">
-            <header className="patient-chart-section-header">
-              <h1>Prescriptions</h1>
-              <p>Previous prescriptions from completed visits.</p>
-            </header>
-            {prescriptions.length === 0 ? (
-              <p className="patient-chart-empty">No prescriptions on file.</p>
-            ) : (
-              <div className="patient-chart-list">
-                {prescriptions.map((item) => (
-                  <article key={item.id} className="patient-chart-record-card">
-                    <div className="patient-chart-record-head">
-                      <time>{formatDate(item.date)}</time>
-                      <span className="patient-chart-meta">{item.doctor_name}</span>
-                    </div>
-                    {item.prescription_type === "upload" && item.prescription_file_url ? (
-                      <p>
-                        <a href={item.prescription_file_url} target="_blank" rel="noreferrer">
-                          View uploaded prescription
-                        </a>
-                      </p>
-                    ) : item.prescription ? (
-                      <pre className="patient-chart-prescription-text">{item.prescription}</pre>
-                    ) : null}
-                    <button type="button" className="patient-chart-link-btn" onClick={() => openPrescription(item.id)}>
-                      Download / print prescription
-                    </button>
-                  </article>
                 ))}
               </div>
             )}

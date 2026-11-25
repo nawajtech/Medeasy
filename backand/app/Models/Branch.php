@@ -35,11 +35,6 @@ class Branch extends Model
         return $this->hasMany(Doctor::class);
     }
 
-    public function appointments()
-    {
-        return $this->hasMany(Appointment::class);
-    }
-
     public function labOrders()
     {
         return $this->hasMany(LabOrder::class);

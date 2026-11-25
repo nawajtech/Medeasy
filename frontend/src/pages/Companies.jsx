@@ -18,7 +18,7 @@ import "./Companies.css";
 const emptyForm = {
   name: "",
   code: "",
-  modules: ["clinic"],
+  modules: ["diagnostics", "laboratory"],
   phone: "",
   email: "",
   address: "",
@@ -264,7 +264,7 @@ function Companies() {
     <section className="page-card companies-page">
       <div className="page-card-header">
         <h2>Organizations</h2>
-        <p>Manage organisations and choose which services each one offers: clinic, laboratory, and diagnostics.</p>
+        <p>Manage organisations and choose which services each one offers: laboratory and diagnostics.</p>
       </div>
 
       <div className="crud-toolbar">
@@ -391,7 +391,7 @@ function Companies() {
               <label htmlFor="co_name">{req("Organization name")}</label>
               <input
                 id="co_name" name="name" value={form.name} onChange={handleChange}
-                placeholder="e.g. Apollo Clinic" className={fieldErrors.name ? "is-error" : ""}
+                placeholder="e.g. Apollo Diagnostics" className={fieldErrors.name ? "is-error" : ""}
               />
               <FieldError msg={fieldErrors.name} />
             </div>
@@ -400,7 +400,7 @@ function Companies() {
             <div className="crud-field crud-field--full company-modules-field">
               <span className="company-modules-label">{req("Services offered")}</span>
               <p className="company-modules-hint">
-                Pick a quick preset or select modules individually. &quot;All services&quot; enables clinic, laboratory, and diagnostics.
+                Pick a quick preset or select modules individually. &quot;All services&quot; enables laboratory and diagnostics.
               </p>
               <div className="company-preset-row">
                 {MODULE_PRESETS.map((preset) => {
@@ -582,7 +582,7 @@ function Companies() {
                   <label htmlFor="co_admin_email">{req("Administrator email")}</label>
                   <input
                     id="co_admin_email" name="admin_email" type="email" value={form.admin_email} onChange={handleChange}
-                    placeholder="admin@clinic.com" className={fieldErrors.admin_email ? "is-error" : ""}
+                    placeholder="admin@example.com" className={fieldErrors.admin_email ? "is-error" : ""}
                   />
                   <FieldError msg={fieldErrors.admin_email} />
                 </div>

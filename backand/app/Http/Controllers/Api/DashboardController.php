@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
-use App\Models\Billing;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\DiagnosticOrder;
@@ -36,36 +34,27 @@ class DashboardController extends Controller
         $scopeLabel = $this->scopeLabel($companyId);
         $company = $companyId ? Company::find($companyId) : null;
 
-        $canBilling = $user->can('billing.view');
         $canPatients = $user->can('patient.view');
         $canDoctors = $user->can('doctor.view');
-        $canAppointments = $user->can('appointment.view');
         $canDepartments = $user->can('department.view');
         $canCompanies = $user->can('company.view');
         $canDiagnostics = $user->can('diagnostic.view');
         $canLab = $user->can('lab.view');
 
-        // When a specific clinic is selected, only count modules that clinic actually has.
         if ($company) {
             $modules = Company::normalizeModules($company->modules ?? []);
-            $hasClinic = $modules === [] || in_array(Company::MODULE_CLINIC, $modules, true);
-            $hasDiagnostics = in_array(Company::MODULE_DIAGNOSTICS, $modules, true);
-            $hasLab = in_array(Company::MODULE_LABORATORY, $modules, true);
-
-            $canAppointments = $canAppointments && $hasClinic;
-            $canDepartments = $canDepartments && $hasClinic;
-            $canDiagnostics = $canDiagnostics && $hasDiagnostics;
-            $canLab = $canLab && $hasLab;
-            // Appointment billing only applies to clinic module; diag/lab still show via their flags.
-            $canBilling = $canBilling && $hasClinic;
+            $canDiagnostics = $canDiagnostics && in_array(Company::MODULE_DIAGNOSTICS, $modules, true);
+            $canLab = $canLab && in_array(Company::MODULE_LABORATORY, $modules, true);
+            $canDepartments = $canDepartments && (
+                in_array(Company::MODULE_DIAGNOSTICS, $modules, true)
+                || in_array(Company::MODULE_LABORATORY, $modules, true)
+            );
         }
 
         $accessFlags = compact(
             'canPatients',
             'canDoctors',
-            'canAppointments',
             'canDepartments',
-            'canBilling',
             'canCompanies',
             'canDiagnostics',
             'canLab',
@@ -82,16 +71,13 @@ class DashboardController extends Controller
                 'from' => $dateFrom->format('Y-m-d'),
                 'to' => $dateTo->format('Y-m-d'),
             ],
-            'payment_overview' => ($canBilling || $canDiagnostics || $canLab) && ! $doctorId
+            'payment_overview' => ($canDiagnostics || $canLab) && ! $doctorId
                 ? $this->paymentOverview($companyId, $dateFrom, $dateTo, $accessFlags)
                 : null,
-            'patient_collections' => ($canAppointments || ($canBilling && ! $doctorId) || ($canDiagnostics && ! $doctorId) || ($canLab && ! $doctorId))
+            'patient_collections' => (($canDiagnostics && ! $doctorId) || ($canLab && ! $doctorId))
                 ? $this->patientCollectionsOverview($companyId, $doctorId, $dateFrom, $dateTo, $accessFlags)
                 : null,
-            'appointment_collections_by_month' => $canAppointments
-                ? $this->appointmentCollectionsByMonth($companyId, $doctorId, $dateFrom, $dateTo, $canBilling && ! $doctorId)
-                : [],
-            'companies_payment' => ($canBilling || $canDiagnostics || $canLab) && $user->isSuperAdmin() && ! $companyId && ! $doctorId
+            'companies_payment' => ($canDiagnostics || $canLab) && $user->isSuperAdmin() && ! $companyId && ! $doctorId
                 ? $this->companiesPaymentOverview($dateFrom, $dateTo)
                 : [],
             'summary' => $this->summary(
@@ -102,23 +88,11 @@ class DashboardController extends Controller
                 $dateTo,
                 $accessFlags
             ),
-            'appointments_by_status' => $canAppointments
-                ? $this->appointmentsByStatus($companyId, $doctorId, $dateFrom, $dateTo)
-                : [],
-            'appointments_by_month' => $canAppointments
-                ? $this->appointmentsByMonth($companyId, $doctorId, $dateFrom, $dateTo)
-                : [],
-            'billing_by_month' => $canBilling && ! $doctorId
-                ? $this->billingByMonth($companyId, $dateFrom, $dateTo)
-                : [],
             'doctor_performance' => $canDoctors
-                ? $this->doctorPerformance($companyId, $doctorId, $dateFrom, $dateTo, $accessFlags)
+                ? $this->doctorPerformance($companyId, $doctorId, $dateFrom, $dateTo)
                 : [],
             'companies_overview' => $canCompanies && $user->isSuperAdmin() && ! $companyId && ! $doctorId
                 ? $this->companiesOverview($dateFrom, $dateTo)
-                : [],
-            'recent_appointments' => $canAppointments
-                ? $this->recentAppointments($companyId, $doctorId, $dateFrom, $dateTo)
                 : [],
         ]);
     }
@@ -163,33 +137,16 @@ class DashboardController extends Controller
             return 'All companies';
         }
 
-        return Company::find($companyId)?->name ?? 'Clinic overview';
-    }
-
-    private function appointmentQuery(?int $companyId, ?int $doctorId, ?Carbon $from = null, ?Carbon $to = null)
-    {
-        $query = Appointment::query();
-
-        if ($doctorId) {
-            $query->where('doctor_id', $doctorId);
-        } elseif ($companyId) {
-            $query->where('company_id', $companyId);
-        }
-
-        if ($from && $to) {
-            $query->whereBetween('appointment_date', [$from, $to]);
-        }
-
-        return $query;
+        return Company::find($companyId)?->name ?? 'Centre overview';
     }
 
     private function patientQuery(?int $companyId, ?int $doctorId)
     {
         if ($doctorId) {
-            return Patient::whereHas(
-                'appointments',
-                fn ($q) => $q->where('doctor_id', $doctorId)
-            );
+            return Patient::where(function ($q) use ($doctorId) {
+                $q->whereHas('diagnosticOrders', fn ($dq) => $dq->where('doctor_id', $doctorId))
+                    ->orWhereHas('labOrders', fn ($lq) => $lq->where('doctor_id', $doctorId));
+            });
         }
 
         $query = Patient::query();
@@ -217,37 +174,8 @@ class DashboardController extends Controller
         return $query;
     }
 
-    private function billingQuery(?int $companyId, ?Carbon $from = null, ?Carbon $to = null)
-    {
-        $query = Billing::query()->where('status', '!=', 'cancelled');
-        if ($companyId) {
-            $query->where('company_id', $companyId);
-        }
-
-        if ($from && $to) {
-            $query->whereBetween('billed_at', [$from->toDateString(), $to->toDateString()]);
-        }
-
-        return $query;
-    }
-
-    private function billingQueryAllTime(?int $companyId)
-    {
-        $query = Billing::query()->where('status', '!=', 'cancelled');
-        if ($companyId) {
-            $query->where('company_id', $companyId);
-        }
-
-        return $query;
-    }
-
-    /**
-     * Collected revenue uses paid_at (fallback billed_at) for appointments,
-     * created_at for diagnostics, ordered_at for lab — aligned with FinancialSummaryService.
-     */
     private function paymentOverview(?int $companyId, Carbon $from, Carbon $to, array $flags = []): array
     {
-        $canBilling = $flags['canBilling'] ?? true;
         $canDiagnostics = $flags['canDiagnostics'] ?? true;
         $canLab = $flags['canLab'] ?? true;
 
@@ -259,33 +187,6 @@ class DashboardController extends Controller
         $periodCollected = 0.0;
         $periodTotal = 0.0;
         $outstandingDue = 0.0;
-
-        if ($canBilling) {
-            $billingBase = $this->billingQueryAllTime($companyId);
-
-            $todayRevenue += (float) (clone $billingBase)
-                ->where(function ($q) use ($today) {
-                    $q->whereDate('paid_at', $today)
-                        ->orWhere(function ($q2) use ($today) {
-                            $q2->whereNull('paid_at')->whereDate('billed_at', $today);
-                        });
-                })
-                ->sum('paid_amount');
-
-            $periodCollected += (float) (clone $billingBase)
-                ->where(function ($q) use ($fromDate, $toDate) {
-                    $q->whereBetween(DB::raw('DATE(paid_at)'), [$fromDate, $toDate])
-                        ->orWhere(function ($q2) use ($fromDate, $toDate) {
-                            $q2->whereNull('paid_at')
-                                ->whereBetween('billed_at', [$fromDate, $toDate]);
-                        });
-                })
-                ->sum('paid_amount');
-
-            $periodBilled = $this->billingQuery($companyId, $from, $to);
-            $periodTotal += (float) (clone $periodBilled)->sum('total_amount');
-            $outstandingDue += (float) (clone $periodBilled)->sum('due_amount');
-        }
 
         if ($canDiagnostics) {
             $diagBase = DiagnosticOrder::query()
@@ -339,10 +240,8 @@ class DashboardController extends Controller
     private function companyModuleFlags(Company $company): array
     {
         $modules = Company::normalizeModules($company->modules ?? []);
-        $hasClinic = $modules === [] || in_array(Company::MODULE_CLINIC, $modules, true);
 
         return [
-            'canBilling' => $hasClinic,
             'canDiagnostics' => in_array(Company::MODULE_DIAGNOSTICS, $modules, true),
             'canLab' => in_array(Company::MODULE_LABORATORY, $modules, true),
         ];
@@ -375,15 +274,36 @@ class DashboardController extends Controller
         Carbon $to,
         array $flags = [],
     ): array {
-        $today = Carbon::today();
         $canPatients = $flags['canPatients'] ?? true;
         $canDoctors = $flags['canDoctors'] ?? true;
-        $canAppointments = $flags['canAppointments'] ?? true;
         $canDepartments = $flags['canDepartments'] ?? true;
-        $canBilling = $flags['canBilling'] ?? true;
         $canCompanies = $flags['canCompanies'] ?? true;
+        $canDiagnostics = $flags['canDiagnostics'] ?? true;
+        $canLab = $flags['canLab'] ?? true;
 
-        $summary = [
+        $diagToday = 0;
+        $labToday = 0;
+        $today = Carbon::today();
+
+        if ($canDiagnostics) {
+            $diagToday = DiagnosticOrder::query()
+                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+                ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
+                ->whereDate('created_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->count();
+        }
+
+        if ($canLab) {
+            $labToday = LabOrder::query()
+                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
+                ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
+                ->whereDate('ordered_at', $today)
+                ->where('status', '!=', 'cancelled')
+                ->count();
+        }
+
+        return [
             'patients' => $canPatients ? $this->patientQuery($companyId, $doctorId)->count() : 0,
             'doctors' => $canDoctors ? ($doctorId ? 1 : $this->doctorQuery($companyId, $doctorId)->count()) : 0,
             'departments' => $canDepartments && ! $doctorId
@@ -391,114 +311,32 @@ class DashboardController extends Controller
                     ? Department::where('company_id', $companyId)->count()
                     : Department::count())
                 : 0,
-            'appointments_total' => $canAppointments
-                ? $this->appointmentQuery($companyId, $doctorId, $from, $to)->count()
-                : 0,
-            'appointments_today' => $canAppointments
-                ? $this->appointmentQuery($companyId, $doctorId)->whereDate('appointment_date', $today)->count()
-                : 0,
-            'billing_collected' => 0,
-            'billing_pending' => 0,
+            'diagnostic_orders_today' => $diagToday,
+            'lab_orders_today' => $labToday,
             'companies' => $canCompanies && $allCompanies ? Company::where('is_active', true)->count() : null,
         ];
-
-        if ($canBilling && ! $doctorId) {
-            $billing = $this->billingQuery($companyId, $from, $to);
-            $summary['billing_collected'] = (float) (clone $billing)->sum('paid_amount');
-            $summary['billing_pending'] = (float) (clone $billing)->sum('due_amount');
-        }
-
-        return $summary;
-    }
-
-    private function appointmentsByStatus(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
-    {
-        $rows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
-            ->select('status', DB::raw('count(*) as count'))
-            ->groupBy('status')
-            ->orderBy('status')
-            ->get();
-
-        return $rows->map(fn ($row) => [
-            'status' => $row->status,
-            'count' => (int) $row->count,
-        ])->values()->all();
-    }
-
-    private function appointmentsByMonth(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
-    {
-        $driver = DB::connection()->getDriverName();
-        $monthExpr = $driver === 'pgsql'
-            ? "to_char(appointment_date, 'YYYY-MM')"
-            : "DATE_FORMAT(appointment_date, '%Y-%m')";
-
-        $rows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
-            ->selectRaw("{$monthExpr} as month, count(*) as count")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->keyBy('month');
-
-        $result = [];
-        $cursor = $from->copy()->startOfMonth();
-        $end = $to->copy()->startOfMonth();
-
-        while ($cursor->lte($end)) {
-            $key = $cursor->format('Y-m');
-            $result[] = [
-                'month' => $key,
-                'label' => $cursor->format('M Y'),
-                'count' => (int) ($rows[$key]->count ?? 0),
-            ];
-            $cursor->addMonth();
-        }
-
-        return $result;
-    }
-
-    private function billingByMonth(?int $companyId, Carbon $from, Carbon $to): array
-    {
-        $driver = DB::connection()->getDriverName();
-        $monthExpr = $driver === 'pgsql'
-            ? "to_char(billed_at, 'YYYY-MM')"
-            : "DATE_FORMAT(billed_at, '%Y-%m')";
-
-        $rows = $this->billingQuery($companyId, $from, $to)
-            ->selectRaw("{$monthExpr} as month")
-            ->selectRaw('sum(paid_amount) as collected')
-            ->selectRaw('sum(due_amount) as pending')
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->keyBy('month');
-
-        $result = [];
-        $cursor = $from->copy()->startOfMonth();
-        $end = $to->copy()->startOfMonth();
-
-        while ($cursor->lte($end)) {
-            $key = $cursor->format('Y-m');
-            $row = $rows[$key] ?? null;
-            $result[] = [
-                'month' => $key,
-                'label' => $cursor->format('M Y'),
-                'collected' => round((float) ($row->collected ?? 0), 2),
-                'pending' => round((float) ($row->pending ?? 0), 2),
-            ];
-            $cursor->addMonth();
-        }
-
-        return $result;
     }
 
     private function companiesOverview(Carbon $from, Carbon $to): array
     {
+        $fromDate = $from->toDateString();
+        $toDate = $to->toDateString();
+
         return Company::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get()
-            ->map(function (Company $company) use ($from, $to) {
+            ->map(function (Company $company) use ($from, $to, $fromDate, $toDate) {
                 $payments = $this->paymentOverview($company->id, $from, $to, $this->companyModuleFlags($company));
+                $modules = Company::normalizeModules($company->modules ?? []);
+
+                $diagCount = in_array(Company::MODULE_DIAGNOSTICS, $modules, true)
+                    ? DiagnosticOrder::where('company_id', $company->id)
+                        ->where('status', '!=', 'cancelled')
+                        ->whereDate('created_at', '>=', $fromDate)
+                        ->whereDate('created_at', '<=', $toDate)
+                        ->count()
+                    : 0;
 
                 return [
                     'id' => $company->id,
@@ -507,9 +345,7 @@ class DashboardController extends Controller
                     'doctors' => Doctor::where('company_id', $company->id)
                         ->whereHas('user', fn ($q) => $q->where('status', true))
                         ->count(),
-                    'appointments' => Appointment::where('company_id', $company->id)
-                        ->whereBetween('appointment_date', [$from, $to])
-                        ->count(),
+                    'diagnostic_orders' => $diagCount,
                     'period_revenue' => $payments['period_revenue'],
                     'outstanding_due' => $payments['outstanding_due'],
                     'collection_rate' => $payments['collection_rate'],
@@ -519,13 +355,8 @@ class DashboardController extends Controller
             ->all();
     }
 
-    private function doctorPerformance(
-        ?int $companyId,
-        ?int $doctorId,
-        Carbon $from,
-        Carbon $to,
-        array $flags = [],
-    ): array {
+    private function doctorPerformance(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
+    {
         $showCompany = auth()->user()->isSuperAdmin() && ! $companyId && ! $doctorId;
         $fromDate = $from->toDateString();
         $toDate = $to->toDateString();
@@ -534,46 +365,6 @@ class DashboardController extends Controller
         $completedByDoctor = [];
         $revenueByDoctor = [];
 
-        // Clinic appointments (completed + patients + billing revenue)
-        $appointmentScope = Appointment::query()
-            ->whereBetween('appointment_date', [$from, $to])
-            ->where('status', '!=', 'cancelled')
-            ->whereNotNull('doctor_id')
-            ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
-            ->when($companyId && ! $doctorId, fn ($q) => $q->where('company_id', $companyId));
-
-        $patientPairs = $patientPairs->concat(
-            (clone $appointmentScope)->select('doctor_id', 'patient_id')->distinct()->get()
-        );
-
-        $appointmentCompleted = (clone $appointmentScope)
-            ->where('status', 'completed')
-            ->select('doctor_id')
-            ->selectRaw('COUNT(*) as completed')
-            ->groupBy('doctor_id')
-            ->pluck('completed', 'doctor_id');
-
-        foreach ($appointmentCompleted as $id => $count) {
-            $completedByDoctor[(int) $id] = ($completedByDoctor[(int) $id] ?? 0) + (int) $count;
-        }
-
-        $billingRevenue = Billing::query()
-            ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
-            ->whereBetween('appointments.appointment_date', [$from, $to])
-            ->where('appointments.status', '!=', 'cancelled')
-            ->where('billings.status', '!=', 'cancelled')
-            ->whereNotNull('appointments.doctor_id')
-            ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
-            ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId))
-            ->groupBy('appointments.doctor_id')
-            ->selectRaw('appointments.doctor_id, COALESCE(SUM(billings.paid_amount), 0) as revenue')
-            ->pluck('revenue', 'doctor_id');
-
-        foreach ($billingRevenue as $id => $amount) {
-            $revenueByDoctor[(int) $id] = ($revenueByDoctor[(int) $id] ?? 0) + (float) $amount;
-        }
-
-        // Diagnostic appointments/orders (this is what diagnostic centers use)
         $diagBase = DiagnosticOrder::query()
             ->whereRaw('DATE(COALESCE(scheduled_at, created_at)) BETWEEN ? AND ?', [$fromDate, $toDate])
             ->where('status', '!=', 'cancelled')
@@ -605,7 +396,6 @@ class DashboardController extends Controller
             $revenueByDoctor[(int) $id] = ($revenueByDoctor[(int) $id] ?? 0) + (float) $amount;
         }
 
-        // Lab orders
         $labBase = LabOrder::query()
             ->whereDate('ordered_at', '>=', $fromDate)
             ->whereDate('ordered_at', '<=', $toDate)
@@ -664,24 +454,6 @@ class DashboardController extends Controller
             ->all();
     }
 
-    private function recentAppointments(?int $companyId, ?int $doctorId, Carbon $from, Carbon $to): array
-    {
-        return $this->appointmentQuery($companyId, $doctorId, $from, $to)
-            ->with(['patient', 'doctor.user', 'company'])
-            ->orderByDesc('appointment_date')
-            ->limit(8)
-            ->get()
-            ->map(fn (Appointment $a) => [
-                'id' => $a->id,
-                'appointment_date' => $a->appointment_date,
-                'status' => $a->status,
-                'patient_name' => $a->patient?->name,
-                'doctor_name' => $a->doctor?->user?->name,
-                'company_name' => $a->company?->name,
-            ])
-            ->all();
-    }
-
     private function patientCollectionsOverview(
         ?int $companyId,
         ?int $doctorId,
@@ -689,14 +461,8 @@ class DashboardController extends Controller
         Carbon $to,
         array $flags,
     ): array {
-        $canAppointments = $flags['canAppointments'] ?? true;
-        $canBilling = ($flags['canBilling'] ?? true) && ! $doctorId;
         $canDiagnostics = ($flags['canDiagnostics'] ?? false) && ! $doctorId;
         $canLab = ($flags['canLab'] ?? false) && ! $doctorId;
-
-        $appointments = $canAppointments
-            ? $this->appointmentCollectionStats($companyId, $doctorId, $from, $to, $canBilling)
-            : null;
 
         $diagnostics = $canDiagnostics
             ? $this->diagnosticCollectionStats($companyId, $from, $to)
@@ -706,13 +472,9 @@ class DashboardController extends Controller
             ? $this->labCollectionStats($companyId, $from, $to)
             : null;
 
-        $totals = $this->mergeCollectionTotals($appointments, $diagnostics, $lab);
+        $totals = $this->mergeCollectionTotals($diagnostics, $lab);
 
         [$prevFrom, $prevTo] = $this->previousPeriod($from, $to);
-
-        $prevAppointments = $canAppointments
-            ? $this->appointmentCollectionStats($companyId, $doctorId, $prevFrom, $prevTo, $canBilling)
-            : null;
 
         $prevDiagnostics = $canDiagnostics
             ? $this->diagnosticCollectionStats($companyId, $prevFrom, $prevTo)
@@ -722,12 +484,11 @@ class DashboardController extends Controller
             ? $this->labCollectionStats($companyId, $prevFrom, $prevTo)
             : null;
 
-        $prevTotals = $this->mergeCollectionTotals($prevAppointments, $prevDiagnostics, $prevLab);
+        $prevTotals = $this->mergeCollectionTotals($prevDiagnostics, $prevLab);
 
-        $showMoney = $canBilling || $canDiagnostics || $canLab;
+        $showMoney = $canDiagnostics || $canLab;
 
         return [
-            'appointments' => $appointments,
             'diagnostics' => $diagnostics,
             'lab' => $lab,
             'totals' => $totals,
@@ -755,58 +516,6 @@ class DashboardController extends Controller
                     : null,
             ],
         ];
-    }
-
-    private function appointmentCollectionStats(
-        ?int $companyId,
-        ?int $doctorId,
-        Carbon $from,
-        Carbon $to,
-        bool $includeBilling,
-    ): array {
-        $pendingStatuses = ['booked', 'ongoing', 'scheduled', 'confirmed'];
-
-        $baseQuery = $this->appointmentQuery($companyId, $doctorId, $from, $to);
-
-        $completedCount = (clone $baseQuery)->where('status', 'completed')->count();
-        $pendingCount = (clone $baseQuery)->whereIn('status', $pendingStatuses)->count();
-        $cancelledCount = (clone $baseQuery)->where('status', 'cancelled')->count();
-
-        $stats = [
-            'completed_count' => $completedCount,
-            'pending_count' => $pendingCount,
-            'cancelled_count' => $cancelledCount,
-            'collected' => 0,
-            'outstanding' => 0,
-            'total_billed' => 0,
-            'collection_rate' => 0,
-            'completed_collected' => 0,
-            'completed_outstanding' => 0,
-        ];
-
-        if (! $includeBilling) {
-            return $stats;
-        }
-
-        $billingBase = Billing::query()
-            ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
-            ->whereBetween('appointments.appointment_date', [$from, $to])
-            ->where('billings.status', '!=', 'cancelled')
-            ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
-            ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId));
-
-        $completedBilling = (clone $billingBase)->where('appointments.status', 'completed');
-        $stats['completed_collected'] = round((float) (clone $completedBilling)->sum('billings.paid_amount'), 2);
-        $stats['completed_outstanding'] = round((float) (clone $completedBilling)->sum('billings.due_amount'), 2);
-
-        $stats['collected'] = round((float) (clone $billingBase)->sum('billings.paid_amount'), 2);
-        $stats['outstanding'] = round((float) (clone $billingBase)->sum('billings.due_amount'), 2);
-        $stats['total_billed'] = round((float) (clone $billingBase)->sum('billings.total_amount'), 2);
-        $stats['collection_rate'] = $stats['total_billed'] > 0
-            ? round(($stats['collected'] / $stats['total_billed']) * 100, 1)
-            : 0;
-
-        return $stats;
     }
 
     private function diagnosticCollectionStats(?int $companyId, Carbon $from, Carbon $to): array
@@ -906,69 +615,6 @@ class DashboardController extends Controller
             : 0;
 
         return $totals;
-    }
-
-    private function appointmentCollectionsByMonth(
-        ?int $companyId,
-        ?int $doctorId,
-        Carbon $from,
-        Carbon $to,
-        bool $includeBilling,
-    ): array {
-        $driver = DB::connection()->getDriverName();
-        $monthExpr = $driver === 'pgsql'
-            ? "to_char(appointments.appointment_date, 'YYYY-MM')"
-            : "DATE_FORMAT(appointments.appointment_date, '%Y-%m')";
-
-        $countRows = $this->appointmentQuery($companyId, $doctorId, $from, $to)
-            ->selectRaw("{$monthExpr} as month")
-            ->selectRaw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed_count")
-            ->selectRaw("SUM(CASE WHEN status IN ('booked', 'ongoing', 'scheduled', 'confirmed') THEN 1 ELSE 0 END) as pending_count")
-            ->groupBy('month')
-            ->orderBy('month')
-            ->get()
-            ->keyBy('month');
-
-        $billingRows = collect();
-
-        if ($includeBilling) {
-            $billingRows = Billing::query()
-                ->join('appointments', 'billings.appointment_id', '=', 'appointments.id')
-                ->whereBetween('appointments.appointment_date', [$from, $to])
-                ->where('billings.status', '!=', 'cancelled')
-                ->when($doctorId, fn ($q) => $q->where('appointments.doctor_id', $doctorId))
-                ->when($companyId && ! $doctorId, fn ($q) => $q->where('billings.company_id', $companyId))
-                ->selectRaw("{$monthExpr} as month")
-                ->selectRaw('COALESCE(SUM(billings.paid_amount), 0) as collected')
-                ->selectRaw('COALESCE(SUM(billings.due_amount), 0) as outstanding')
-                ->groupBy('month')
-                ->orderBy('month')
-                ->get()
-                ->keyBy('month');
-        }
-
-        $result = [];
-        $cursor = $from->copy()->startOfMonth();
-        $end = $to->copy()->startOfMonth();
-
-        while ($cursor->lte($end)) {
-            $key = $cursor->format('Y-m');
-            $counts = $countRows[$key] ?? null;
-            $billing = $billingRows[$key] ?? null;
-
-            $result[] = [
-                'month' => $key,
-                'label' => $cursor->format('M Y'),
-                'completed_count' => (int) ($counts->completed_count ?? 0),
-                'pending_count' => (int) ($counts->pending_count ?? 0),
-                'collected' => round((float) ($billing->collected ?? 0), 2),
-                'outstanding' => round((float) ($billing->outstanding ?? 0), 2),
-            ];
-
-            $cursor->addMonth();
-        }
-
-        return $result;
     }
 
     private function previousPeriod(Carbon $from, Carbon $to): array

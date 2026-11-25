@@ -137,7 +137,7 @@ function Departments() {
 
   const handleImportClick = () => {
     if (isSuperAdmin && !filterCompanyId) {
-      setError("Select a clinic before importing departments.");
+      setError("Select an organisation before importing departments.");
       return;
     }
     importInputRef.current?.click();
@@ -148,7 +148,7 @@ function Departments() {
     e.target.value = "";
     if (!file) return;
     if (isSuperAdmin && !filterCompanyId) {
-      setError("Select a clinic before importing departments.");
+      setError("Select an organisation before importing departments.");
       return;
     }
     setImporting(true);
@@ -183,8 +183,8 @@ function Departments() {
         <h2>Departments / Specialities</h2>
         <p>
           {isSuperAdmin
-            ? "Departments belong to a clinic. Each company has its own speciality list."
-            : `Departments for ${user?.company?.name || "your clinic"}.`}
+            ? "Departments belong to an organisation. Each company has its own speciality list."
+            : `Departments for ${user?.company?.name || "your organisation"}.`}
         </p>
       </div>
 
@@ -195,7 +195,7 @@ function Departments() {
             <CompanySelect
               variant="inline"
               allowAll
-              label="Filter clinic"
+              label="Filter organisation"
               id="dept_filter_company_id"
               value={filterCompanyId}
               onChange={(e) => setFilterCompanyId(e.target.value)}

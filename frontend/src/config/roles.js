@@ -6,14 +6,11 @@ export const ROLES = {
   LAB_TECHNICIAN: "lab_technician",
   RADIOLOGIST:    "radiologist",
   RECEPTIONIST:   "receptionist",
-  PHARMACIST:     "pharmacist",
 };
 
-const clinicMenu = [
+const directoryMenu = [
   { to: "/patients", label: "Patients" },
   { to: "/departments", label: "Departments" },
-  { to: "/doctors", label: "Doctors" },
-  { to: "/appointments", label: "Appointments" },
 ];
 
 const labMenu = [
@@ -28,40 +25,31 @@ const diagnosticsMenu = [
   { to: "/diagnostics/orders", label: "Diagnostic Orders" },
 ];
 
-const pharmacyMenu = [
-  { to: "/pharmacy/medicines", label: "Medicine Master" },
-];
-
 export const menuByRole = {
   [ROLES.SUPER_ADMIN]: [
     { to: "/", label: "Overview", end: true },
     { to: "/companies", label: "Companies" },
     { to: "/branches", label: "Branches" },
-    ...clinicMenu,
+    ...directoryMenu,
     ...labMenu,
     ...diagnosticsMenu,
-    ...pharmacyMenu,
-    { to: "/reports", label: "Reports" },
     { to: "/users", label: "Users" },
     { to: "/settings", label: "Settings" },
   ],
   [ROLES.COMPANY_ADMIN]: [
     { to: "/", label: "Overview", end: true },
     { to: "/branches", label: "Branches" },
-    ...clinicMenu,
+    ...directoryMenu,
     ...labMenu,
     ...diagnosticsMenu,
-    ...pharmacyMenu,
-    { to: "/reports", label: "Reports" },
     { to: "/users", label: "Users" },
     { to: "/settings", label: "Settings" },
   ],
   [ROLES.STAFF]: [
     { to: "/", label: "Overview", end: true },
-    ...clinicMenu,
+    ...directoryMenu,
     ...labMenu,
     ...diagnosticsMenu,
-    ...pharmacyMenu,
   ],
   [ROLES.LAB_TECHNICIAN]: [
     { to: "/", label: "Overview", end: true },
@@ -76,38 +64,21 @@ export const menuByRole = {
   [ROLES.RECEPTIONIST]: [
     { to: "/", label: "Overview", end: true },
     { to: "/patients", label: "Patients" },
-    { to: "/appointments", label: "Appointments" },
-    ...pharmacyMenu,
     ...labMenu,
     ...diagnosticsMenu,
   ],
   [ROLES.DOCTOR]: [
     { to: "/", label: "Overview", end: true },
-    { to: "/appointments", label: "My appointments" },
     { to: "/patients", label: "My patients" },
-    ...pharmacyMenu,
+    { to: "/diagnostics/today", label: "Today's appointments" },
     { to: "/lab/orders", label: "Lab Orders" },
     { to: "/diagnostics/orders", label: "Diagnostic Orders" },
-    { to: "/my-schedule", label: "My schedule" },
-  ],
-  [ROLES.PHARMACIST]: [
-    { to: "/", label: "Overview", end: true },
-    { to: "/patients", label: "Patients" },
-    ...pharmacyMenu,
   ],
 };
 
 export function canAccessRoute(role, path) {
-  if (path === "/my-schedule") {
-    return role === ROLES.DOCTOR;
-  }
-
   if (/^\/patients\/\d+$/.test(path)) {
     return (menuByRole[role] || []).some((item) => item.to === "/patients");
-  }
-
-  if (/^\/doctors\/\d+\/availability$/.test(path)) {
-    return [ROLES.SUPER_ADMIN, ROLES.COMPANY_ADMIN, ROLES.DOCTOR, ROLES.STAFF, ROLES.RECEPTIONIST].includes(role);
   }
 
   const items = menuByRole[role] || [];
