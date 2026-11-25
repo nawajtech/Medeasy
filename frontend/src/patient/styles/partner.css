@@ -32,8 +32,9 @@ html:has(.pt-auth) {
   --pt-shadow: 0 1px 2px rgba(23, 32, 51, 0.04), 0 6px 16px rgba(23, 32, 51, 0.04);
   --pt-font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --pt-sidebar-w: 248px;
+  --pt-rail-w: 76px;
   --pt-topbar-h: 56px;
-  --pt-bottom-h: 64px;
+  --pt-bottom-h: 0px;
   --pt-safe-top: env(safe-area-inset-top, 0px);
   --pt-safe-bottom: env(safe-area-inset-bottom, 0px);
   --pt-focus: 0 0 0 3px rgba(7, 155, 203, 0.18);
@@ -374,7 +375,7 @@ html:has(.pt-auth) {
 .pt-main {
   flex: 1;
   width: 100%;
-  padding: 16px 16px calc(var(--pt-bottom-h) + var(--pt-safe-bottom) + 20px);
+  padding: 14px 14px calc(18px + var(--pt-safe-bottom));
 }
 
 .pt-main__inner {
@@ -382,152 +383,91 @@ html:has(.pt-auth) {
   margin: 0 auto;
 }
 
-/* Bottom nav + more sheet — mobile */
-.pt-bottom-nav {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 40;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  min-height: calc(var(--pt-bottom-h) + var(--pt-safe-bottom));
-  padding: 6px 4px calc(6px + var(--pt-safe-bottom));
-  background: rgba(255, 255, 255, 0.96);
-  border-top: 1px solid var(--pt-line);
-  backdrop-filter: blur(12px);
+/* Mobile left icon rail (app-like side menu) */
+.pt-rail {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: var(--pt-rail-w);
+  flex-shrink: 0;
+  height: 100vh;
+  height: 100dvh;
+  padding: calc(8px + var(--pt-safe-top)) 4px calc(10px + var(--pt-safe-bottom));
+  background: var(--pt-white);
+  border-right: 1px solid var(--pt-line);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
 }
 
-.pt-bottom-nav a,
-.pt-bottom-nav__more {
+.pt-rail a,
+.pt-rail__logout {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 4px;
-  min-height: 56px;
+  width: 100%;
+  min-height: 64px;
+  padding: 6px 2px;
   border: 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: transparent;
   color: var(--pt-muted);
   text-decoration: none;
   font: inherit;
-  font-size: 0.68rem;
-  font-weight: 650;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.15;
+  text-align: center;
   cursor: pointer;
 }
 
-.pt-bottom-nav .pt-ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 11px;
-}
-
-.pt-bottom-nav a.is-active,
-.pt-bottom-nav__more.is-active {
+.pt-rail a.is-active {
   color: var(--pt-blue-dark);
   background: var(--pt-blue-soft);
+  box-shadow: inset 3px 0 0 var(--pt-blue);
 }
 
-.pt-bottom-nav a.is-active .pt-ico,
-.pt-bottom-nav__more.is-active .pt-ico {
-  box-shadow: 0 4px 12px rgba(7, 155, 203, 0.18);
-  transform: translateY(-1px);
+.pt-rail a.is-active .pt-ico {
+  transform: scale(1.05);
+  box-shadow: 0 4px 10px rgba(7, 155, 203, 0.16);
 }
 
-.pt-bottom-nav__icon {
+.pt-rail__icon {
   position: relative;
   display: inline-grid;
   place-items: center;
 }
 
-.pt-sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 50;
-  background: rgba(15, 23, 42, 0.4);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.2s ease;
+.pt-rail .pt-ico {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
 }
 
-.pt-sheet-backdrop.is-open {
-  opacity: 1;
-  pointer-events: auto;
+.pt-rail__label {
+  max-width: 100%;
+  padding: 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.pt-sheet {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 60;
-  padding: 10px 16px calc(18px + var(--pt-safe-bottom));
-  border-radius: 18px 18px 0 0;
-  background: var(--pt-white);
-  box-shadow: 0 -8px 28px rgba(23, 32, 51, 0.12);
-  transform: translateY(110%);
-  transition: transform 0.22s ease;
-}
-
-.pt-sheet.is-open {
-  transform: translateY(0);
-}
-
-.pt-sheet__handle {
-  width: 40px;
-  height: 4px;
-  margin: 0 auto 12px;
-  border-radius: 999px;
-  background: #d5dee8;
-}
-
-.pt-sheet__title {
-  margin: 0 0 10px;
-  font-size: 0.95rem;
-  font-weight: 700;
-}
-
-.pt-sheet__list {
-  display: grid;
-  gap: 4px;
-}
-
-.pt-sheet__list a,
-.pt-sheet__logout {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 52px;
-  padding: 10px 12px;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  color: var(--pt-ink);
-  text-decoration: none;
-  font: inherit;
-  font-size: 0.95rem;
-  font-weight: 600;
-  cursor: pointer;
-  text-align: left;
-}
-
-.pt-sheet__list a.is-active,
-.pt-sheet__list a:hover {
-  background: var(--pt-blue-soft);
-  color: var(--pt-blue-dark);
-}
-
-.pt-sheet__list a.is-active {
-  box-shadow: inset 3px 0 0 var(--pt-blue);
-}
-
-.pt-sheet__logout {
+.pt-rail__logout {
+  margin-top: auto;
   color: var(--pt-danger);
 }
 
-.pt-sheet__logout:hover {
-  background: var(--pt-danger-soft);
+.pt-bottom-nav,
+.pt-sheet,
+.pt-sheet-backdrop {
+  display: none !important;
 }
 
 /* Typography / page chrome */
@@ -1442,7 +1382,7 @@ html:has(.pt-auth) {
 }
 
 .pt-cc-page {
-  height: calc(100dvh - var(--pt-topbar-h) - var(--pt-bottom-h) - var(--pt-safe-top) - var(--pt-safe-bottom) - 36px);
+  height: calc(100dvh - var(--pt-topbar-h) - var(--pt-safe-top) - 28px);
   min-height: 0;
   margin-bottom: 0;
 }
@@ -1613,6 +1553,7 @@ html:has(.pt-auth) {
     display: flex;
   }
 
+  .pt-rail,
   .pt-topbar,
   .pt-bottom-nav,
   .pt-sheet,
@@ -1682,6 +1623,33 @@ html:has(.pt-auth) {
     margin-top: 0;
   }
 
+  .pt-topbar {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .pt-dash-hero {
+    padding: 14px;
+  }
+
+  .pt-dash-hero p {
+    font-size: 0.85rem;
+  }
+
+  .pt-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .pt-stat {
+    min-height: 78px;
+    padding: 12px;
+  }
+
+  .pt-stat strong {
+    font-size: 1.1rem;
+  }
+
   .pt-card-row {
     flex-direction: column;
   }
@@ -1694,5 +1662,22 @@ html:has(.pt-auth) {
 
   .pt-card-row__right .pt-btn {
     width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .pt-rail {
+    width: 68px;
+  }
+
+  .pt-rail a,
+  .pt-rail__logout {
+    min-height: 58px;
+    font-size: 0.58rem;
+  }
+
+  .pt-rail .pt-ico {
+    width: 30px;
+    height: 30px;
   }
 }
