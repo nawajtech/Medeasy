@@ -52,7 +52,9 @@ export default function PartnerDashboard() {
   return (
     <div>
       <section className="pt-dash-hero">
-        <p className="pt-page-header__eyebrow">ApnaMedi Partner Portal</p>
+        <p className="pt-page-header__eyebrow" style={{ color: "rgba(255,255,255,0.88)" }}>
+          ApnaMedi Partner Portal
+        </p>
         <h1>Hi {firstName}, grow your referral network</h1>
         <p>Connect with diagnostic centres, track referrals, and monitor earnings in one place.</p>
         <div className="pt-dash-hero__actions">
