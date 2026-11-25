@@ -18,8 +18,6 @@ import "./AuditTrail.css";
 
 const MODULE_LABELS = {
   patients: "Patients",
-  appointments: "Appointments",
-  billing: "Billing",
   lab: "Laboratory",
   diagnostics: "Diagnostics",
   users: "Users",
@@ -31,7 +29,6 @@ const MODULE_LABELS = {
   departments: "Departments",
   branches: "Branches",
   reports: "Reports",
-  medicine: "Medicine",
   companies: "Companies",
   documents: "Documents",
 };

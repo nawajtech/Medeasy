@@ -234,7 +234,7 @@ function DoctorPerformanceTable({ rows, showCompanyCol, startRank = 1 }) {
 function Dashboard() {
   const { user, isSuperAdmin, isDoctor, isCompanyAdmin, isStaff } = useAuth();
   const { can } = usePermissions();
-  const showAdminPayments = !isDoctor && (isSuperAdmin || isCompanyAdmin || isStaff) && can(PERMISSIONS.BILLING_VIEW);
+  const showAdminPayments = !isDoctor && (isSuperAdmin || isCompanyAdmin || isStaff) && can(PERMISSIONS.FINANCIAL_VIEW);
 
   const initialRange = useMemo(() => defaultDateRange(), []);
   const [dateFrom, setDateFrom] = useState(initialRange.from);
@@ -293,18 +293,11 @@ function Dashboard() {
 
   if (!data) return null;
 
-  const { summary, appointments_by_status, appointments_by_month, billing_by_month, payment_overview, patient_collections } =
-    data;
-  const statusData = appointments_by_status.map((row) => ({
-    name: row.status.charAt(0).toUpperCase() + row.status.slice(1),
-    value: row.count,
-    status: row.status,
-  }));
+  const { summary, payment_overview, patient_collections } = data;
 
-  const showBillingChart = can(PERMISSIONS.BILLING_VIEW) && !isDoctor && billing_by_month.length > 0;
   const showCompaniesOverview = can(PERMISSIONS.COMPANY_VIEW) && data.companies_overview?.length > 0;
   const showCompaniesPaymentGrid =
-    can(PERMISSIONS.BILLING_VIEW) && isSuperAdmin && !filterCompanyId && data.companies_payment?.length > 0;
+    can(PERMISSIONS.FINANCIAL_VIEW) && isSuperAdmin && !filterCompanyId && data.companies_payment?.length > 0;
 
   const doctorPerformance = (data.doctor_performance ?? []).filter(
     (row) => (row.patients ?? 0) > 0 || (row.completed ?? 0) > 0 || (row.revenue ?? 0) > 0,
@@ -317,16 +310,14 @@ function Dashboard() {
 
   const quickStats = [
     { label: "Patients", value: summary.patients },
-    { label: "Appointments", value: summary.appointments_total },
-    { label: "Today", value: summary.appointments_today },
-    ...(summary.companies != null ? [{ label: "Clinics", value: summary.companies }] : []),
+    ...(summary.companies != null ? [{ label: "Organisations", value: summary.companies }] : []),
   ];
 
   const statCardConfig = [
     ...(!isDoctor && summary.companies != null && can(PERMISSIONS.COMPANY_VIEW)
       ? [{
           key: "companies",
-          label: "Active clinics",
+          label: "Active organisations",
           value: summary.companies,
           hint: "In your network",
           accent: true,
@@ -349,23 +340,6 @@ function Dashboard() {
           value: summary.doctors,
           hint: isDoctor ? "Your profile" : "Active doctors",
           icon: IconStethoscope,
-        }]
-      : []),
-    ...(can(PERMISSIONS.APPOINTMENT_VIEW)
-      ? [{
-          key: "appointments",
-          label: "Appointments in range",
-          value: summary.appointments_total,
-          hint: doctorRangeLabel || "Selected period",
-          accent: true,
-          icon: IconCalendarDays,
-        },
-        {
-          key: "today",
-          label: "Today's appointments",
-          value: summary.appointments_today,
-          hint: "Scheduled for today",
-          icon: IconCalendar,
         }]
       : []),
     ...(!isDoctor && can(PERMISSIONS.DEPARTMENT_VIEW)
@@ -417,15 +391,11 @@ function Dashboard() {
   const collectionTotals = collections?.totals;
   const collectionGrowth = collections?.growth;
   const showCollectionMoney = !isDoctor && (
-    can(PERMISSIONS.BILLING_VIEW)
+    can(PERMISSIONS.FINANCIAL_VIEW)
     || can(PERMISSIONS.DIAGNOSTIC_VIEW)
     || can(PERMISSIONS.LAB_VIEW)
   );
   const showPatientCollections = Boolean(collections && collectionTotals);
-  const appointmentCollectionsChart = data.appointment_collections_by_month ?? [];
-  const showAppointmentCollectionsChart = appointmentCollectionsChart.some(
-    (row) => row.completed_count > 0 || row.pending_count > 0 || row.collected > 0 || row.outstanding > 0,
-  );
 
   const patientCollectionCards = showPatientCollections
     ? [
@@ -433,9 +403,7 @@ function Dashboard() {
           key: "completed",
           label: "Completed visits",
           value: collectionTotals.completed_count,
-          hint: showCollectionMoney && collections?.appointments
-            ? `${formatMoney(collections.appointments.completed_collected)} collected`
-            : "Successfully finished in range",
+          hint: "Successfully finished in range",
           accent: true,
           growth: collectionGrowth?.completed_percent,
         },
@@ -495,8 +463,8 @@ function Dashboard() {
               : isCompanyAdmin
                 ? `Organisation overview for ${user?.company?.name || "your hospital"}.`
                 : isDoctor
-                  ? "Your appointments and assigned patients at a glance."
-                  : "Clinic analytics and payment overview for your organization."}
+                  ? "Your diagnostic queue and assigned patients at a glance."
+                  : "Analytics and payment overview for your organization."}
           </p>
           <span className="dashboard-scope-badge">
             Viewing: <strong>{data.scope_label}</strong>
@@ -519,7 +487,7 @@ function Dashboard() {
               <CompanySelect
                 variant="inline"
                 allowAll
-                label="Clinic"
+                label="Organisation"
                 id="dashboard_company_id"
                 value={filterCompanyId}
                 onChange={(e) => setFilterCompanyId(e.target.value)}
@@ -640,16 +608,9 @@ function Dashboard() {
             ))}
           </div>
 
-          {(collections?.appointments || collections?.diagnostics || collections?.lab) && (
+          {(collections?.diagnostics || collections?.lab) && (
             <div className="dashboard-collection-breakdown">
               <h3>By service</h3>
-              {collections.appointments && (
-                <CollectionSourceRow
-                  label="Appointments"
-                  stats={collections.appointments}
-                  showMoney={showCollectionMoney}
-                />
-              )}
               {collections.diagnostics && (
                 <CollectionSourceRow
                   label="Diagnostics"
@@ -672,7 +633,7 @@ function Dashboard() {
       {showCompaniesPaymentGrid && (
         <section className="dashboard-payments-section">
           <div className="dashboard-section-head">
-            <h2>Payments by clinic</h2>
+            <h2>Payments by organisation</h2>
             <p>Per-company summary for the selected date range</p>
           </div>
           <div className="dashboard-companies-payment-grid">
@@ -711,7 +672,7 @@ function Dashboard() {
               <p>
                 {hasMoreDoctors
                   ? `Top ${DOCTOR_PERFORMANCE_PREVIEW} by revenue · ${doctorRangeLabel}`
-                  : `Completed appointments & order collections · ${doctorRangeLabel}`}
+                  : `Completed order collections · ${doctorRangeLabel}`}
               </p>
             </div>
             {hasMoreDoctors && (
@@ -790,7 +751,7 @@ function Dashboard() {
       <div className="dashboard-charts">
         {showCompaniesOverview && (
           <div className="dashboard-chart-card dashboard-chart-card--wide">
-            <h3>Clinics overview</h3>
+            <h3>Organisations overview</h3>
             <p className="chart-subtitle">Activity in selected date range</p>
             <div className="dashboard-chart-body">
               <ResponsiveContainer width="100%" height="100%">
@@ -810,7 +771,6 @@ function Dashboard() {
                   <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
                   <Tooltip content={<ChartTooltipContent valueFormatter={(v, name) => (name === "Revenue" ? formatMoney(v) : v)} />} />
                   <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
-                  <Bar dataKey="appointments" name="Appointments" fill="url(#amberBarGrad)" radius={[8, 8, 0, 0]} />
                   <Bar dataKey="period_revenue" name="Revenue" fill="url(#tealBarGrad)" radius={[8, 8, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
@@ -818,196 +778,7 @@ function Dashboard() {
           </div>
         )}
 
-        <div className="dashboard-chart-card">
-          <h3>Appointments by status</h3>
-          <p className="chart-subtitle">In selected date range</p>
-          <div className="dashboard-chart-body">
-            {statusData.length === 0 ? (
-              <p className="crud-empty" style={{ paddingTop: 80 }}>
-                No appointments in this range.
-              </p>
-            ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={statusData}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={95}
-                    paddingAngle={3}
-                  >
-                    {statusData.map((entry) => (
-                      <Cell key={entry.status} fill={STATUS_COLORS[entry.status] || "#94a3b8"} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<ChartTooltipContent />} />
-                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            )}
-          </div>
-        </div>
-
-        <div className="dashboard-chart-card">
-          <h3>Appointments trend</h3>
-          <p className="chart-subtitle">By month in range</p>
-          <div className="dashboard-chart-body">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={appointments_by_month} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                <defs>
-                  <linearGradient id="trendBarGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
-                    <stop offset="100%" stopColor={CHART_TEAL} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" name="Appointments" fill="url(#trendBarGrad)" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
-        {showAppointmentCollectionsChart && (
-          <div className="dashboard-chart-card dashboard-chart-card--wide">
-            <h3>Appointment collections</h3>
-            <p className="chart-subtitle">Completed visits and amounts by month</p>
-            <div className="dashboard-chart-body">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={appointmentCollectionsChart} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                  <defs>
-                    <linearGradient id="completedCountGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#4ade80" />
-                      <stop offset="100%" stopColor="#16a34a" />
-                    </linearGradient>
-                    <linearGradient id="pendingCountGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#93c5fd" />
-                      <stop offset="100%" stopColor={CHART_BLUE} />
-                    </linearGradient>
-                    <linearGradient id="apptCollectedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
-                      <stop offset="100%" stopColor={CHART_TEAL} />
-                    </linearGradient>
-                    <linearGradient id="apptOutstandingGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="100%" stopColor={CHART_AMBER} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  <YAxis yAxisId="count" allowDecimals={false} tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  {showCollectionMoney && (
-                    <YAxis
-                      yAxisId="money"
-                      orientation="right"
-                      tick={{ fontSize: 12, fill: "#64748b" }}
-                      tickFormatter={(v) => `${currencySymbol()}${v}`}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                  )}
-                  <Tooltip
-                    content={
-                      <ChartTooltipContent
-                        valueFormatter={(v, name) => {
-                          if (["Collected", "Outstanding"].includes(name)) return formatMoney(v);
-                          return v;
-                        }}
-                      />
-                    }
-                  />
-                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
-                  <Bar yAxisId="count" dataKey="completed_count" name="Completed" fill="url(#completedCountGrad)" radius={[8, 8, 0, 0]} />
-                  <Bar yAxisId="count" dataKey="pending_count" name="Pending" fill="url(#pendingCountGrad)" radius={[8, 8, 0, 0]} />
-                  {showCollectionMoney && (
-                    <>
-                      <Bar yAxisId="money" dataKey="collected" name="Collected" fill="url(#apptCollectedGrad)" radius={[8, 8, 0, 0]} />
-                      <Bar yAxisId="money" dataKey="outstanding" name="Outstanding" fill="url(#apptOutstandingGrad)" radius={[8, 8, 0, 0]} />
-                    </>
-                  )}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
-
-        {showBillingChart && (
-          <div className="dashboard-chart-card dashboard-chart-card--wide">
-            <h3>Billing trend</h3>
-            <p className="chart-subtitle">Collected vs outstanding in range</p>
-            <div className="dashboard-chart-body">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={billing_by_month} margin={{ top: 12, right: 20, left: 0, bottom: 8 }}>
-                  <defs>
-                    <linearGradient id="collectedGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={CHART_TEAL_LIGHT} />
-                      <stop offset="100%" stopColor={CHART_TEAL} />
-                    </linearGradient>
-                    <linearGradient id="pendingGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#fbbf24" />
-                      <stop offset="100%" stopColor={CHART_AMBER} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                  <XAxis dataKey="label" tick={{ fontSize: 12, fill: "#64748b" }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 12, fill: "#64748b" }} tickFormatter={(v) => `${currencySymbol()}${v}`} axisLine={false} tickLine={false} />
-                  <Tooltip content={<ChartTooltipContent valueFormatter={(v) => formatMoney(v)} />} />
-                  <Legend wrapperStyle={{ fontSize: 13, paddingTop: 12 }} />
-                  <Bar dataKey="collected" name="Collected" fill="url(#collectedGrad)" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="pending" name="Outstanding" fill="url(#pendingGrad)" radius={[8, 8, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        )}
       </div>
-
-      <section className="dashboard-recent">
-        <h3>Recent appointments</h3>
-        <p className="chart-subtitle" style={{ marginTop: -8, marginBottom: 14 }}>
-          Latest in selected date range
-        </p>
-        <div className="crud-table-wrap">
-          <table className="crud-table">
-            <thead>
-              <tr>
-                {isSuperAdmin && !filterCompanyId && <th>Clinic</th>}
-                <th>Date</th>
-                <th>Patient</th>
-                <th>Doctor</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.recent_appointments.length === 0 && (
-                <tr>
-                  <td colSpan={isSuperAdmin && !filterCompanyId ? 5 : 4} className="crud-empty">
-                    No appointments in this range.
-                  </td>
-                </tr>
-              )}
-              {data.recent_appointments.map((row) => (
-                <tr key={row.id}>
-                  {isSuperAdmin && !filterCompanyId && (
-                    <td>
-                      <span className="tenant-company-badge">{row.company_name || "—"}</span>
-                    </td>
-                  )}
-                  <td>{formatDateTime(row.appointment_date)}</td>
-                  <td>{row.patient_name || "—"}</td>
-                  <td>{row.doctor_name || "—"}</td>
-                  <td>{row.status}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
 
       {loading && data && (
         <div className="dashboard-refreshing" aria-live="polite">

@@ -22,12 +22,9 @@ class AuditDocumentAccess
         $action = null;
         $module = 'documents';
 
-        if (str_contains($path, '/invoice')) {
+        if (str_contains($path, '/invoice') || str_contains($path, '/prescription')) {
             $action = 'print';
-            $module = str_contains($path, 'diagnostics') ? 'diagnostics' : 'billing';
-        } elseif (str_contains($path, '/prescription')) {
-            $action = 'print';
-            $module = str_contains($path, 'diagnostics') ? 'diagnostics' : 'appointments';
+            $module = 'diagnostics';
         }
 
         if (! $action) {

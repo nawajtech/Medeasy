@@ -13,7 +13,7 @@ class ReportController extends Controller
 {
     use HandlesTenancy;
 
-    private const TYPES = ['appointments', 'billing', 'patients', 'doctors', 'custom'];
+    private const TYPES = ['patients', 'doctors', 'diagnostics', 'lab', 'custom'];
 
     private const STATUSES = ['draft', 'published'];
 

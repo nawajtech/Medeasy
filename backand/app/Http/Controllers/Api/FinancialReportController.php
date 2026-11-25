@@ -128,8 +128,7 @@ class FinancialReportController extends Controller
                 'nullable',
                 'integer',
                 Rule::exists('doctors', 'id')->where(fn ($q) => $q
-                    ->where('company_id', $companyId)
-                    ->where('doctor_type', Doctor::TYPE_CLINIC)),
+                    ->where('company_id', $companyId)),
             ],
         ]);
 

@@ -4,9 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
 use App\Models\AuditLog;
-use App\Models\Billing;
 use App\Models\DiagnosticOrder;
 use App\Models\LabOrder;
 use App\Models\Patient;
@@ -84,7 +82,6 @@ class AuditLogController extends Controller
             'patient_id' => ['nullable', 'integer', 'exists:patients,id'],
             'lab_order_id' => ['nullable', 'integer', 'exists:lab_orders,id'],
             'diagnostic_order_id' => ['nullable', 'integer', 'exists:diagnostic_orders,id'],
-            'billing_id' => ['nullable', 'integer', 'exists:billings,id'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -97,14 +94,10 @@ class AuditLogController extends Controller
             $patient = Patient::findOrFail((int) $request->patient_id);
             $this->assertTenantAccess($patient);
             $pairs[] = ['patient', $patient->id];
-            Appointment::where('patient_id', $patient->id)->pluck('id')
-                ->each(fn ($id) => $pairs[] = ['appointment', $id]);
             LabOrder::where('patient_id', $patient->id)->pluck('id')
                 ->each(fn ($id) => $pairs[] = ['lab_order', $id]);
             DiagnosticOrder::where('patient_id', $patient->id)->pluck('id')
                 ->each(fn ($id) => $pairs[] = ['diagnostic_order', $id]);
-            Billing::where('patient_id', $patient->id)->pluck('id')
-                ->each(fn ($id) => $pairs[] = ['billing', $id]);
         }
 
         if ($request->filled('lab_order_id')) {
@@ -119,14 +112,8 @@ class AuditLogController extends Controller
             $pairs[] = ['diagnostic_order', $order->id];
         }
 
-        if ($request->filled('billing_id')) {
-            $billing = Billing::findOrFail((int) $request->billing_id);
-            $this->assertTenantAccess($billing);
-            $pairs[] = ['billing', $billing->id];
-        }
-
         if ($pairs === []) {
-            return response()->json(['message' => 'Provide patient_id, lab_order_id, diagnostic_order_id, or billing_id.'], 422);
+            return response()->json(['message' => 'Provide patient_id, lab_order_id, or diagnostic_order_id.'], 422);
         }
 
         $logs = AuditLog::query()

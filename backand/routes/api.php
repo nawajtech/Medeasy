@@ -1,8 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\AppointmentController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\DashboardController;
@@ -11,14 +9,12 @@ use App\Http\Controllers\Api\DiagnosticCategoryController;
 use App\Http\Controllers\Api\DiagnosticOrderController;
 use App\Http\Controllers\Api\DiagnosticPackageController;
 use App\Http\Controllers\Api\DiagnosticTestTypeController;
-use App\Http\Controllers\Api\DoctorAvailabilityController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\FinancialReportController;
 use App\Http\Controllers\Api\LabOrderController;
 use App\Http\Controllers\Api\LabTestCategoryController;
 use App\Http\Controllers\Api\LabTestController;
 use App\Http\Controllers\Api\LabTestPackageController;
-use App\Http\Controllers\Api\MedicineController;
 use App\Http\Controllers\Api\PatientController;
 use App\Http\Controllers\Api\PermissionController;
 use App\Http\Controllers\Api\ReferralPartnerController;
@@ -203,14 +199,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('dashboard', [DashboardController::class, 'index']);
     Route::get('ops/today-centre', [TodayCentreController::class, 'show']);
 
-    // ── Pharmacy / Medicine ───────────────────────────────────────
-    Route::middleware('permission:medicine.view')->get('pharmacy/medicines', [MedicineController::class, 'index']);
-    Route::middleware('permission:medicine.view')->get('pharmacy/medicines/export', [MedicineController::class, 'export']);
-    Route::middleware('permission:medicine.create')->post('pharmacy/medicines', [MedicineController::class, 'store']);
-    Route::middleware('permission:medicine.create')->post('pharmacy/medicines/import', [MedicineController::class, 'import']);
-    Route::middleware('permission:medicine.edit')->put('pharmacy/medicines/{medicine}', [MedicineController::class, 'update']);
-    Route::middleware('permission:medicine.delete')->delete('pharmacy/medicines/{medicine}', [MedicineController::class, 'destroy']);
-
     // ── Patients ──────────────────────────────────────────────────
     Route::middleware('permission:patient.view')->group(function () {
         Route::get('patients/export', [PatientController::class, 'export']);
@@ -219,7 +207,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('patients/{patient}', [PatientController::class, 'show']);
         Route::get('patients/{patient}/history', [PatientController::class, 'history']);
         Route::get('patients/{patient}/wallet', [PatientController::class, 'wallet']);
-        Route::get('patients/{patient}/billing-balance', [BillingController::class, 'patientBalance']);
     });
     Route::middleware('permission:patient.create')->group(function () {
         Route::post('patients/import', [PatientController::class, 'import']);
@@ -234,44 +221,13 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('doctors', [DoctorController::class, 'index']);
         Route::middleware('permission:doctor.create')->get('doctors/import-template', [DoctorController::class, 'importTemplate']);
         Route::get('doctors/{doctor}', [DoctorController::class, 'show']);
-        Route::get('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'index']);
-        Route::post('doctors/{doctor}/availability/check', [DoctorAvailabilityController::class, 'check']);
     });
     Route::middleware('permission:doctor.create')->group(function () {
         Route::post('doctors/import', [DoctorController::class, 'import']);
         Route::post('doctors', [DoctorController::class, 'store']);
     });
-    Route::middleware('permission:doctor.edit')->group(function () {
-        Route::put('doctors/{doctor}', [DoctorController::class, 'update']);
-        Route::put('doctors/{doctor}/availabilities', [DoctorAvailabilityController::class, 'sync']);
-    });
+    Route::middleware('permission:doctor.edit')->put('doctors/{doctor}', [DoctorController::class, 'update']);
     Route::middleware('permission:doctor.delete')->delete('doctors/{doctor}', [DoctorController::class, 'destroy']);
-
-    // ── Appointments & prescriptions ──────────────────────────────
-    Route::middleware('permission:appointment.view')->group(function () {
-        Route::get('appointments', [AppointmentController::class, 'index']);
-        Route::get('appointments/{appointment}', [AppointmentController::class, 'show']);
-        Route::get('appointments/{appointment}/vitals', [AppointmentController::class, 'showVitals']);
-    });
-    Route::middleware('permission:appointment.create')->post('appointments', [AppointmentController::class, 'store']);
-    Route::middleware('permission:appointment.edit')->group(function () {
-        Route::put('appointments/{appointment}', [AppointmentController::class, 'update']);
-        Route::put('appointments/{appointment}/vitals', [AppointmentController::class, 'updateVitals']);
-    });
-    Route::middleware('permission:appointment.delete')->delete('appointments/{appointment}', [AppointmentController::class, 'destroy']);
-
-    Route::middleware(['permission:prescription.view', 'audit.document'])->get('appointments/{appointment}/prescription', [AppointmentController::class, 'prescription']);
-    Route::middleware('permission:prescription.create')->post('appointments/{appointment}/prescription/upload', [AppointmentController::class, 'uploadPrescription']);
-
-    // ── Billing ───────────────────────────────────────────────────
-    Route::middleware('permission:billing.view')->group(function () {
-        Route::get('billings', [BillingController::class, 'index']);
-        Route::get('billings/{billing}', [BillingController::class, 'show']);
-        Route::middleware('audit.document')->get('billings/{billing}/invoice', [BillingController::class, 'invoice']);
-    });
-    Route::middleware('permission:billing.create')->post('billings', [BillingController::class, 'store']);
-    Route::middleware('permission:billing.edit')->put('billings/{billing}', [BillingController::class, 'update']);
-    Route::middleware('permission:billing.delete')->delete('billings/{billing}', [BillingController::class, 'destroy']);
 
     // ── Finance & P&L (company admin only) ────────────────────────
     Route::middleware('role:company_admin')->group(function () {

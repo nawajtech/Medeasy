@@ -1,7 +1,5 @@
 <?php
 
-use App\Models\Appointment;
-use App\Models\Billing;
 use App\Models\Branch;
 use App\Models\Company;
 use App\Models\Department;
@@ -16,7 +14,6 @@ use App\Models\LabOrder;
 use App\Models\LabTest;
 use App\Models\LabTestCategory;
 use App\Models\LabTestPackage;
-use App\Models\Medicine;
 use App\Models\Patient;
 use App\Models\ReferralCommissionPayout;
 use App\Models\ReferralPartner;
@@ -44,8 +41,6 @@ return [
      */
     'models' => [
         Patient::class => ['module' => 'patients', 'label' => 'name'],
-        Appointment::class => ['module' => 'appointments', 'label' => 'id'],
-        Billing::class => ['module' => 'billing', 'label' => 'id'],
         Doctor::class => ['module' => 'doctors', 'label' => 'id'],
         Department::class => ['module' => 'departments', 'label' => 'name'],
         Branch::class => ['module' => 'branches', 'label' => 'name'],
@@ -65,7 +60,6 @@ return [
         DiagnosticReport::class => ['module' => 'diagnostics', 'label' => 'id'],
         ReferralPartner::class => ['module' => 'diagnostics', 'label' => 'name'],
         ReferralCommissionPayout::class => ['module' => 'diagnostics', 'label' => 'id'],
-        Medicine::class => ['module' => 'medicine', 'label' => 'name'],
         Company::class => ['module' => 'companies', 'label' => 'name'],
     ],
 

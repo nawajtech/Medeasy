@@ -11,10 +11,6 @@ return [
      * tenant_core_modules are always available inside every tenant.
      */
     'company_module_map' => [
-        'clinic' => [
-            'dashboard', 'branches', 'departments', 'patients', 'appointments',
-            'doctors', 'prescriptions', 'billing', 'reports', 'medicine',
-        ],
         'laboratory' => ['lab', 'doctors'],
         'diagnostics' => ['diagnostics', 'doctors', 'departments'],
     ],
@@ -64,15 +60,6 @@ return [
                 'patient.delete' => 'Delete',
             ],
         ],
-        'appointments' => [
-            'label' => 'Appointments',
-            'permissions' => [
-                'appointment.view' => 'View',
-                'appointment.create' => 'Create',
-                'appointment.edit' => 'Edit',
-                'appointment.delete' => 'Delete',
-            ],
-        ],
         'doctors' => [
             'label' => 'Doctors',
             'permissions' => [
@@ -80,34 +67,6 @@ return [
                 'doctor.create' => 'Create',
                 'doctor.edit' => 'Edit',
                 'doctor.delete' => 'Delete',
-            ],
-        ],
-        'prescriptions' => [
-            'label' => 'Prescriptions',
-            'permissions' => [
-                'prescription.view' => 'View',
-                'prescription.create' => 'Create',
-                'prescription.edit' => 'Edit',
-                'prescription.delete' => 'Delete',
-                'prescription.print' => 'Print',
-            ],
-        ],
-        'medicine' => [
-            'label' => 'Medicine',
-            'permissions' => [
-                'medicine.view' => 'View',
-                'medicine.create' => 'Create',
-                'medicine.edit' => 'Edit',
-                'medicine.delete' => 'Delete',
-            ],
-        ],
-        'billing' => [
-            'label' => 'Billing',
-            'permissions' => [
-                'billing.view' => 'View',
-                'billing.create' => 'Create',
-                'billing.edit' => 'Edit',
-                'billing.delete' => 'Delete',
             ],
         ],
         'finance' => [
@@ -221,18 +180,14 @@ return [
         ],
         'company_admin' => [
             'label' => 'Admin',
-            'description' => 'Manages a single clinic or hospital tenant.',
+            'description' => 'Manages a single diagnostic centre or laboratory tenant.',
             'is_system' => true,
             'permissions' => [
                 'dashboard.*',
                 'branch.*',
                 'department.*',
                 'patient.*',
-                'appointment.*',
                 'doctor.*',
-                'prescription.*',
-                'medicine.*',
-                'billing.*',
                 'financial.*',
                 'lab.*',
                 'diagnostic.*',
@@ -245,67 +200,31 @@ return [
         ],
         'doctor' => [
             'label' => 'Doctor',
-            'description' => 'Clinical staff with patient and appointment access.',
+            'description' => 'Diagnostic or lab staff with patient and order access.',
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
                 'patient.view',
                 'patient.create',
                 'patient.edit',
-                'appointment.view',
-                'appointment.create',
-                'appointment.edit',
-                'prescription.*',
-                'medicine.view',
                 'lab.view',
                 'lab.create',
                 'diagnostic.view',
                 'diagnostic.create',
                 'diagnostic.edit',
-                'billing.view',
-            ],
-        ],
-        'nurse' => [
-            'label' => 'Nurse',
-            'description' => 'Nursing staff with patient care access.',
-            'is_system' => true,
-            'permissions' => [
-                'dashboard.view',
-                'patient.view',
-                'patient.edit',
-                'appointment.view',
-                'appointment.edit',
-                'prescription.view',
-                'medicine.view',
             ],
         ],
         'receptionist' => [
             'label' => 'Receptionist',
-            'description' => 'Front desk — patients, appointments, and billing.',
+            'description' => 'Front desk — patients and diagnostic/lab bookings.',
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
                 'patient.*',
-                'appointment.*',
-                'billing.view',
-                'billing.create',
-                'billing.edit',
-                'medicine.view',
                 'lab.view',
                 'lab.create',
                 'diagnostic.view',
                 'diagnostic.create',
-            ],
-        ],
-        'pharmacist' => [
-            'label' => 'Pharmacist',
-            'description' => 'Pharmacy and medicine management.',
-            'is_system' => true,
-            'permissions' => [
-                'dashboard.view',
-                'patient.view',
-                'medicine.*',
-                'prescription.view',
             ],
         ],
         'lab_technician' => [
@@ -334,24 +253,22 @@ return [
         ],
         'accountant' => [
             'label' => 'Accountant',
-            'description' => 'Billing, revenue, and financial reports.',
+            'description' => 'Revenue, expenses, and financial reports.',
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
-                'billing.*',
+                'financial.*',
                 'report.*',
                 'patient.view',
             ],
         ],
         'staff' => [
             'label' => 'General Staff',
-            'description' => 'General clinic staff with limited access.',
+            'description' => 'General staff with limited access.',
             'is_system' => true,
             'permissions' => [
                 'dashboard.view',
                 'patient.view',
-                'appointment.view',
-                'medicine.view',
                 'lab.view',
                 'diagnostic.view',
             ],

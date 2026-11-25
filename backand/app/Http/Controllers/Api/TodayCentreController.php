@@ -4,8 +4,6 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Concerns\HandlesTenancy;
 use App\Http\Controllers\Controller;
-use App\Models\Appointment;
-use App\Models\Billing;
 use App\Models\DiagnosticOrder;
 use App\Models\DiagnosticOrderPayment;
 use App\Models\Patient;
@@ -36,22 +34,7 @@ class TodayCentreController extends Controller
         $end = $today->copy()->endOfDay();
 
         $canDiagnostics = $user->can('diagnostic.view') || $user->isSuperAdmin() || $user->isCompanyAdmin();
-        $canAppointments = $user->can('appointment.view') || $user->isSuperAdmin() || $user->isCompanyAdmin();
         $canPatients = $user->can('patient.view') || $user->isSuperAdmin() || $user->isCompanyAdmin();
-        $canBilling = $user->can('billing.view') || $user->isSuperAdmin() || $user->isCompanyAdmin();
-
-        $companyModules = collect($user->company?->modules ?? [])->map(fn ($m) => (string) $m)->all();
-        if ($user->isSuperAdmin() && $companyId) {
-            $scopedCompany = \App\Models\Company::query()->find($companyId);
-            $companyModules = collect($scopedCompany?->modules ?? [])->map(fn ($m) => (string) $m)->all();
-        }
-        $hasClinicModule = in_array('clinic', $companyModules, true);
-        $hasDiagnosticsModule = in_array('diagnostics', $companyModules, true) || ($canDiagnostics && $companyModules === []);
-        // Super admin with no company filter: treat as multi-module (show clinic panel when data exists).
-        if ($user->isSuperAdmin() && ! $companyId) {
-            $hasClinicModule = true;
-            $hasDiagnosticsModule = true;
-        }
 
         $summary = [
             'appointments_today' => 0,
@@ -138,13 +121,10 @@ class TodayCentreController extends Controller
                 ->values()
                 ->all();
 
-            // For diagnostic centres, "Today's Appointments" = today's diagnostic bookings (with order #).
-            if ($hasDiagnosticsModule && ! $hasClinicModule) {
-                $appointments = array_values(array_filter(
-                    $queue,
-                    fn (array $row) => in_array($row['status'], ['booked', 'scheduled', 'in_progress'], true)
-                ));
-            }
+            $appointments = array_values(array_filter(
+                $queue,
+                fn (array $row) => in_array($row['status'], ['booked', 'scheduled', 'in_progress'], true)
+            ));
 
             $reports = (clone $diagActive)
                 ->where('status', 'completed')
@@ -254,60 +234,11 @@ class TodayCentreController extends Controller
             }
         }
 
-        if ($canAppointments && $hasClinicModule) {
-            $apptBase = Appointment::query()
-                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
-                ->when($branchId, fn ($q) => $q->where('branch_id', $branchId))
-                ->when($doctorId, fn ($q) => $q->where('doctor_id', $doctorId))
-                ->whereDate('appointment_date', $today->toDateString());
-
-            $apptQuery = (clone $apptBase)->where('status', '!=', 'cancelled');
-
-            $clinicToday = (clone $apptQuery)->count();
-            if ($clinicToday > 0 || ! $canDiagnostics) {
-                $summary['appointments_today'] = $clinicToday;
-            }
-
-            $summary['cancelled_today'] += (clone $apptBase)->where('status', 'cancelled')->count();
-
-            $appointments = (clone $apptQuery)
-                ->with(['patient:id,name,patient_code', 'doctor.user:id,name'])
-                ->orderBy('appointment_date')
-                ->limit(20)
-                ->get()
-                ->map(fn (Appointment $a) => [
-                    'id' => $a->id,
-                    'type' => 'clinic',
-                    'patient' => $a->patient?->name,
-                    'patient_code' => $a->patient?->patient_code,
-                    'time' => optional($a->appointment_date)->format('h:i A'),
-                    'doctor' => $a->doctor?->user?->name,
-                    'status' => $a->status,
-                    'scheduled_at' => optional($a->appointment_date)->toIso8601String(),
-                ])
-                ->values()
-                ->all();
-        }
-
         if ($canPatients) {
             $summary['patients_today'] = Patient::query()
                 ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
                 ->whereBetween('created_at', [$today, $end])
                 ->count();
-        }
-
-        if ($canBilling) {
-            $billingToday = (float) Billing::query()
-                ->when($companyId, fn ($q) => $q->where('company_id', $companyId))
-                ->when($branchId, function ($q) use ($branchId) {
-                    $q->whereHas('appointment', fn ($a) => $a->where('branch_id', $branchId));
-                })
-                ->whereDate('paid_at', $today->toDateString())
-                ->sum('paid_amount');
-
-            $summary['collection_today'] = round(((float) $summary['collection_today']) + $billingToday, 2);
-            $payments['collected_today'] = round(((float) $payments['collected_today']) + $billingToday, 2);
-            $payments['billing_collected_today'] = round($billingToday, 2);
         }
 
         return response()->json([
@@ -320,11 +251,8 @@ class TodayCentreController extends Controller
             ],
             'access' => [
                 'diagnostics' => $canDiagnostics,
-                'appointments' => $canAppointments && ($hasClinicModule || ($canDiagnostics && ! $hasClinicModule)),
-                'clinic_appointments' => $canAppointments && $hasClinicModule,
-                'diagnostic_appointments' => $canDiagnostics && ! $hasClinicModule,
+                'diagnostic_appointments' => $canDiagnostics,
                 'patients' => $canPatients,
-                'billing' => $canBilling,
             ],
             'summary' => $summary,
             'queue' => $queue,

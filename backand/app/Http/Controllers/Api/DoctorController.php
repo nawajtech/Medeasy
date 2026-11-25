@@ -9,7 +9,6 @@ use App\Models\Company;
 use App\Models\Department;
 use App\Models\Doctor;
 use App\Models\User;
-use App\Services\DoctorAvailabilityService;
 use App\Services\UniqueCodeGenerator;
 use App\Services\UserRoleService;
 use App\Support\ContactRules;
@@ -110,8 +109,6 @@ class DoctorController extends Controller
                 'bio' => $validated['bio'] ?? null,
             ]);
 
-            app(DoctorAvailabilityService::class)->seedDefaultWeek($created);
-
             return $created->load(['user', 'department', 'company']);
         });
 
@@ -141,7 +138,7 @@ class DoctorController extends Controller
 
         $validated = $request->validate($this->rules($doctor, $doctor->company_id));
         // doctor_type is immutable after create — always keep the stored value.
-        $doctorType = $doctor->doctor_type ?: Doctor::TYPE_CLINIC;
+        $doctorType = $doctor->doctor_type ?: Doctor::TYPE_DIAGNOSTIC;
         $validated = $this->applyConsultationFeeForCompany($validated, $doctor->company_id, $doctorType);
         $this->assertDepartmentInCompany($validated['department_id'], $doctor->company_id);
 
@@ -257,7 +254,7 @@ class DoctorController extends Controller
             foreach ($query->cursor() as $doctor) {
                 yield [
                     $doctor->doctor_code,
-                    $doctor->doctor_type ?: Doctor::TYPE_CLINIC,
+                    $doctor->doctor_type ?: Doctor::TYPE_DIAGNOSTIC,
                     $doctor->name,
                     $doctor->email,
                     $doctor->phone,
@@ -297,7 +294,7 @@ class DoctorController extends Controller
 
         $sampleRows = [[
             '',
-            'clinic',
+            'diagnostic',
             'Dr. Jane Smith',
             'jane.smith@example.com',
             '9876500001',
@@ -328,7 +325,7 @@ class DoctorController extends Controller
 
         $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
-        $importDoctorType = $this->normalizeDoctorType($request->input('doctor_type')) ?: Doctor::TYPE_CLINIC;
+        $importDoctorType = $this->normalizeDoctorType($request->input('doctor_type')) ?: Doctor::TYPE_DIAGNOSTIC;
 
         try {
             $sheet = SpreadsheetIO::readUploadedFile($request->file('file'));
@@ -449,9 +446,7 @@ class DoctorController extends Controller
                 'bio' => $this->nullableString(SpreadsheetIO::cell($row, $columnMap, 'bio')),
             ];
 
-            if ($rowDoctorType !== Doctor::TYPE_CLINIC || ! $company->hasModule(Company::MODULE_CLINIC)) {
-                $doctorPayload['consultation_fee'] = 0;
-            }
+            $doctorPayload['consultation_fee'] = 0;
 
             $doctorCode = SpreadsheetIO::cell($row, $columnMap, 'doctor_code');
             if ($doctorCode !== '') {
@@ -505,7 +500,6 @@ class DoctorController extends Controller
                                 : $codes->forDoctor($name, (string) $company->name, $companyId),
                         ]);
 
-                        app(DoctorAvailabilityService::class)->seedDefaultWeek($doctor);
                     });
                     $imported++;
                 }
@@ -604,12 +598,9 @@ class DoctorController extends Controller
         ];
     }
 
-    private function applyConsultationFeeForCompany(array $validated, int $companyId, string $doctorType = Doctor::TYPE_CLINIC): array
+    private function applyConsultationFeeForCompany(array $validated, int $companyId, string $doctorType = Doctor::TYPE_DIAGNOSTIC): array
     {
-        $company = Company::find($companyId);
-        if ($doctorType !== Doctor::TYPE_CLINIC || ($company && ! $company->hasModule(Company::MODULE_CLINIC))) {
-            $validated['consultation_fee'] = 0;
-        }
+        $validated['consultation_fee'] = 0;
 
         return $validated;
     }
@@ -620,7 +611,6 @@ class DoctorController extends Controller
 
         // Accept company module keys as aliases.
         $aliases = [
-            'clinic' => Doctor::TYPE_CLINIC,
             'diagnostic' => Doctor::TYPE_DIAGNOSTIC,
             'diagnostics' => Doctor::TYPE_DIAGNOSTIC,
             'lab' => Doctor::TYPE_LAB,

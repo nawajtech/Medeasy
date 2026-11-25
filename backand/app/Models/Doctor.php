@@ -10,12 +10,10 @@ class Doctor extends Model
 {
     use BelongsToCompany, SoftDeletes;
 
-    public const TYPE_CLINIC = 'clinic';
     public const TYPE_DIAGNOSTIC = 'diagnostic';
     public const TYPE_LAB = 'lab';
 
     public const TYPES = [
-        self::TYPE_CLINIC,
         self::TYPE_DIAGNOSTIC,
         self::TYPE_LAB,
     ];
@@ -53,19 +51,9 @@ class Doctor extends Model
         return $this->belongsTo(Department::class);
     }
 
-    public function appointments()
-    {
-        return $this->hasMany(Appointment::class);
-    }
-
     public function branch()
     {
         return $this->belongsTo(Branch::class);
-    }
-
-    public function availabilities()
-    {
-        return $this->hasMany(DoctorAvailability::class);
     }
 
     public function diagnosticTestTypes()

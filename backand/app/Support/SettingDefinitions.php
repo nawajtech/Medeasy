@@ -4,7 +4,7 @@ namespace App\Support;
 
 class SettingDefinitions
 {
-    public const GROUPS = ['general', 'billing', 'appointments', 'notifications', 'content'];
+    public const GROUPS = ['general', 'billing', 'notifications', 'content'];
 
     public static function all(): array
     {
@@ -144,15 +144,8 @@ class SettingDefinitions
                 'placeholder' => 'Thank you for choosing our organisation.',
             ],
             [
-                'key' => 'appointment_slot_minutes',
-                'label' => 'Default appointment duration (minutes)',
-                'group' => 'appointments',
-                'type' => 'number',
-                'default' => '30',
-            ],
-            [
                 'key' => 'appointment_reminder_hours',
-                'label' => 'Appointment reminder (hours before)',
+                'label' => 'Order reminder (hours before scheduled visit)',
                 'group' => 'notifications',
                 'type' => 'number',
                 'default' => '24',

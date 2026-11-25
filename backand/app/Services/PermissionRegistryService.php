@@ -94,7 +94,7 @@ class PermissionRegistryService
     /** @return array<int, string> */
     public function permissionModuleKeysForCompany(Company $company): array
     {
-        $modules = Company::normalizeModules($company->modules ?? [Company::MODULE_CLINIC]);
+        $modules = Company::normalizeModules($company->modules ?? []);
         $map = config('permissions.company_module_map', []);
         $core = config('permissions.tenant_core_modules', []);
 
