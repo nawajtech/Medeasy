@@ -54,18 +54,15 @@ export default function PartnerDashboard() {
       <section className="pt-dash-hero">
         <p className="pt-page-header__eyebrow">Welcome back</p>
         <h1>Hi {firstName}</h1>
-        <p>Manage centres, referrals, and earnings from one partner workspace.</p>
+        <p>Track centres, referrals, and earnings in one place.</p>
         <div className="pt-dash-hero__actions">
-          <Link to="/centres" className="pt-btn">
-            Explore centres
-          </Link>
           {activeCentreId ? (
-            <Link to={`/centres/${activeCentreId}/book`} className="pt-btn pt-btn--ghost">
+            <Link to={`/centres/${activeCentreId}/book`} className="pt-btn">
               Refer a patient
             </Link>
           ) : (
-            <Link to="/requests" className="pt-btn pt-btn--ghost">
-              View requests
+            <Link to="/centres" className="pt-btn">
+              Explore centres
             </Link>
           )}
         </div>
@@ -77,48 +74,6 @@ export default function PartnerDashboard() {
         <LoadingBlock label="Loading dashboard…" />
       ) : (
         <>
-          <div className="pt-quick-grid">
-            <Link to="/centres" className="pt-quick pt-quick--teal">
-              <span className="pt-ico pt-ico--teal" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-                  <path d="M3 10.5 12 3l9 7.5" strokeLinecap="round" strokeLinejoin="round" />
-                  <path d="M5.5 9.5V20h13V9.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <strong>Centres</strong>
-              <span>Browse & connect</span>
-            </Link>
-            <Link to="/referrals" className="pt-quick pt-quick--green">
-              <span className="pt-ico pt-ico--green" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-                  <rect x="3.5" y="5" width="17" height="15" rx="2" />
-                  <path d="M8 3.5V7M16 3.5V7M3.5 10h17" strokeLinecap="round" />
-                </svg>
-              </span>
-              <strong>Referrals</strong>
-              <span>Track bookings</span>
-            </Link>
-            <Link to="/chats" className="pt-quick pt-quick--violet">
-              <span className="pt-ico pt-ico--violet" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-                  <path d="M5 6.5h14a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H10l-4.5 3v-3H5a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2Z" strokeLinejoin="round" />
-                </svg>
-              </span>
-              <strong>Chats</strong>
-              <span>Message centres</span>
-            </Link>
-            <Link to="/earnings" className="pt-quick pt-quick--amber">
-              <span className="pt-ico pt-ico--amber" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9">
-                  <circle cx="12" cy="12" r="8.5" />
-                  <path d="M12 7.5v9" strokeLinecap="round" />
-                </svg>
-              </span>
-              <strong>Earnings</strong>
-              <span>View commission</span>
-            </Link>
-          </div>
-
           {(data?.centres || []).length > 0 ? (
             <Toolbar>
               <div className="pt-field" style={{ margin: 0 }}>
