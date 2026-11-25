@@ -23,3 +23,7 @@ env
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# User-manual docs live at repo root: /docs/user-manual/ (ignored in root .gitignore).
+# Keep this only if a local copy appears under backand/docs:
+/docs/user-manual/
