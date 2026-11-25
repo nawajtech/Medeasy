@@ -123,7 +123,7 @@ export default function ExploreCentres() {
     <div>
       <PageHeader
         title="Explore Diagnostic Centres"
-        subtitle="Discover diagnostic centres, explore available services, and request referral partnerships."
+        subtitle="Find centres, review services, and request referral partnerships."
       />
 
       <Toolbar>

@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { titleCase } from "../utils/format";
 
-export function PageHeader({ eyebrow = "Partner Portal", title, subtitle, actions }) {
+export function PageHeader({ eyebrow, title, subtitle, actions }) {
   return (
     <header className="pt-page-header">
       <div className="pt-page-header__copy">
