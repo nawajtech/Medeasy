@@ -78,6 +78,13 @@ export function getRouteMeta(pathname) {
       description: "Manage referral partners — doctors, clinics, hospitals, and agents.",
     };
   }
+  if (pathname === "/diagnostics/partner-requests") {
+    return {
+      title: "Requested partner referral",
+      breadcrumb: "Requested partner referral",
+      description: "Approve or reject partnership requests from the partner portal.",
+    };
+  }
   if (pathname === "/diagnostics/orders") {
     return {
       title: "Diagnostic Orders",

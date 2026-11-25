@@ -245,15 +245,24 @@ export default function CentreDetail() {
         title={centre.name}
         subtitle={[centre.address, centre.city, centre.phone].filter(Boolean).join(" · ")}
         actions={
-          !approved && centre.partnership_status !== "pending" ? (
-            <button type="button" className="pt-btn" onClick={() => setShowRequestModal(true)}>
-              Request partnership
+          <>
+            <button
+              type="button"
+              className="pt-btn pt-btn--ghost"
+              onClick={() => navigate(`/chats?company_id=${centre.id}`)}
+            >
+              Chat
             </button>
-          ) : approved && !forceBook ? (
-            <Link to={`/centres/${centre.id}/book`} className="pt-btn">
-              Refer a patient
-            </Link>
-          ) : null
+            {!approved && centre.partnership_status !== "pending" ? (
+              <button type="button" className="pt-btn" onClick={() => setShowRequestModal(true)}>
+                Request partnership
+              </button>
+            ) : approved && !forceBook ? (
+              <Link to={`/centres/${centre.id}/book`} className="pt-btn">
+                Refer a patient
+              </Link>
+            ) : null}
+          </>
         }
       />
 

@@ -1717,6 +1717,23 @@ html:has(.pt-auth) {
   right: 6px;
 }
 
+.pt-bottom-nav__icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pt-nav-badge--dot {
+  position: absolute;
+  top: -6px;
+  right: -10px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  font-size: 0.7rem;
+}
+
 /* -- Partner portal (referral doctor / clinic) --------- */
 .pk-stat-grid {
   display: grid;

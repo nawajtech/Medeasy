@@ -15,6 +15,7 @@ import ReferralDetail from "./pages/ReferralDetail";
 import BookingConfirmation from "./pages/BookingConfirmation";
 import PartnerEarnings from "./pages/PartnerEarnings";
 import PartnerProfile from "./pages/PartnerProfile";
+import PartnerChats from "./pages/PartnerChats";
 import "./styles/partner.css";
 
 export default function PartnerApp() {
@@ -35,6 +36,7 @@ export default function PartnerApp() {
               <Route path="centres" element={<ExploreCentres />} />
               <Route path="centres/:centreId" element={<CentreDetail />} />
               <Route path="centres/:centreId/book" element={<CentreDetail />} />
+              <Route path="chats" element={<PartnerChats />} />
               <Route path="requests" element={<PartnershipRequests />} />
               <Route path="referrals" element={<MyReferrals />} />
               <Route path="referrals/:orderId" element={<ReferralDetail />} />

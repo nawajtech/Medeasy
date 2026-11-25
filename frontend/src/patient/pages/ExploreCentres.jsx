@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { listCentres, requestPartnership } from "../api/portal";
 import {
   Alert,
@@ -12,6 +12,7 @@ import {
 import { getApiErrorMessage } from "../../utils/apiError";
 
 export default function ExploreCentres() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [city, setCity] = useState("");
   const [category, setCategory] = useState("");
@@ -20,8 +21,14 @@ export default function ExploreCentres() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [actingId, setActingId] = useState(null);
+  const [chatActingId, setChatActingId] = useState(null);
   const [modalCentre, setModalCentre] = useState(null);
   const [message, setMessage] = useState("We would like to refer patients for diagnostics.");
+
+  const openChat = (centre) => {
+    setChatActingId(centre.id);
+    navigate(`/chats?company_id=${centre.id}`);
+  };
 
   useEffect(() => {
     let active = true;
@@ -156,6 +163,14 @@ export default function ExploreCentres() {
                 <Link to={`/centres/${centre.id}`} className="pt-btn pt-btn--ghost">
                   View details
                 </Link>
+                <button
+                  type="button"
+                  className="pt-btn pt-btn--ghost"
+                  disabled={chatActingId === centre.id}
+                  onClick={() => openChat(centre)}
+                >
+                  {chatActingId === centre.id ? "Opening…" : "Chat"}
+                </button>
                 {centre.partnership_status === "approved" ? (
                   <Link to={`/centres/${centre.id}/book`} className="pt-btn">
                     Refer patient

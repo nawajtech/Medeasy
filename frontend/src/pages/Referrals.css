@@ -1,3 +1,26 @@
+.ref-page .crud-inline-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--me-text-secondary);
+}
+
+.ref-page .crud-inline-filter select {
+  height: 40px;
+  min-width: 140px;
+  padding: 0 32px 0 12px;
+  border: 1px solid var(--me-border);
+  border-radius: var(--me-radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--me-surface);
+  color: var(--me-text);
+  cursor: pointer;
+}
+
 .ref-page .ref-address-preview {
   margin-top: 0.2rem;
   font-size: 0.85rem;
