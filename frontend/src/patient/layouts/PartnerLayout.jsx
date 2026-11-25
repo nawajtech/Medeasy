@@ -46,13 +46,6 @@ const Icon = {
       <path d="M5.5 19.2c1.6-3 4-4.5 6.5-4.5s4.9 1.5 6.5 4.5" strokeLinecap="round" />
     </svg>
   ),
-  more: (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
-      <circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none" />
-      <circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none" />
-    </svg>
-  ),
   logout: (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true">
       <path d="M10 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h4" strokeLinecap="round" />
@@ -61,27 +54,14 @@ const Icon = {
   ),
 };
 
-const SIDEBAR_LINKS = [
-  { to: "/", label: "Dashboard", end: true, tone: "blue", icon: Icon.home },
-  { to: "/centres", label: "Centres", tone: "teal", icon: Icon.centres },
-  { to: "/chats", label: "Chats", tone: "violet", icon: Icon.chats },
-  { to: "/requests", label: "Requests", tone: "orange", icon: Icon.requests },
-  { to: "/referrals", label: "Referrals", tone: "green", icon: Icon.referrals },
-  { to: "/earnings", label: "Earnings", tone: "amber", icon: Icon.earnings },
-  { to: "/profile", label: "Profile", tone: "sky", icon: Icon.profile },
-];
-
-const BOTTOM_LINKS = [
-  { to: "/", label: "Home", end: true, tone: "blue", icon: Icon.home },
-  { to: "/centres", label: "Centres", tone: "teal", icon: Icon.centres },
-  { to: "/chats", label: "Chats", tone: "violet", icon: Icon.chats },
-  { to: "/referrals", label: "Referrals", tone: "green", icon: Icon.referrals },
-];
-
-const MORE_LINKS = [
-  { to: "/requests", label: "Requests", tone: "orange", icon: Icon.requests },
-  { to: "/earnings", label: "Earnings", tone: "amber", icon: Icon.earnings },
-  { to: "/profile", label: "Profile", tone: "sky", icon: Icon.profile },
+const NAV_LINKS = [
+  { to: "/", label: "Home", short: "Home", end: true, tone: "blue", icon: Icon.home },
+  { to: "/centres", label: "Centres", short: "Centres", tone: "teal", icon: Icon.centres },
+  { to: "/chats", label: "Chats", short: "Chats", tone: "violet", icon: Icon.chats },
+  { to: "/requests", label: "Requests", short: "Requests", tone: "orange", icon: Icon.requests },
+  { to: "/referrals", label: "Referrals", short: "Refer", tone: "green", icon: Icon.referrals },
+  { to: "/earnings", label: "Earnings", short: "Earn", tone: "amber", icon: Icon.earnings },
+  { to: "/profile", label: "Profile", short: "Profile", tone: "sky", icon: Icon.profile },
 ];
 
 const PAGE_TITLES = [
@@ -124,9 +104,7 @@ export default function PartnerLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const [chatUnread, setChatUnread] = useState(0);
-  const [moreOpen, setMoreOpen] = useState(false);
   const title = useMemo(() => pageTitle(location.pathname), [location.pathname]);
-  const moreActive = MORE_LINKS.some((link) => location.pathname.startsWith(link.to));
 
   useEffect(() => {
     let active = true;
@@ -146,32 +124,14 @@ export default function PartnerLayout() {
     };
   }, []);
 
-  useEffect(() => {
-    setMoreOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    if (!moreOpen) return undefined;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    const onKey = (event) => {
-      if (event.key === "Escape") setMoreOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.body.style.overflow = prev;
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [moreOpen]);
-
   const handleLogout = async () => {
-    setMoreOpen(false);
     await logout();
     navigate("/login");
   };
 
   return (
     <div className="pt-app">
+      {/* Desktop full sidebar */}
       <aside className="pt-sidebar" aria-label="Partner navigation">
         <Link to="/" className="pt-sidebar__brand">
           <img src="/apnamedi-logo.png" alt="ApnaMedi" className="pt-logo-full" />
@@ -179,7 +139,7 @@ export default function PartnerLayout() {
         </Link>
 
         <nav className="pt-sidebar__nav">
-          {SIDEBAR_LINKS.map((link) => (
+          {NAV_LINKS.map((link) => (
             <NavLink key={link.to} to={link.to} end={link.end} className={navClass}>
               <NavIcon tone={link.tone}>{link.icon}</NavIcon>
               <span className="pt-nav__label">{link.label}</span>
@@ -207,6 +167,27 @@ export default function PartnerLayout() {
         </div>
       </aside>
 
+      {/* Mobile left icon rail */}
+      <nav className="pt-rail" aria-label="Partner menu">
+        {NAV_LINKS.map((link) => (
+          <NavLink key={link.to} to={link.to} end={link.end} className={navClass}>
+            <span className="pt-rail__icon">
+              <NavIcon tone={link.tone}>{link.icon}</NavIcon>
+              {link.to === "/chats" && chatUnread > 0 ? (
+                <span className="pt-nav-badge pt-nav-badge--dot">{chatUnread > 9 ? "9+" : chatUnread}</span>
+              ) : null}
+            </span>
+            <span className="pt-rail__label">{link.short}</span>
+          </NavLink>
+        ))}
+        <button type="button" className="pt-rail__logout" onClick={handleLogout} aria-label="Log out">
+          <span className="pt-rail__icon">
+            <NavIcon tone="rose">{Icon.logout}</NavIcon>
+          </span>
+          <span className="pt-rail__label">Logout</span>
+        </button>
+      </nav>
+
       <div className="pt-shell">
         <header className="pt-topbar">
           <div className="pt-topbar__copy">
@@ -225,61 +206,6 @@ export default function PartnerLayout() {
             <Outlet />
           </div>
         </main>
-      </div>
-
-      <nav className="pt-bottom-nav" aria-label="Primary">
-        {BOTTOM_LINKS.map((link) => (
-          <NavLink key={link.to} to={link.to} end={link.end} className={navClass}>
-            <span className="pt-bottom-nav__icon">
-              <NavIcon tone={link.tone}>{link.icon}</NavIcon>
-              {link.to === "/chats" && chatUnread > 0 ? (
-                <span className="pt-nav-badge pt-nav-badge--dot">{chatUnread > 9 ? "9+" : chatUnread}</span>
-              ) : null}
-            </span>
-            <span>{link.label}</span>
-          </NavLink>
-        ))}
-        <button
-          type="button"
-          className={`pt-bottom-nav__more${moreOpen || moreActive ? " is-active" : ""}`}
-          aria-expanded={moreOpen}
-          aria-controls="pt-more-sheet"
-          onClick={() => setMoreOpen((open) => !open)}
-        >
-          <span className="pt-bottom-nav__icon">
-            <NavIcon tone="slate">{Icon.more}</NavIcon>
-          </span>
-          <span>More</span>
-        </button>
-      </nav>
-
-      <div
-        className={`pt-sheet-backdrop${moreOpen ? " is-open" : ""}`}
-        aria-hidden={!moreOpen}
-        onClick={() => setMoreOpen(false)}
-      />
-      <div
-        id="pt-more-sheet"
-        className={`pt-sheet${moreOpen ? " is-open" : ""}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="More options"
-        aria-hidden={!moreOpen}
-      >
-        <div className="pt-sheet__handle" aria-hidden="true" />
-        <p className="pt-sheet__title">More</p>
-        <div className="pt-sheet__list">
-          {MORE_LINKS.map((link) => (
-            <NavLink key={link.to} to={link.to} className={navClass} onClick={() => setMoreOpen(false)}>
-              <NavIcon tone={link.tone}>{link.icon}</NavIcon>
-              <span>{link.label}</span>
-            </NavLink>
-          ))}
-          <button type="button" className="pt-sheet__logout" onClick={handleLogout}>
-            <NavIcon tone="rose">{Icon.logout}</NavIcon>
-            <span>Log out</span>
-          </button>
-        </div>
       </div>
     </div>
   );
