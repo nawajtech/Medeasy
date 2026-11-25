@@ -43,9 +43,9 @@ export default function PartnershipRequests() {
     <div>
       <PageHeader
         title="Partnership requests"
-        subtitle="Track partnership requests you sent to diagnostic centres and continue once approved."
+        subtitle="Track requests sent to diagnostic centres."
         actions={
-          <Link to="/centres" className="pt-btn">
+          <Link to="/centres" className="pt-btn pt-btn--sm">
             Explore centres
           </Link>
         }

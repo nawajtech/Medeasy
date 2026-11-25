@@ -63,9 +63,9 @@ export default function MyReferrals() {
     <div>
       <PageHeader
         title="My Referrals"
-        subtitle="Track referral bookings, appointment status, and commission eligibility."
+        subtitle="Track bookings, status, and commission eligibility."
         actions={
-          <Link to="/centres" className="pt-btn">
+          <Link to="/centres" className="pt-btn pt-btn--sm">
             New referral
           </Link>
         }

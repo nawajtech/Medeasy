@@ -45,7 +45,7 @@ export default function PartnerEarnings() {
     <div>
       <PageHeader
         title="Earnings"
-        subtitle="Review eligible commission, pending balances, and payouts recorded by diagnostic centres."
+        subtitle="Commission summary, ledger, and payout history."
       />
 
       <Alert type="error">{error}</Alert>

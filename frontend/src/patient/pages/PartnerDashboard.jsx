@@ -52,11 +52,9 @@ export default function PartnerDashboard() {
   return (
     <div>
       <section className="pt-dash-hero">
-        <p className="pt-page-header__eyebrow" style={{ color: "rgba(255,255,255,0.88)" }}>
-          ApnaMedi Partner Portal
-        </p>
-        <h1>Hi {firstName}, grow your referral network</h1>
-        <p>Connect with diagnostic centres, track referrals, and monitor earnings in one place.</p>
+        <p className="pt-page-header__eyebrow">Welcome back</p>
+        <h1>Hi {firstName}</h1>
+        <p>Manage centres, referrals, and earnings from one partner workspace.</p>
         <div className="pt-dash-hero__actions">
           <Link to="/centres" className="pt-btn">
             Explore centres
@@ -79,6 +77,25 @@ export default function PartnerDashboard() {
         <LoadingBlock label="Loading dashboard…" />
       ) : (
         <>
+          <div className="pt-quick-grid">
+            <Link to="/centres" className="pt-quick pt-quick--blue">
+              <strong>Find centres</strong>
+              <span>Browse & connect</span>
+            </Link>
+            <Link to="/referrals" className="pt-quick pt-quick--teal">
+              <strong>Referrals</strong>
+              <span>Track bookings</span>
+            </Link>
+            <Link to="/chats" className="pt-quick pt-quick--blue">
+              <strong>Chats</strong>
+              <span>Message centres</span>
+            </Link>
+            <Link to="/earnings" className="pt-quick pt-quick--teal">
+              <strong>Earnings</strong>
+              <span>View commission</span>
+            </Link>
+          </div>
+
           {(data?.centres || []).length > 0 ? (
             <Toolbar>
               <div className="pt-field" style={{ margin: 0 }}>
@@ -100,18 +117,18 @@ export default function PartnerDashboard() {
 
           <StatGrid>
             <StatCard tone="blue" label="Connected centres" value={stats.connected_centres ?? 0} to="/centres" />
-            <StatCard tone="green" label="Pending requests" value={stats.pending_requests ?? 0} to="/requests" />
-            <StatCard tone="blue" label="Total referrals" value={stats.total_referrals ?? 0} to="/referrals" />
+            <StatCard tone="green" label="Approved" value={stats.approved_partnerships ?? 0} to="/requests" />
+            <StatCard tone="blue" label="Pending requests" value={stats.pending_requests ?? 0} to="/requests" />
+            <StatCard tone="green" label="Total referrals" value={stats.total_referrals ?? 0} to="/referrals" />
+            <StatCard label="Upcoming" value={stats.upcoming_bookings ?? 0} to="/referrals" />
+            <StatCard label="Completed" value={stats.completed_referrals ?? 0} to="/referrals" />
             <StatCard
               tone="green"
               label="Pending earnings"
               value={money(stats.eligible_pending_earnings, { compact: true })}
               to="/earnings"
             />
-            <StatCard label="Upcoming bookings" value={stats.upcoming_bookings ?? 0} to="/referrals" />
-            <StatCard label="Completed referrals" value={stats.completed_referrals ?? 0} to="/referrals" />
             <StatCard label="Paid earnings" value={money(stats.paid_earnings, { compact: true })} to="/earnings" />
-            <StatCard label="Approved partnerships" value={stats.approved_partnerships ?? 0} to="/requests" />
           </StatGrid>
 
           <Section
@@ -150,8 +167,8 @@ export default function PartnerDashboard() {
           </Section>
 
           <Section
-            title="Recent partnership requests"
-            subtitle="Status of your centre requests"
+            title="Recent requests"
+            subtitle="Partnership request status"
             action={<Link to="/requests">View all</Link>}
           >
             {(data?.recent_requests || []).length === 0 ? (

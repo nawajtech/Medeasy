@@ -73,7 +73,7 @@ export default function PartnerProfile() {
     <div>
       <PageHeader
         title="Partner profile"
-        subtitle="Keep your organisation details up to date for diagnostic centre partnerships."
+        subtitle="Organisation details and account security."
       />
 
       <Alert type="success">{message}</Alert>
