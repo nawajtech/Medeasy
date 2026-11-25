@@ -43,7 +43,7 @@ export default function PartnershipRequests() {
     <div>
       <PageHeader
         title="Partnership requests"
-        subtitle="Track requests you sent to diagnostic centres."
+        subtitle="Track partnership requests you sent to diagnostic centres and continue once approved."
         actions={
           <Link to="/centres" className="pt-btn">
             Explore centres
@@ -52,15 +52,17 @@ export default function PartnershipRequests() {
       />
 
       <Toolbar>
-        <div className="pt-field" style={{ margin: 0, maxWidth: 280 }}>
-          <label htmlFor="status">Filter by status</label>
-          <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">All statuses</option>
-            <option value="pending">Pending</option>
-            <option value="approved">Approved</option>
-            <option value="rejected">Rejected</option>
-            <option value="suspended">Suspended</option>
-          </select>
+        <div className="pt-toolbar__row">
+          <div className="pt-field" style={{ margin: 0 }}>
+            <label htmlFor="status">Filter by status</label>
+            <select id="status" value={status} onChange={(e) => setStatus(e.target.value)}>
+              <option value="">All statuses</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="suspended">Suspended</option>
+            </select>
+          </div>
         </div>
       </Toolbar>
 
